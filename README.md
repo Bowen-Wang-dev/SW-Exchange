@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.1 Foundation`
+Current completed milestone: `v0.2 Auth + CEX UI Shell`
 
-Next milestone: `v0.2 Auth + CEX UI Shell`
+Next milestone: `v0.3 Admin Airdrop + Wallet Viewer`
 
 This version is intentionally limited:
 
@@ -26,8 +26,8 @@ Current scope:
 
 ## Milestone status
 
-- Current completed milestone: `v0.1 Foundation`
-- In progress next milestone: `v0.2 Auth + CEX UI Shell`
+- Current completed milestone: `v0.2 Auth + CEX UI Shell`
+- Next milestone: `v0.3 Admin Airdrop + Wallet Viewer`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
 
