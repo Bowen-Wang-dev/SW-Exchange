@@ -1,17 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4efe5;
-  --foreground: #111111;
-  --card: rgba(255, 252, 247, 0.78);
-  --card-strong: rgba(255, 248, 237, 0.95);
-  --border: rgba(17, 17, 17, 0.12);
-  --accent: #0d9488;
-  --accent-strong: #115e59;
-  --accent-soft: rgba(13, 148, 136, 0.12);
-  --warn: #c2410c;
-  --muted: #5f5a52;
-  --shadow: 0 22px 70px rgba(58, 39, 16, 0.12);
+  color-scheme: dark;
+  --background: #050816;
+  --background-strong: #0a1020;
+  --background-elevated: #0f172d;
+  --foreground: #edf2ff;
+  --foreground-soft: #9aa6c7;
+  --foreground-muted: #6e7b9a;
+  --border: rgba(131, 146, 181, 0.18);
+  --border-strong: rgba(131, 146, 181, 0.32);
+  --panel: rgba(11, 18, 36, 0.92);
+  --panel-strong: rgba(16, 25, 47, 0.98);
+  --panel-soft: rgba(17, 27, 51, 0.72);
+  --accent: #f0b90b;
+  --accent-strong: #ffd666;
+  --accent-soft: rgba(240, 185, 11, 0.14);
+  --success: #02c076;
+  --danger: #f6465d;
+  --warning: #f0b90b;
+  --info: #3b82f6;
+  --shadow: 0 26px 60px rgba(1, 4, 14, 0.45);
 }
 
 * {
@@ -21,18 +30,20 @@
 html {
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(13, 148, 136, 0.18), transparent 32%),
-    radial-gradient(circle at top right, rgba(194, 65, 12, 0.12), transparent 26%),
-    linear-gradient(180deg, #fbf7f0 0%, #f4efe5 45%, #efe6d6 100%);
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 28%),
+    radial-gradient(circle at top right, rgba(240, 185, 11, 0.12), transparent 25%),
+    linear-gradient(180deg, #06101f 0%, #050816 48%, #040612 100%);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   color: var(--foreground);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.015), rgba(255, 255, 255, 0)),
+    transparent;
   font-family:
-    "Space Grotesk",
-    "Avenir Next",
+    "IBM Plex Sans",
     "Segoe UI",
     sans-serif;
 }
@@ -42,28 +53,63 @@ a {
   text-decoration: none;
 }
 
-.grain {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06)),
-    radial-gradient(rgba(17, 17, 17, 0.035) 0.5px, transparent 0.5px);
-  background-size: auto, 10px 10px;
-  opacity: 0.45;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-.glass-card {
-  background: var(--card);
-  backdrop-filter: blur(18px);
+.app-grid {
+  background-image:
+    linear-gradient(rgba(154, 166, 199, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(154, 166, 199, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.panel {
+  background: var(--panel);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
 
-.soft-grid {
-  background-image:
-    linear-gradient(rgba(17, 17, 17, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 17, 17, 0.04) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: center center;
+.panel-strong {
+  background: var(--panel-strong);
+  border: 1px solid var(--border-strong);
+}
+
+.panel-soft {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+}
+
+.data-divider > * + * {
+  border-top: 1px solid var(--border);
+}
+
+.table-row + .table-row {
+  border-top: 1px solid var(--border);
+}
+
+.exchange-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(154, 166, 199, 0.32) transparent;
+}
+
+.exchange-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.exchange-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(154, 166, 199, 0.24);
+  border-radius: 999px;
+}
+
+.exchange-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.text-balance {
+  text-wrap: balance;
 }

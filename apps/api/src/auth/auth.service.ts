@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { compare, hash } from "bcryptjs";
 import { UsersService } from "../users/users.service.js";
@@ -8,8 +8,8 @@ import type { RegisterDto } from "./dto/register.dto.js";
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly usersService: UsersService,
-    private readonly jwtService: JwtService,
+    @Inject(UsersService) private readonly usersService: UsersService,
+    @Inject(JwtService) private readonly jwtService: JwtService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -26,6 +26,8 @@ export class AuthService {
       passwordHash,
       role: "USER",
     });
+
+    void dto.nickname;
 
     const token = await this.signToken(user);
 

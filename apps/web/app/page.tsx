@@ -1,29 +1,100 @@
-import { PageTemplate } from "@/components/page-template";
+import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageHeader } from "@/components/shell/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function HomePage() {
   return (
-    <PageTemplate
-      eyebrow="Launchpad"
-      title="SW Exchange web foundation"
-      description="This initial web-only shell gives us a clear path into registration, login, wallet balances, internal transfers, SWL/SWC trading, and the admin dashboard without introducing blockchain or mobile app scope."
-      cards={[
-        {
-          title: "Product boundaries",
-          points: [
-            "Public registration, no KYC, no blockchain integration in v0.x.",
-            "Only SWC and SWL exist today, with SWL/SWC as the sole market.",
-            "Limit orders only. No market orders, no candlestick charts yet.",
-          ],
-        },
-        {
-          title: "Next implementation steps",
-          points: [
-            "Connect login and register forms to the NestJS API.",
-            "Load wallet, ledger, and market data from placeholder endpoints.",
-            "Add protected navigation and role-aware admin routing.",
-          ],
-        },
-      ]}
-    />
+    <AppShell>
+      <div className="space-y-4">
+        <PageHeader
+          eyebrow="v0.2 Shell"
+          title="Simulated exchange control center"
+          description="SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. No blockchain, no deposit, no withdraw, no market orders, and no K-line are included in this version."
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/login"
+                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground-soft)] transition hover:text-white"
+              >
+                Login
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-2xl bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)]"
+              >
+                Register
+              </Link>
+            </div>
+          }
+        />
+
+        <div className="grid gap-4 lg:grid-cols-4">
+          <StatCard
+            label="Current Milestone"
+            value="v0.1"
+            hint="Foundation completed and documented."
+            tone="info"
+          />
+          <StatCard
+            label="Next Milestone"
+            value="v0.2"
+            hint="Auth + CEX UI Shell delivery in progress."
+            tone="warning"
+          />
+          <StatCard
+            label="Market Universe"
+            value="1"
+            hint="Only SWL/SWC is listed in v0.x."
+            tone="success"
+          />
+          <StatCard
+            label="Chain Features"
+            value="0"
+            hint="No deposit, withdraw, or blockchain integration."
+            tone="danger"
+          />
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1.3fr_1fr]">
+          <section className="panel rounded-3xl p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                  Product Boundaries
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-white">v0.x scope discipline</h2>
+              </div>
+              <StatusBadge label="Simulation" tone="info" />
+            </div>
+            <div className="data-divider mt-5 rounded-2xl border border-[var(--border)]">
+              {[
+                "Internal wallet only",
+                "Internal transfer later in roadmap",
+                "Limit spot trading only",
+                "No futures, no market orders",
+                "No K-line and no blockchain flows",
+              ].map((item) => (
+                <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <DataTable
+            columns={["Module", "Status", "Summary"]}
+            rows={[
+              ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
+              ["Wallet", <StatusBadge key="wallet" label="Placeholder" tone="warning" />, "Viewer shell only in v0.2"],
+              ["Trade", <StatusBadge key="trade" label="Placeholder" tone="warning" />, "UI shell only, no order logic"],
+              ["Admin", <StatusBadge key="admin" label="Scoped" tone="info" />, "Single full-permission admin mode"],
+            ]}
+          />
+        </div>
+      </div>
+    </AppShell>
   );
 }

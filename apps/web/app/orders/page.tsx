@@ -1,29 +1,50 @@
-import { PageTemplate } from "@/components/page-template";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageHeader } from "@/components/shell/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function OrdersPage() {
   return (
-    <PageTemplate
-      eyebrow="User"
-      title="Orders"
-      description="This screen will eventually show open and historical limit orders for the currently signed-in user."
-      cards={[
-        {
-          title: "Planned order states",
-          points: [
-            "OPEN, PARTIAL_FILLED, FILLED, CANCELLED, and REJECTED.",
-            "Separate active orders from history views.",
-            "Expose locked funds tied to each order.",
-          ],
-        },
-        {
-          title: "Implementation status",
-          points: [
-            "Schema is present in the database foundation.",
-            "Placement and cancellation APIs are still placeholders.",
-            "Matching safety and concurrency work remains for later.",
-          ],
-        },
-      ]}
-    />
+    <ProtectedRoute>
+      <AppShell>
+        <div className="space-y-4">
+          <PageHeader
+            eyebrow="Orders"
+            title="Open and historical orders"
+            description="Order history is placeholder-only in v0.2, but the shell is ready for centralized exchange order states, locked funds, and market-specific views."
+            action={<StatusBadge label="Read-Only" tone="info" />}
+          />
+
+          <DataTable
+            columns={["Order ID", "Market", "Side", "Price", "Amount", "Filled", "Status"]}
+            rows={[
+              [
+                "ord_demo_1001",
+                "SWL/SWC",
+                <span key="buy" className="text-emerald-300">
+                  BUY
+                </span>,
+                "0.142500",
+                "1,200.00",
+                "320.00",
+                <StatusBadge key="open" label="Open" tone="info" />,
+              ],
+              [
+                "ord_demo_1002",
+                "SWL/SWC",
+                <span key="sell" className="text-rose-300">
+                  SELL
+                </span>,
+                "0.143100",
+                "750.00",
+                "750.00",
+                <StatusBadge key="filled" label="Filled" tone="success" />,
+              ],
+            ]}
+          />
+        </div>
+      </AppShell>
+    </ProtectedRoute>
   );
 }

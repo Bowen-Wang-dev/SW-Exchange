@@ -1,29 +1,46 @@
-import { PageTemplate } from "@/components/page-template";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageHeader } from "@/components/shell/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function AdminLedgerPage() {
   return (
-    <PageTemplate
-      eyebrow="Admin"
-      title="Ledger review"
-      description="Admins will use this screen to inspect the accounting trail behind airdrops, transfers, trading effects, and later manual adjustments."
-      cards={[
-        {
-          title: "Visibility goals",
-          points: [
-            "Filter entries by user, asset, and entry type.",
-            "Show post-change available and locked balances.",
-            "Trace every ledger row back to its source object.",
-          ],
-        },
-        {
-          title: "Audit mindset",
-          points: [
-            "Ledger is the source of truth for balance movements.",
-            "No silent balance changes should bypass it.",
-            "Admin activity should correlate with separate audit logs.",
-          ],
-        },
-      ]}
-    />
+    <ProtectedRoute requireAdmin fallbackPath="/dashboard">
+      <AppShell>
+        <div className="space-y-4">
+          <PageHeader
+            eyebrow="Admin Ledger"
+            title="Ledger review"
+            description="Inspect the accounting trail behind future wallet, transfer, and trading activity."
+            action={<StatusBadge label="Source of Truth" tone="info" />}
+          />
+
+          <DataTable
+            columns={["Entry ID", "User", "Type", "Asset", "Amount", "Reference", "Created"]}
+            rows={[
+              [
+                "ldg_demo_3001",
+                "user_demo",
+                <StatusBadge key="trade-buy" label="Trade Buy" tone="success" />,
+                "SWL",
+                "+480.00",
+                "trade: trd_demo_2001",
+                "2026-05-14 12:01:14",
+              ],
+              [
+                "ldg_demo_3002",
+                "user_demo",
+                <StatusBadge key="order-lock" label="Order Lock" tone="warning" />,
+                "SWC",
+                "-12,000.00",
+                "order: ord_demo_1001",
+                "2026-05-14 11:50:00",
+              ],
+            ]}
+          />
+        </div>
+      </AppShell>
+    </ProtectedRoute>
   );
 }

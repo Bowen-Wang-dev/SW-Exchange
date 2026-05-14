@@ -1,29 +1,44 @@
-import { PageTemplate } from "@/components/page-template";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageHeader } from "@/components/shell/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function AdminUsersPage() {
   return (
-    <PageTemplate
-      eyebrow="Admin"
-      title="User management"
-      description="Admins will review account status and eventually freeze or unfreeze users from this area."
-      cards={[
-        {
-          title: "Planned data",
-          points: [
-            "Email, username, role, status, and created date.",
-            "Filters for ACTIVE, FROZEN, and BANNED users.",
-            "Quick links into wallets and ledger history.",
-          ],
-        },
-        {
-          title: "Actions to add later",
-          points: [
-            "Freeze and unfreeze accounts.",
-            "Manual status review with audit logging.",
-            "Optional account ban flow if needed for abuse handling.",
-          ],
-        },
-      ]}
-    />
+    <ProtectedRoute requireAdmin fallbackPath="/dashboard">
+      <AppShell>
+        <div className="space-y-4">
+          <PageHeader
+            eyebrow="Admin Users"
+            title="User management"
+            description="Review account role and status in a dense admin table. Mutations remain deferred until later milestones."
+            action={<StatusBadge label="Read-Only" tone="info" />}
+          />
+
+          <DataTable
+            columns={["Email", "Username", "Role", "Status", "Created", "Actions"]}
+            rows={[
+              [
+                "admin@swexchange.local",
+                "admin",
+                <StatusBadge key="admin-role" label="Admin" tone="warning" />,
+                <StatusBadge key="admin-status" label="Active" tone="success" />,
+                "2026-05-14",
+                "View wallets",
+              ],
+              [
+                "user@example.com",
+                "user_demo",
+                <StatusBadge key="user-role" label="User" tone="info" />,
+                <StatusBadge key="user-status" label="Active" tone="success" />,
+                "2026-05-14",
+                "Freeze later",
+              ],
+            ]}
+          />
+        </div>
+      </AppShell>
+    </ProtectedRoute>
   );
 }

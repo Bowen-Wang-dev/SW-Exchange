@@ -1,29 +1,50 @@
-import { PageTemplate } from "@/components/page-template";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageHeader } from "@/components/shell/page-header";
+import { DataTable } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function TradesPage() {
   return (
-    <PageTemplate
-      eyebrow="User"
-      title="Trades"
-      description="Trade history will surface fills from the SWL/SWC order book once the spot engine is implemented."
-      cards={[
-        {
-          title: "Trade record fields",
-          points: [
-            "Market, price, amount, buyer, seller, and linked order IDs.",
-            "Buyer fee in SWL and seller fee in SWC.",
-            "Execution timestamps for auditability.",
-          ],
-        },
-        {
-          title: "Current state",
-          points: [
-            "Trade APIs return placeholders today.",
-            "Database tables are ready for future implementation.",
-            "Fee accounting is designed but not executed yet.",
-          ],
-        },
-      ]}
-    />
+    <ProtectedRoute>
+      <AppShell>
+        <div className="space-y-4">
+          <PageHeader
+            eyebrow="Trades"
+            title="Executed trade history"
+            description="Trade history will eventually reflect matched fills for SWL/SWC. For v0.2, the page provides the dark, data-dense table shell only."
+            action={<StatusBadge label="Pending Engine" tone="warning" />}
+          />
+
+          <DataTable
+            columns={["Trade ID", "Market", "Side", "Price", "Amount", "Fee", "Time"]}
+            rows={[
+              [
+                "trd_demo_2001",
+                "SWL/SWC",
+                <span key="buy" className="text-emerald-300">
+                  Buy
+                </span>,
+                "0.142800",
+                "480.00",
+                "0.48 SWL",
+                "2026-05-14 12:01:14",
+              ],
+              [
+                "trd_demo_2002",
+                "SWL/SWC",
+                <span key="sell" className="text-rose-300">
+                  Sell
+                </span>,
+                "0.142700",
+                "300.00",
+                "42.81 SWC",
+                "2026-05-14 11:54:09",
+              ],
+            ]}
+          />
+        </div>
+      </AppShell>
+    </ProtectedRoute>
   );
 }

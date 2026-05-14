@@ -13,7 +13,7 @@ type NewUser = InferInsertModel<typeof users>;
 export class UsersService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: Database,
-    private readonly walletsService: WalletsService,
+    @Inject(WalletsService) private readonly walletsService: WalletsService,
   ) {}
 
   async create(data: Pick<NewUser, "email" | "username" | "passwordHash" | "role">) {

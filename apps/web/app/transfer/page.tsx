@@ -1,29 +1,68 @@
-import { PageTemplate } from "@/components/page-template";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+import { AppShell } from "@/components/shell/app-shell";
+import { PageHeader } from "@/components/shell/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 export default function TransferPage() {
   return (
-    <PageTemplate
-      eyebrow="User"
-      title="Transfer"
-      description="Internal transfers will let users send SWC or SWL to another user by username or email, with no transfer fee in v0.x."
-      cards={[
-        {
-          title: "Planned flow",
-          points: [
-            "Recipient lookup by username or email.",
-            "Asset selector for SWC or SWL.",
-            "Amount entry using precise integer minimal units in the API.",
-          ],
-        },
-        {
-          title: "Validation notes",
-          points: [
-            "Reject self-transfer and invalid amounts.",
-            "Reject transfers for frozen users.",
-            "Complete transfers immediately with paired ledger entries.",
-          ],
-        },
-      ]}
-    />
+    <ProtectedRoute>
+      <AppShell>
+        <div className="space-y-4">
+          <PageHeader
+            eyebrow="Transfer"
+            title="Internal transfer shell"
+            description="Transfers are not implemented in v0.2. This view shows the eventual centralized exchange workflow for moving SWC or SWL between internal users."
+            action={<StatusBadge label="Planned v0.4" tone="warning" />}
+          />
+
+          <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+            <section className="panel rounded-3xl p-5">
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                Transfer Form
+              </p>
+              <div className="mt-4 grid gap-4">
+                {["Recipient", "Asset", "Amount", "Note"].map((field) => (
+                  <label key={field} className="block space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                      {field}
+                    </span>
+                    <input
+                      disabled
+                      placeholder={`${field} placeholder`}
+                      className="w-full rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-[var(--foreground-muted)]"
+                    />
+                  </label>
+                ))}
+                <button
+                  type="button"
+                  disabled
+                  className="rounded-2xl bg-white/[0.06] px-4 py-3 text-sm font-semibold text-[var(--foreground-muted)]"
+                >
+                  Transfer placeholder
+                </button>
+              </div>
+            </section>
+
+            <section className="panel rounded-3xl p-5">
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                Rules
+              </p>
+              <div className="data-divider mt-4 rounded-2xl border border-[var(--border)]">
+                {[
+                  "Internal only. No blockchain deposit or withdraw.",
+                  "Self-transfer should be rejected once logic is enabled.",
+                  "Frozen users should not be able to transfer.",
+                  "Every transfer must write paired ledger entries.",
+                ].map((item) => (
+                  <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      </AppShell>
+    </ProtectedRoute>
   );
 }

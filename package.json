@@ -9,7 +9,8 @@
     "build": "pnpm --filter @sw-exchange/shared build && pnpm --filter @sw-exchange/api build && pnpm --filter @sw-exchange/web build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "pnpm --filter @sw-exchange/shared build && pnpm --filter @sw-exchange/api seed"
+    "db:seed": "pnpm --filter @sw-exchange/shared build && pnpm --filter @sw-exchange/api seed",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
