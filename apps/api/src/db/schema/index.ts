@@ -1,0 +1,183 @@
+import {
+  bigint,
+  boolean,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+export const userRoleEnum = pgEnum("user_role", ["USER", "ADMIN"]);
+export const userStatusEnum = pgEnum("user_status", ["ACTIVE", "FROZEN", "BANNED"]);
+export const ledgerEntryTypeEnum = pgEnum("ledger_entry_type", [
+  "AIRDROP",
+  "TRANSFER_IN",
+  "TRANSFER_OUT",
+  "ORDER_LOCK",
+  "ORDER_UNLOCK",
+  "TRADE_BUY",
+  "TRADE_SELL",
+  "FEE",
+  "ADMIN_ADJUST",
+]);
+export const transferStatusEnum = pgEnum("transfer_status", ["SUCCESS", "FAILED"]);
+export const marketStatusEnum = pgEnum("market_status", ["ACTIVE", "PAUSED"]);
+export const orderSideEnum = pgEnum("order_side", ["BUY", "SELL"]);
+export const orderTypeEnum = pgEnum("order_type", ["LIMIT"]);
+export const orderStatusEnum = pgEnum("order_status", [
+  "OPEN",
+  "PARTIAL_FILLED",
+  "FILLED",
+  "CANCELLED",
+  "REJECTED",
+]);
+export const tradeStatusEnum = pgEnum("trade_status", ["SETTLED", "REVERSED"]);
+
+export const users = pgTable("users", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  username: varchar("username", { length: 64 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: userRoleEnum("role").notNull().default("USER"),
+  status: userStatusEnum("status").notNull().default("ACTIVE"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const assets = pgTable("assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  symbol: varchar("symbol", { length: 16 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  decimals: integer("decimals").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const wallets = pgTable(
+  "wallets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    assetId: uuid("asset_id")
+      .notNull()
+      .references(() => assets.id, { onDelete: "cascade" }),
+    availableBalance: bigint("available_balance", { mode: "bigint" }).notNull().default(sql`0`),
+    lockedBalance: bigint("locked_balance", { mode: "bigint" }).notNull().default(sql`0`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    walletUserAssetUnique: unique().on(table.userId, table.assetId),
+  }),
+);
+
+export const ledgerEntries = pgTable("ledger_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  assetId: uuid("asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "restrict" }),
+  type: ledgerEntryTypeEnum("type").notNull(),
+  amount: bigint("amount", { mode: "bigint" }).notNull(),
+  balanceAvailableAfter: bigint("balance_available_after", { mode: "bigint" }).notNull(),
+  balanceLockedAfter: bigint("balance_locked_after", { mode: "bigint" }).notNull(),
+  refType: varchar("ref_type", { length: 64 }).notNull(),
+  refId: uuid("ref_id"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const adminAuditLogs = pgTable("admin_audit_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  adminUserId: uuid("admin_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
+  action: varchar("action", { length: 128 }).notNull(),
+  targetType: varchar("target_type", { length: 64 }).notNull(),
+  targetId: uuid("target_id"),
+  beforeValue: jsonb("before_value"),
+  afterValue: jsonb("after_value"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const transfers = pgTable("transfers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),
+  toUserId: uuid("to_user_id").references(() => users.id, { onDelete: "set null" }),
+  assetId: uuid("asset_id").references(() => assets.id, { onDelete: "set null" }),
+  amount: bigint("amount", { mode: "bigint" }).notNull().default(sql`0`),
+  status: transferStatusEnum("status").notNull().default("SUCCESS"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const markets = pgTable("markets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  symbol: varchar("symbol", { length: 32 }).notNull().unique(),
+  baseAssetId: uuid("base_asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "restrict" }),
+  quoteAssetId: uuid("quote_asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "restrict" }),
+  status: marketStatusEnum("status").notNull().default("ACTIVE"),
+  priceDecimals: integer("price_decimals").notNull().default(18),
+  amountDecimals: integer("amount_decimals").notNull().default(18),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const orders = pgTable("orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
+  marketId: uuid("market_id")
+    .notNull()
+    .references(() => markets.id, { onDelete: "restrict" }),
+  side: orderSideEnum("side").notNull(),
+  type: orderTypeEnum("type").notNull().default("LIMIT"),
+  status: orderStatusEnum("status").notNull().default("OPEN"),
+  price: bigint("price", { mode: "bigint" }).notNull().default(sql`0`),
+  amount: bigint("amount", { mode: "bigint" }).notNull().default(sql`0`),
+  filledAmount: bigint("filled_amount", { mode: "bigint" }).notNull().default(sql`0`),
+  lockedAmount: bigint("locked_amount", { mode: "bigint" }).notNull().default(sql`0`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const trades = pgTable("trades", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  marketId: uuid("market_id")
+    .notNull()
+    .references(() => markets.id, { onDelete: "restrict" }),
+  buyOrderId: uuid("buy_order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "restrict" }),
+  sellOrderId: uuid("sell_order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "restrict" }),
+  buyerId: uuid("buyer_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
+  sellerId: uuid("seller_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
+  price: bigint("price", { mode: "bigint" }).notNull().default(sql`0`),
+  amount: bigint("amount", { mode: "bigint" }).notNull().default(sql`0`),
+  buyerFee: bigint("buyer_fee", { mode: "bigint" }).notNull().default(sql`0`),
+  sellerFee: bigint("seller_fee", { mode: "bigint" }).notNull().default(sql`0`),
+  status: tradeStatusEnum("status").notNull().default("SETTLED"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
