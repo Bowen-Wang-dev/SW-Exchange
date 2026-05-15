@@ -34,14 +34,14 @@ export default function HomePage() {
         <div className="grid gap-4 lg:grid-cols-4">
           <StatCard
             label="Current Milestone"
-            value="v0.1"
-            hint="Foundation completed and documented."
-            tone="info"
+            value="v0.2"
+            hint="Auth + CEX UI Shell completed and documented."
+            tone="success"
           />
           <StatCard
             label="Next Milestone"
-            value="v0.2"
-            hint="Auth + CEX UI Shell delivery in progress."
+            value="v0.3"
+            hint="Admin Airdrop + Wallet Viewer is the next milestone."
             tone="warning"
           />
           <StatCard
@@ -88,9 +88,9 @@ export default function HomePage() {
             columns={["Module", "Status", "Summary"]}
             rows={[
               ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
-              ["Wallet", <StatusBadge key="wallet" label="Placeholder" tone="warning" />, "Viewer shell only in v0.2"],
-              ["Trade", <StatusBadge key="trade" label="Placeholder" tone="warning" />, "UI shell only, no order logic"],
-              ["Admin", <StatusBadge key="admin" label="Scoped" tone="info" />, "Single full-permission admin mode"],
+              ["Wallet", <StatusBadge key="wallet" label="Shell Ready" tone="info" />, "Viewer shell completed, no mutations yet"],
+              ["Trade", <StatusBadge key="trade" label="Shell Ready" tone="info" />, "UI shell completed, no order logic yet"],
+              ["Admin", <StatusBadge key="admin" label="Scoped" tone="success" />, "Single full-permission admin shell ready"],
             ]}
           />
         </div>
