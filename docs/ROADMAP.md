@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.4 Internal Transfer`
+Current completed milestone: `v0.5 Limit Order + Order Book`
 
-Next milestone: `v0.5 Limit Order + Order Book`
+Next milestone: `v0.6 Matching Engine + Trades`
 
 ### v0.1 Foundation - Completed
 
@@ -44,13 +44,19 @@ Next milestone: `v0.5 Limit Order + Order Book`
 - Admin transfer list
 - `FROZEN` and `BANNED` recipients are blocked from receiving for the safer/simple v0.4 rule
 
+### v0.5 Limit Order + Order Book - Completed
+
+- Limit order placement for `SWL/SWC`
+- BUY orders lock quote asset `SWC`
+- SELL orders lock base asset `SWL`
+- Order cancellation unlocks remaining locked balance
+- Order book display grouped by price for bids and asks
+- User order history and open-order cancellation
+- Admin order list
+- `ORDER_LOCK` and `ORDER_UNLOCK` ledger entries
+- No matching engine, trades, fees, market orders, or K-line chart
+
 ## Planned milestones
-
-### v0.5 Limit Order + Order Book
-
-- Limit order placement
-- Order cancellation
-- Order book display for `SWL/SWC`
 
 ### v0.6 Matching Engine + Trades
 

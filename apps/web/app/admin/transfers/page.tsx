@@ -56,7 +56,7 @@ export default function AdminTransfersPage() {
             eyebrow="Admin Transfers"
             title="Internal transfer review"
             description="Review all free SWC/SWL user-to-user internal transfers, newest first."
-            action={<StatusBadge label="v0.4 Live" tone="success" />}
+            action={<StatusBadge label="Transfers Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

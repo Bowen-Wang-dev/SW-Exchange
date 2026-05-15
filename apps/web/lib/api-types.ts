@@ -87,6 +87,7 @@ export type AdminSummary = {
   totalLedgerEntries: number;
   totalTransfers: number;
   totalAuditLogs: number;
+  totalOpenOrders?: number;
 };
 
 export type AirdropResponse = {
@@ -170,4 +171,63 @@ export type AdminTransferEntry = {
   note: string | null;
   status: "SUCCESS" | "FAILED";
   createdAt: string;
+};
+
+export type OrderSide = "BUY" | "SELL";
+export type OrderType = "LIMIT";
+export type OrderStatus = "OPEN" | "PARTIAL_FILLED" | "FILLED" | "CANCELLED" | "REJECTED";
+
+export type OrderEntry = {
+  id: string;
+  userId: string;
+  marketId: string;
+  marketSymbol: string;
+  market: string;
+  side: OrderSide;
+  type: OrderType;
+  price: string;
+  priceRaw: string;
+  amount: string;
+  amountRaw: string;
+  filledAmount: string;
+  filledAmountRaw: string;
+  remainingAmount: string;
+  remainingAmountRaw: string;
+  status: OrderStatus;
+  lockedAssetId: string;
+  lockedAssetSymbol: string;
+  lockedAsset: {
+    id: string;
+    symbol: string;
+  };
+  lockedAmount: string;
+  lockedAmountRaw: string;
+  createdAt: string;
+  updatedAt: string;
+  cancelledAt: string | null;
+};
+
+export type AdminOrderEntry = OrderEntry & {
+  user: {
+    id: string;
+    email: string;
+    username: string;
+  };
+  userEmail: string;
+  username: string;
+};
+
+export type OrderBookLevel = {
+  price: string;
+  priceRaw: string;
+  amount: string;
+  amountRaw: string;
+  orderCount: number;
+};
+
+export type OrderBook = {
+  marketSymbol: string;
+  market: string;
+  bids: OrderBookLevel[];
+  asks: OrderBookLevel[];
 };

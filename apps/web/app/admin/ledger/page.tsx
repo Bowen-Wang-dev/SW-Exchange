@@ -77,7 +77,11 @@ export default function AdminLedgerPage() {
                   shortId(entry.id),
                   entry.user.username,
                   entry.user.email,
-                  <StatusBadge key={`${entry.id}-type`} label={entry.type} tone="success" />,
+                  <StatusBadge
+                    key={`${entry.id}-type`}
+                    label={entry.type}
+                    tone={ledgerTypeTone(entry.type)}
+                  />,
                   entry.asset,
                   <span
                     key={`${entry.id}-amount`}
@@ -114,4 +118,20 @@ function Notice({ tone, message }: { tone: "info" | "danger"; message: string })
       : "border-blue-300/20 bg-blue-300/10 text-blue-100";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+}
+
+function ledgerTypeTone(type: string): "neutral" | "success" | "warning" | "danger" | "info" {
+  if (type === "ORDER_LOCK" || type === "TRANSFER_OUT") {
+    return "warning";
+  }
+
+  if (type === "ORDER_UNLOCK" || type === "TRANSFER_IN") {
+    return "info";
+  }
+
+  if (type === "AIRDROP") {
+    return "success";
+  }
+
+  return "neutral";
 }

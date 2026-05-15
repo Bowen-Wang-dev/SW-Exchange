@@ -174,11 +174,18 @@ export const orders = pgTable("orders", {
   filledAmount: numeric("filled_amount", { precision: 78, scale: 0, mode: "bigint" })
     .notNull()
     .default(sql`0`),
+  remainingAmount: numeric("remaining_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  lockedAssetId: uuid("locked_asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "restrict" }),
   lockedAmount: numeric("locked_amount", { precision: 78, scale: 0, mode: "bigint" })
     .notNull()
     .default(sql`0`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
 });
 
 export const trades = pgTable("trades", {

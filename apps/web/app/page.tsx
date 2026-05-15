@@ -10,9 +10,9 @@ export default function HomePage() {
     <AppShell>
       <div className="space-y-4">
         <PageHeader
-          eyebrow="v0.4"
+          eyebrow="v0.5"
           title="Simulated exchange control center"
-          description="SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. No blockchain, no deposit, no withdraw, no market orders, and no K-line are included in this version."
+          description="SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Limit orders and the order book are live. Matching and trades arrive in v0.6."
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -33,17 +33,17 @@ export default function HomePage() {
 
         <div className="grid gap-4 lg:grid-cols-4">
           <StatCard
-            label="Current Milestone"
-            badgeLabel="v0.4"
-            value="v0.4"
-            hint="Internal Transfer completed."
+            label="CURRENT MILESTONE"
+            badgeLabel="v0.5"
+            value="v0.5"
+            hint="Limit Order + Order Book completed."
             tone="success"
           />
           <StatCard
             label="Next Milestone"
-            badgeLabel="v0.5"
-            value="v0.5"
-            hint="Limit Order + Order Book comes next."
+            badgeLabel="v0.6"
+            value="v0.6"
+            hint="Matching Engine + Trades comes next."
             tone="warning"
           />
           <StatCard
@@ -95,7 +95,7 @@ export default function HomePage() {
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin SWC/SWL funding is enabled"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
-              ["Trade", <StatusBadge key="trade" label="Preview" tone="info" />, "Limit orders arrive in v0.5 and matching in v0.6"],
+              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders and the order book are live. Matching and trades arrive in v0.6."],
             ]}
           />
         </div>

@@ -53,6 +53,11 @@ export class AdminController {
     return this.adminService.listTransfers();
   }
 
+  @Get("orders")
+  listOrders() {
+    return this.adminService.listOrders();
+  }
+
   @Get("audit-logs")
   listAuditLogs() {
     return this.adminService.listAuditLogs();

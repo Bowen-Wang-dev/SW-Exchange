@@ -5,19 +5,23 @@ export class MoneyFormatError extends Error {
   }
 }
 
-export function parseHumanAmountToMinimalUnits(input: string, decimals: number): bigint {
+export function parseHumanDecimalToMinimalUnits(
+  input: string,
+  decimals: number,
+  label = "Amount",
+): bigint {
   const value = input.trim();
 
   if (!value) {
-    throw new MoneyFormatError("Amount is required.");
+    throw new MoneyFormatError(`${label} is required.`);
   }
 
   if (value.startsWith("-")) {
-    throw new MoneyFormatError("Amount must be positive.");
+    throw new MoneyFormatError(`${label} must be positive.`);
   }
 
   if (value.startsWith("+")) {
-    throw new MoneyFormatError("Amount must not include a plus sign.");
+    throw new MoneyFormatError(`${label} must not include a plus sign.`);
   }
 
   if (/[eE]/.test(value)) {
@@ -25,23 +29,64 @@ export function parseHumanAmountToMinimalUnits(input: string, decimals: number):
   }
 
   if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value)) {
-    throw new MoneyFormatError("Amount must be a plain decimal string.");
+    throw new MoneyFormatError(`${label} must be a plain decimal string.`);
   }
 
   const [wholePart = "0", fractionalPart = ""] = value.split(".");
 
   if (fractionalPart.length > decimals) {
-    throw new MoneyFormatError(`Amount supports at most ${decimals} decimal places.`);
+    throw new MoneyFormatError(`${label} supports at most ${decimals} decimal places.`);
   }
 
   const paddedFractionalPart = fractionalPart.padEnd(decimals, "0");
   const minimalUnits = BigInt(`${wholePart}${paddedFractionalPart}`);
 
   if (minimalUnits <= 0n) {
-    throw new MoneyFormatError("Amount must be greater than zero.");
+    throw new MoneyFormatError(`${label} must be greater than zero.`);
   }
 
   return minimalUnits;
+}
+
+export function parseHumanAmountToMinimalUnits(input: string, decimals: number): bigint {
+  return parseHumanDecimalToMinimalUnits(input, decimals, "Amount");
+}
+
+export function calculateQuoteTotalMinimalUnits({
+  price,
+  amount,
+  priceDecimals,
+  amountDecimals,
+  quoteDecimals,
+}: {
+  price: bigint;
+  amount: bigint;
+  priceDecimals: number;
+  amountDecimals: number;
+  quoteDecimals: number;
+}) {
+  if (price <= 0n) {
+    throw new MoneyFormatError("Price must be greater than zero.");
+  }
+
+  if (amount <= 0n) {
+    throw new MoneyFormatError("Amount must be greater than zero.");
+  }
+
+  const numerator = price * amount * 10n ** BigInt(quoteDecimals);
+  const denominator = 10n ** BigInt(priceDecimals + amountDecimals);
+  const total = numerator / denominator;
+  const remainder = numerator % denominator;
+
+  if (total <= 0n) {
+    throw new MoneyFormatError("Total must be greater than zero.");
+  }
+
+  if (remainder !== 0n) {
+    throw new MoneyFormatError(`Total supports at most ${quoteDecimals} decimal places.`);
+  }
+
+  return total;
 }
 
 export function formatMinimalUnitsToHuman(

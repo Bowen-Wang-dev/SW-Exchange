@@ -41,11 +41,11 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description="Current milestone: v0.4. Admin airdrop, wallet viewer, and internal transfer review are live."
+        description="Current milestone: v0.5. Limit orders, order book, admin review, and internal transfers are live."
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid gap-4 lg:grid-cols-6">
         <StatCard
           label="Total Users"
           badgeLabel="Live"
@@ -73,6 +73,13 @@ export function AdminDashboardContent() {
           value={String(summary?.totalTransfers ?? "-")}
           hint="Live internal transfer count."
           tone="success"
+        />
+        <StatCard
+          label="Open Orders"
+          badgeLabel="Live"
+          value={String(summary?.totalOpenOrders ?? "-")}
+          hint="Live open and partial order count."
+          tone="info"
         />
         <StatCard
           label="Audit Logs"
@@ -103,6 +110,7 @@ export function AdminDashboardContent() {
             {[
               "Airdrops update wallet, ledger, and audit records in one transaction.",
               "Internal transfers update both wallets and paired ledger entries in one transaction.",
+              "Limit orders lock and unlock wallet balances through ledger entries.",
               "Wallet viewer pages are live for both admin and normal users.",
               "All later sensitive actions should map to ledger and audit entries.",
             ].map((item) => (
@@ -120,6 +128,7 @@ export function AdminDashboardContent() {
             ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "SWC/SWL balances"],
             ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only SWC/SWL funding"],
             ["Transfers", <StatusBadge key="transfers" label="Live" tone="success" />, "Free user-to-user internal transfers"],
+            ["Orders", <StatusBadge key="orders" label="Live" tone="success" />, "Limit order lock and cancel review"],
             ["Audit", <StatusBadge key="audit" label="Live" tone="info" />, "Airdrop audit trail"],
           ]}
         />

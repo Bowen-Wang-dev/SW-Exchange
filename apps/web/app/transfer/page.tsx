@@ -90,7 +90,7 @@ export default function TransferPage() {
             eyebrow="Transfer"
             title="Internal transfer"
             description="Send SWC or SWL to another active SW Exchange user by username or email."
-            action={<StatusBadge label="v0.4 Live" tone="success" />}
+            action={<StatusBadge label="Transfers Live" tone="success" />}
           />
 
           <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">

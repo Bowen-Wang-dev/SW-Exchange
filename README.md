@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.4 Internal Transfer`
+Current completed milestone: `v0.5 Limit Order + Order Book`
 
-Next milestone: `v0.5 Limit Order + Order Book`
+Next milestone: `v0.6 Matching Engine + Trades`
 
 This version is intentionally limited:
 
@@ -14,6 +14,7 @@ This version is intentionally limited:
 - No KYC
 - No market orders
 - No candlestick / K-line chart
+- No automatic matching or trade execution yet
 
 Current scope:
 
@@ -27,7 +28,10 @@ Current scope:
 - User SWC/SWL internal transfer flow
 - User and admin transfer history
 - Admin ledger and audit log viewer
-- SWL/SWC spot limit-order foundation only
+- SWL/SWC limit order placement and cancellation
+- SWL/SWC order book grouped by price
+- User and admin order history
+- ORDER_LOCK and ORDER_UNLOCK ledger entries
 
 ## Milestone status
 
@@ -35,9 +39,10 @@ Current scope:
 - `v0.2 Auth + CEX UI Shell` completed
 - `v0.3 Admin Airdrop + Wallet Viewer` completed
 - `v0.4 Internal Transfer` completed
+- `v0.5 Limit Order + Order Book` completed
 
-- Current completed milestone: `v0.4 Internal Transfer`
-- Next milestone: `v0.5 Limit Order + Order Book`
+- Current completed milestone: `v0.5 Limit Order + Order Book`
+- Next milestone: `v0.6 Matching Engine + Trades`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
 
@@ -60,6 +65,27 @@ packages/
   shared/     shared constants and types
 drizzle/      generated SQL migrations
 ```
+
+## v0.5 Limit Order + Order Book
+
+### API
+
+- `POST /api/orders`
+- `GET /api/orders/me`
+- `POST /api/orders/:id/cancel`
+- `GET /api/order-book?marketSymbol=SWL/SWC`
+- `GET /api/admin/orders`
+
+Only the `SWL/SWC` market is enabled. Limit BUY orders lock `SWC` equal to `price * amount`; limit SELL orders lock `SWL` equal to `amount`. Order creation, wallet lock movement, and the `ORDER_LOCK` ledger entry run in one database transaction. Cancelling an open order unlocks the remaining locked balance and writes an `ORDER_UNLOCK` ledger entry. v0.5 intentionally does not match orders, execute trades, create trade rows, or deduct fees.
+
+### Web
+
+- `/trade` places SWL/SWC limit orders, shows the order book, and cancels open orders
+- `/orders` shows user order history with cancel support for open orders
+- `/wallet` reflects locked balances from open orders
+- `/ledger` and `/admin/ledger` show order lock/unlock ledger entries
+- `/admin/orders` shows all orders newest first
+- `/admin` includes total open order count
 
 ## v0.4 Internal Transfer
 
@@ -312,6 +338,11 @@ It verifies:
 - User wallet balance mutation
 - User and admin ledger entries
 - Admin audit log entry
+- Internal transfer balance movement and paired transfer ledger entries
+- Limit order balance locking and unlocking
+- User and admin order listing
+- Order book grouped bid/ask levels
+- ORDER_LOCK and ORDER_UNLOCK ledger entries
 - Web build
 - The current user and admin web routes responding without crashing
 
@@ -357,11 +388,13 @@ If the warning disappears in that clean browser session, the remaining mismatch 
 This scaffold does not yet implement:
 
 - Order matching engine
+- Automatic trade execution
+- Trading fees
 - Market order flow
 - Deposit / withdraw
 - Blockchain integration
 - K-line chart
 - Complex RBAC
-- Internal transfer execution, freeze/unfreeze, and trade settlement logic
+- Trade settlement logic
 
 The schema and module boundaries are prepared so those features can be added incrementally.

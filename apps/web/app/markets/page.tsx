@@ -10,7 +10,7 @@ export default function MarketsPage() {
         <PageHeader
           eyebrow="Markets"
           title="Exchange markets"
-          description="SW Exchange v0.x supports one internal spot market today. The market is in setup while order book and matching milestones remain ahead."
+          description="SW Exchange v0.x supports one internal spot market today. Limit orders and the order book are live. Matching and trades arrive in v0.6."
         />
 
         <DataTable
@@ -23,10 +23,10 @@ export default function MarketsPage() {
                   Spot
                 </p>
               </div>,
-              <StatusBadge key="status" label="Setup" tone="info" />,
+              <StatusBadge key="status" label="Live" tone="success" />,
               "—",
               "—",
-              "Order book arrives in v0.5.",
+              "Limit orders and the order book are live. Matching and trades arrive in v0.6.",
             ],
           ]}
         />

@@ -1,8 +1,48 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.4 Internal Transfer`
+Current completed milestone: `v0.5 Limit Order + Order Book`
 
-Next milestone: `v0.5 Limit Order + Order Book`
+Next milestone: `v0.6 Matching Engine + Trades`
+
+## v0.5 Limit Order + Order Book
+
+This milestone enables SWL/SWC limit order placement, cancellation, balance locking, and a live open-order book without matching or trade execution.
+
+### Highlights
+
+- Limit order endpoint at `POST /api/orders`
+- User order history endpoint at `GET /api/orders/me`
+- Cancel endpoint at `POST /api/orders/:id/cancel`
+- Order book endpoint at `GET /api/order-book?marketSymbol=SWL/SWC`
+- Admin order list endpoint at `GET /api/admin/orders`
+- BUY orders lock `SWC` equal to `price * amount`
+- SELL orders lock `SWL` equal to `amount`
+- Order creation writes `ORDER_LOCK` ledger entries in the same transaction as wallet and order updates
+- Order cancellation writes `ORDER_UNLOCK` ledger entries in the same transaction as wallet and order updates
+- `/trade` now places real limit orders, shows the order book, and cancels open orders
+- `/orders` shows user order history with cancel support
+- `/admin/orders` shows all orders newest first
+- Admin dashboard includes total open orders
+- Smoke coverage extended for order lock/unlock, order book, ledger, admin order listing, and negative order cases
+
+### Developer and operational notes
+
+- Money parsing and `price * amount` use bigint minimal-unit arithmetic with no JavaScript floating-point math.
+- The order schema now records `remaining_amount`, `locked_asset_id`, and `cancelled_at`.
+- The existing market status enum remains `ACTIVE` / `PAUSED`; v0.5 treats only `ACTIVE` markets as placeable.
+
+### Constraints kept in place
+
+This release remains within the v0.5 boundary:
+
+- No matching engine
+- No automatic trade execution
+- No trade rows
+- No trading fees
+- No market orders
+- No futures, contracts, or leverage
+- No blockchain deposit or withdraw
+- No K-line chart
 
 ## v0.4 Internal Transfer
 
