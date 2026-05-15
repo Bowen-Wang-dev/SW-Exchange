@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { OrderBook, OrderBookLevel, OrderEntry, OrderSide, WalletBalance } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
+import { TRADE_PAGE_COPY, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 
 const MARKET_SYMBOL = "SWL/SWC";
 const MONEY_DECIMALS = 18;
@@ -108,7 +109,7 @@ export default function TradePage() {
           <PageHeader
             eyebrow="Trade"
             title="SWL/SWC spot terminal"
-            description="v0.5 supports limit order placement and cancellation. Matching, trades, and fees arrive in v0.6."
+            description={TRADE_PAGE_COPY}
             action={<StatusBadge label="v0.5 Live" tone="success" />}
           />
 
@@ -216,7 +217,7 @@ export default function TradePage() {
                 <StatusBadge label="v0.6" tone="neutral" />
               </div>
               <div className="mt-5 rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-8 text-center text-sm text-[var(--foreground-soft)]">
-                Trades arrive in v0.6
+                {REAL_TIME_SYNC_COPY}
               </div>
             </section>
           </div>

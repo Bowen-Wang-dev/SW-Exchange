@@ -7,6 +7,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
 import type { AdminSummary } from "@/lib/api-types";
+import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
 export function AdminDashboardContent() {
@@ -41,7 +42,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description="Current milestone: v0.5. Limit orders, order book, admin review, and internal transfers are live."
+        description={`Current milestone: v0.5. Limit orders, order book, admin review, and internal transfers are live. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -78,7 +79,7 @@ export function AdminDashboardContent() {
           label="Open Orders"
           badgeLabel="Live"
           value={String(summary?.totalOpenOrders ?? "-")}
-          hint="Live open and partial order count."
+          hint="Live open order count."
           tone="info"
         />
         <StatCard

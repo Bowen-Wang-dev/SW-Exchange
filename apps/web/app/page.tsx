@@ -4,15 +4,22 @@ import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  CURRENT_MILESTONE_HINT,
+  CURRENT_MILESTONE_VERSION,
+  NEXT_MILESTONE_HINT,
+  NEXT_MILESTONE_VERSION,
+  REAL_TIME_SYNC_COPY,
+} from "@/lib/milestone-copy";
 
 export default function HomePage() {
   return (
     <AppShell>
       <div className="space-y-4">
         <PageHeader
-          eyebrow="v0.5"
+          eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description="SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Limit orders and the order book are live. Matching and trades arrive in v0.6."
+          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -34,16 +41,16 @@ export default function HomePage() {
         <div className="grid gap-4 lg:grid-cols-4">
           <StatCard
             label="CURRENT MILESTONE"
-            badgeLabel="v0.5"
-            value="v0.5"
-            hint="Limit Order + Order Book completed."
+            badgeLabel={CURRENT_MILESTONE_VERSION}
+            value={CURRENT_MILESTONE_VERSION}
+            hint={CURRENT_MILESTONE_HINT}
             tone="success"
           />
           <StatCard
             label="Next Milestone"
-            badgeLabel="v0.6"
-            value="v0.6"
-            hint="Matching Engine + Trades comes next."
+            badgeLabel={NEXT_MILESTONE_VERSION}
+            value={NEXT_MILESTONE_VERSION}
+            hint={NEXT_MILESTONE_HINT}
             tone="warning"
           />
           <StatCard
@@ -95,7 +102,7 @@ export default function HomePage() {
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin SWC/SWL funding is enabled"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
-              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders and the order book are live. Matching and trades arrive in v0.6."],
+              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, `Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`],
             ]}
           />
         </div>

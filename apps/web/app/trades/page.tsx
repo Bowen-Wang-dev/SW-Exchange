@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { TRADE_HISTORY_COPY } from "@/lib/milestone-copy";
 
 export default function TradesPage() {
   return (
@@ -12,12 +13,12 @@ export default function TradesPage() {
           <PageHeader
             eyebrow="Trades"
             title="Executed trade history"
-            description="Trade history opens after the v0.6 matching engine milestone. No fills or fees are generated in v0.5."
+            description={TRADE_HISTORY_COPY}
             action={<StatusBadge label="Pending Engine" tone="warning" />}
           />
 
           <DataTable
-            columns={["Trade ID", "Market", "Side", "Price", "Amount", "Fee", "Time"]}
+            columns={["Trade ID", "Market", "Side", "Price", "Amount", "Fee (v0.7)", "Time"]}
             rows={[
               [
                 "—",

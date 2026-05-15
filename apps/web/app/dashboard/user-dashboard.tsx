@@ -7,6 +7,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
 import type { WalletBalance } from "@/lib/api-types";
+import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardContent() {
@@ -47,7 +48,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description="Your v0.5 console shows live balances, internal transfers, limit orders, and the order book. Matching and trades arrive in v0.6."
+        description={`Your v0.5 console shows live balances, internal transfers, limit orders, and the order book. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label={user?.status ?? "ACTIVE"} tone="success" />}
       />
 
@@ -122,7 +123,7 @@ export function DashboardContent() {
               <StatusBadge key="market-status" label="Live" tone="success" />,
               "—",
               "—",
-              "Limit orders and the order book are live. Matching and trades arrive in v0.6.",
+              `Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`,
             ],
           ]}
         />

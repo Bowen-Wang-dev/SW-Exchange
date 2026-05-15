@@ -2,6 +2,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 
 export default function MarketsPage() {
   return (
@@ -10,7 +11,7 @@ export default function MarketsPage() {
         <PageHeader
           eyebrow="Markets"
           title="Exchange markets"
-          description="SW Exchange v0.x supports one internal spot market today. Limit orders and the order book are live. Matching and trades arrive in v0.6."
+          description={`SW Exchange v0.x supports one internal spot market today. Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`}
         />
 
         <DataTable
@@ -26,7 +27,7 @@ export default function MarketsPage() {
               <StatusBadge key="status" label="Live" tone="success" />,
               "—",
               "—",
-              "Limit orders and the order book are live. Matching and trades arrive in v0.6.",
+              `Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`,
             ],
           ]}
         />
