@@ -8,7 +8,7 @@ export class TransfersController {
   constructor(private readonly transfersService: TransfersService) {}
 
   @Get()
-  placeholder() {
-    return this.transfersService.getPlaceholder();
+  status() {
+    return this.transfersService.getStatus();
   }
 }

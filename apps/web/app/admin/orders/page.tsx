@@ -12,7 +12,7 @@ export default function AdminOrdersPage() {
           <PageHeader
             eyebrow="Admin Orders"
             title="Order review"
-            description="Inspect open and historical order placeholders in a compact exchange operations table."
+            description="Order operations are preview-only until limit order support arrives in v0.5."
             action={<StatusBadge label="Shell Only" tone="info" />}
           />
 
@@ -20,26 +20,26 @@ export default function AdminOrdersPage() {
             columns={["Order ID", "User", "Market", "Side", "Price", "Amount", "Status"]}
             rows={[
               [
-                "ord_demo_1001",
-                "user_demo",
+                "—",
+                "—",
                 "SWL/SWC",
                 <span key="buy" className="text-emerald-300">
                   BUY
                 </span>,
-                "0.142500",
-                "1,200.00",
-                <StatusBadge key="open" label="Open" tone="info" />,
+                "—",
+                "—",
+                <StatusBadge key="open" label="Preview" tone="info" />,
               ],
               [
-                "ord_demo_1002",
-                "user_demo",
+                "—",
+                "—",
                 "SWL/SWC",
                 <span key="sell" className="text-rose-300">
                   SELL
                 </span>,
-                "0.143100",
-                "750.00",
-                <StatusBadge key="filled" label="Filled" tone="success" />,
+                "—",
+                "—",
+                <StatusBadge key="filled" label="Preview" tone="warning" />,
               ],
             ]}
           />

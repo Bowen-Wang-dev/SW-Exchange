@@ -1,10 +1,53 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { apiRequest, ApiError } from "@/lib/api-client";
+import type { LedgerEntry } from "@/lib/api-types";
+import { formatDateTime, shortId } from "@/lib/format";
 
 export default function LedgerPage() {
+  const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadLedger() {
+      try {
+        setIsLoading(true);
+        const response = await apiRequest<LedgerEntry[]>("/ledger/me");
+        if (active) {
+          setEntries(response);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(
+            loadError instanceof ApiError
+              ? loadError.message
+              : "Unable to load ledger entries.",
+          );
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadLedger();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <ProtectedRoute>
       <AppShell>
@@ -12,35 +55,57 @@ export default function LedgerPage() {
           <PageHeader
             eyebrow="Ledger"
             title="Balance change ledger"
-            description="The ledger is the accounting backbone of SW Exchange. This v0.2 page focuses on exchange-style visibility rather than real balance mutation logic."
+            description="Review your accounting trail for wallet balance changes. Airdrops appear here immediately after admin execution."
             action={<StatusBadge label="Accounting" tone="info" />}
           />
 
-          <DataTable
-            columns={["Entry ID", "Type", "Asset", "Amount", "Available After", "Locked After", "Reference"]}
-            rows={[
-              [
-                "ldg_demo_3001",
-                <StatusBadge key="trade-buy" label="Trade Buy" tone="success" />,
-                "SWL",
-                "+480.00",
-                "17,480.00",
-                "420.00",
-                "trade: trd_demo_2001",
-              ],
-              [
-                "ldg_demo_3002",
-                <StatusBadge key="order-lock" label="Order Lock" tone="warning" />,
-                "SWC",
-                "-12,000.00",
-                "94,200.00",
-                "12,000.00",
-                "order: ord_demo_1001",
-              ],
-            ]}
-          />
+          {error ? <Notice tone="danger" message={error} /> : null}
+          {isLoading ? <Notice tone="info" message="Loading ledger entries..." /> : null}
+
+          {!isLoading && !error ? (
+            entries.length > 0 ? (
+              <DataTable
+                columns={[
+                  "Entry ID",
+                  "Type",
+                  "Asset",
+                  "Amount",
+                  "Available After",
+                  "Locked After",
+                  "Reference",
+                  "Created",
+                ]}
+                rows={entries.map((entry) => [
+                  shortId(entry.id),
+                  <StatusBadge key={`${entry.id}-type`} label={entry.type} tone="success" />,
+                  entry.asset,
+                  <span
+                    key={`${entry.id}-amount`}
+                    className={entry.amount.startsWith("+") ? "text-emerald-300" : "text-white"}
+                  >
+                    {entry.amount}
+                  </span>,
+                  entry.availableAfter,
+                  entry.lockedAfter,
+                  `${entry.refType}: ${shortId(entry.refId)}`,
+                  formatDateTime(entry.createdAt),
+                ])}
+              />
+            ) : (
+              <Notice tone="info" message="No ledger entries yet. Airdrops will appear here." />
+            )
+          ) : null}
         </div>
       </AppShell>
     </ProtectedRoute>
   );
+}
+
+function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
+  const classes =
+    tone === "danger"
+      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+
+  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

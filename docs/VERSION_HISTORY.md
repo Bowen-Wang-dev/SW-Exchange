@@ -1,5 +1,43 @@
 # SW Exchange Version History
 
+Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+
+Next milestone: `v0.4 Internal Transfer`
+
+## v0.3 Admin Airdrop + Wallet Viewer
+
+This milestone makes wallets and ledger/audit accounting real for the first admin-controlled funding flow.
+
+### Highlights
+
+- User wallet endpoint at `GET /api/wallets/me`
+- User ledger endpoint at `GET /api/ledger/me`
+- Admin users, wallets, ledger, and audit log endpoints
+- Admin airdrop endpoint at `POST /api/admin/airdrop`
+- Transaction-safe airdrop writes wallet balance, ledger entry, and admin audit log together
+- Exact decimal string money parsing and formatting helpers with no floating-point math
+- Frontend wallet, dashboard, ledger, admin users, admin wallets, admin airdrop, admin ledger, admin audit logs, and admin assets pages now load real API data
+- Smoke coverage extended for the v0.3 airdrop/accounting path
+
+### Developer and operational notes
+
+- Money columns now use `numeric(78,0)` minimal units so 18-decimal assets can hold practical balances such as `1000 SWC` exactly.
+- `users.nickname` is persisted and returned for admin user review.
+- `ensureWalletsForUser(userId)` remains safe to call repeatedly and initializes missing active `SWC`/`SWL` wallets.
+
+### Constraints kept in place
+
+This release remains within the v0.3 boundary:
+
+- No internal transfer execution
+- No limit orders
+- No matching engine
+- No trades
+- No market orders
+- No blockchain deposit or withdraw
+- No K-line chart
+- No complex RBAC
+
 ## v0.2 Auth + CEX UI Shell
 
 This milestone delivers the first exchange-style authenticated product shell on top of the v0.1 foundation.

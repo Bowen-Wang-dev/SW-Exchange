@@ -4,6 +4,7 @@ export interface AuthenticatedUser {
   sub: string;
   email: string;
   username: string;
+  nickname?: string | null;
   role: "USER" | "ADMIN";
   status: "ACTIVE" | "FROZEN" | "BANNED";
 }

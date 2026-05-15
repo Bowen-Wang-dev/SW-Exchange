@@ -4,6 +4,7 @@ export type AuthUser = {
   id: string;
   email: string;
   username: string;
+  nickname?: string | null;
   role: UserRole;
   status: UserStatus;
   createdAt?: string;
@@ -20,6 +21,7 @@ type SessionUserPayload = {
   sub?: string;
   email: string;
   username: string;
+  nickname?: string | null;
   role: UserRole;
   status: UserStatus;
   createdAt?: string;
@@ -57,6 +59,7 @@ export function normalizeAuthUser(user: SessionUserPayload): AuthUser {
     id: user.id ?? user.sub ?? "",
     email: user.email,
     username: user.username,
+    nickname: user.nickname,
     role: user.role,
     status: user.status,
     createdAt: user.createdAt,

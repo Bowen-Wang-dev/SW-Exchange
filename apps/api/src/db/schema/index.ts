@@ -1,8 +1,8 @@
 import {
-  bigint,
   boolean,
   integer,
   jsonb,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   username: varchar("username", { length: 64 }).notNull().unique(),
+  nickname: varchar("nickname", { length: 64 }),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("USER"),
   status: userStatusEnum("status").notNull().default("ACTIVE"),
@@ -70,8 +71,12 @@ export const wallets = pgTable(
     assetId: uuid("asset_id")
       .notNull()
       .references(() => assets.id, { onDelete: "cascade" }),
-    availableBalance: bigint("available_balance", { mode: "bigint" }).notNull().default(sql`0`),
-    lockedBalance: bigint("locked_balance", { mode: "bigint" }).notNull().default(sql`0`),
+    availableBalance: numeric("available_balance", { precision: 78, scale: 0, mode: "bigint" })
+      .notNull()
+      .default(sql`0`),
+    lockedBalance: numeric("locked_balance", { precision: 78, scale: 0, mode: "bigint" })
+      .notNull()
+      .default(sql`0`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -89,9 +94,17 @@ export const ledgerEntries = pgTable("ledger_entries", {
     .notNull()
     .references(() => assets.id, { onDelete: "restrict" }),
   type: ledgerEntryTypeEnum("type").notNull(),
-  amount: bigint("amount", { mode: "bigint" }).notNull(),
-  balanceAvailableAfter: bigint("balance_available_after", { mode: "bigint" }).notNull(),
-  balanceLockedAfter: bigint("balance_locked_after", { mode: "bigint" }).notNull(),
+  amount: numeric("amount", { precision: 78, scale: 0, mode: "bigint" }).notNull(),
+  balanceAvailableAfter: numeric("balance_available_after", {
+    precision: 78,
+    scale: 0,
+    mode: "bigint",
+  }).notNull(),
+  balanceLockedAfter: numeric("balance_locked_after", {
+    precision: 78,
+    scale: 0,
+    mode: "bigint",
+  }).notNull(),
   refType: varchar("ref_type", { length: 64 }).notNull(),
   refId: uuid("ref_id"),
   note: text("note"),
@@ -116,7 +129,9 @@ export const transfers = pgTable("transfers", {
   fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),
   toUserId: uuid("to_user_id").references(() => users.id, { onDelete: "set null" }),
   assetId: uuid("asset_id").references(() => assets.id, { onDelete: "set null" }),
-  amount: bigint("amount", { mode: "bigint" }).notNull().default(sql`0`),
+  amount: numeric("amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
   status: transferStatusEnum("status").notNull().default("SUCCESS"),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -149,10 +164,18 @@ export const orders = pgTable("orders", {
   side: orderSideEnum("side").notNull(),
   type: orderTypeEnum("type").notNull().default("LIMIT"),
   status: orderStatusEnum("status").notNull().default("OPEN"),
-  price: bigint("price", { mode: "bigint" }).notNull().default(sql`0`),
-  amount: bigint("amount", { mode: "bigint" }).notNull().default(sql`0`),
-  filledAmount: bigint("filled_amount", { mode: "bigint" }).notNull().default(sql`0`),
-  lockedAmount: bigint("locked_amount", { mode: "bigint" }).notNull().default(sql`0`),
+  price: numeric("price", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  amount: numeric("amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  filledAmount: numeric("filled_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  lockedAmount: numeric("locked_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -174,10 +197,18 @@ export const trades = pgTable("trades", {
   sellerId: uuid("seller_id")
     .notNull()
     .references(() => users.id, { onDelete: "restrict" }),
-  price: bigint("price", { mode: "bigint" }).notNull().default(sql`0`),
-  amount: bigint("amount", { mode: "bigint" }).notNull().default(sql`0`),
-  buyerFee: bigint("buyer_fee", { mode: "bigint" }).notNull().default(sql`0`),
-  sellerFee: bigint("seller_fee", { mode: "bigint" }).notNull().default(sql`0`),
+  price: numeric("price", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  amount: numeric("amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  buyerFee: numeric("buyer_fee", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  sellerFee: numeric("seller_fee", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
   status: tradeStatusEnum("status").notNull().default("SETTLED"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

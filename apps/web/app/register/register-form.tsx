@@ -82,8 +82,8 @@ export function RegisterForm() {
           />
 
           <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-xs leading-5 text-[var(--foreground-soft)]">
-            The nickname field is collected in the UI for future profile support. The current v0.2
-            backend only persists email, username, and password.
+            The nickname field is optional. The current v0.3 backend stores email, username,
+            password, and nickname for admin review.
           </div>
 
           {error ? (

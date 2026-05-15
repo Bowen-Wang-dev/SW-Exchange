@@ -1,46 +1,77 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { apiRequest } from "@/lib/api-client";
+import type { AdminSummary } from "@/lib/api-types";
 import { useAuth } from "@/providers/auth-provider";
 
 export function AdminDashboardContent() {
   const { user } = useAuth();
+  const [summary, setSummary] = useState<AdminSummary | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSummary() {
+      try {
+        const response = await apiRequest<AdminSummary>("/admin");
+        if (active) {
+          setSummary(response);
+        }
+      } catch {
+        if (active) {
+          setSummary(null);
+        }
+      }
+    }
+
+    void loadSummary();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="space-y-4">
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description="This is the v0.2 supervisory shell for user review, wallets, assets, orders, trades, ledger, and audit tooling."
+        description="Current milestone: v0.3. Admin airdrop and wallet viewer are live; internal transfer comes next in v0.4."
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
       <div className="grid gap-4 lg:grid-cols-4">
         <StatCard
           label="Total Users"
-          value="128"
-          hint="Placeholder admin aggregate."
+          badgeLabel="Live"
+          value={String(summary?.totalUsers ?? "-")}
+          hint="Live count from the users table."
           tone="info"
         />
         <StatCard
           label="Total Wallets"
-          value="256"
-          hint="Two-wallet expectation per user."
+          badgeLabel="Live"
+          value={String(summary?.totalWallets ?? "-")}
+          hint="Live count from initialized wallets."
           tone="success"
         />
         <StatCard
-          label="Total Trades"
-          value="0"
-          hint="Matching engine not implemented yet."
+          label="Ledger Entries"
+          badgeLabel="Live"
+          value={String(summary?.totalLedgerEntries ?? "-")}
+          hint="Live accounting entry count."
           tone="warning"
         />
         <StatCard
-          label="Fee Revenue"
-          value="0.00 SWC"
-          hint="No executed trades in v0.2."
+          label="Audit Logs"
+          badgeLabel="Live"
+          value={String(summary?.totalAuditLogs ?? "-")}
+          hint="Live admin action trail count."
           tone="danger"
         />
       </div>
@@ -63,8 +94,8 @@ export function AdminDashboardContent() {
 
           <div className="data-divider mt-4 rounded-2xl border border-[var(--border)]">
             {[
-              "Airdrop and wallet mutation logic are intentionally deferred from v0.2.",
-              "Admin pages are read-oriented placeholders with centralized exchange styling.",
+              "Airdrops update wallet, ledger, and audit records in one transaction.",
+              "Wallet viewer pages are live for both admin and normal users.",
               "All later sensitive actions should map to ledger and audit entries.",
             ].map((item) => (
               <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
@@ -77,10 +108,10 @@ export function AdminDashboardContent() {
         <DataTable
           columns={["Area", "Status", "Notes"]}
           rows={[
-            ["Users", <StatusBadge key="users" label="Shell" tone="info" />, "Review-oriented placeholder"],
-            ["Wallets", <StatusBadge key="wallets" label="Shell" tone="info" />, "No mutations in v0.2"],
-            ["Airdrop", <StatusBadge key="airdrop" label="Deferred" tone="warning" />, "Planned for v0.3"],
-            ["Audit", <StatusBadge key="audit" label="Planned" tone="neutral" />, "Detailed tracking later"],
+            ["Users", <StatusBadge key="users" label="Live" tone="success" />, "Admin user list endpoint"],
+            ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "SWC/SWL balances"],
+            ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only SWC/SWL funding"],
+            ["Audit", <StatusBadge key="audit" label="Live" tone="info" />, "Airdrop audit trail"],
           ]}
         />
       </div>

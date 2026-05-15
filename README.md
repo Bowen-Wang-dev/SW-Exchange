@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.2 Auth + CEX UI Shell`
+Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
 
-Next milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+Next milestone: `v0.4 Internal Transfer`
 
 This version is intentionally limited:
 
@@ -20,14 +20,22 @@ Current scope:
 - Public registration
 - JWT login
 - Internal wallets
-- Free internal transfers foundation
-- SWL/SWC spot limit-order foundation
-- Admin dashboard foundation
+- User wallet viewer
+- User ledger viewer
+- Admin user and wallet viewer
+- Admin SWC/SWL airdrop flow
+- Admin ledger and audit log viewer
+- SWL/SWC spot limit-order foundation only
 
 ## Milestone status
 
-- Current completed milestone: `v0.2 Auth + CEX UI Shell`
-- Next milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+- `v0.1 Foundation` completed
+- `v0.2 Auth + CEX UI Shell` completed
+- `v0.3 Admin Airdrop + Wallet Viewer` completed
+- `v0.4 Internal Transfer` next
+
+- Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+- Next milestone: `v0.4 Internal Transfer`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
 
@@ -50,6 +58,33 @@ packages/
   shared/     shared constants and types
 drizzle/      generated SQL migrations
 ```
+
+## v0.3 Admin Airdrop + Wallet Viewer
+
+### API
+
+- `GET /api/wallets/me`
+- `GET /api/ledger/me`
+- `GET /api/admin/users`
+- `GET /api/admin/wallets`
+- `POST /api/admin/airdrop`
+- `GET /api/admin/ledger`
+- `GET /api/admin/audit-logs`
+- `GET /api/admin`
+- `GET /api/assets`
+
+Admin airdrops can credit only active `SWC` or `SWL` assets. Each airdrop runs in one database transaction and updates the target wallet, creates a ledger entry, and creates an admin audit log together.
+
+### Web
+
+- `/wallet` shows real user balances
+- `/dashboard` shows live SWC/SWL wallet balances
+- `/ledger` shows real user ledger entries
+- `/admin/users` shows real users without password hashes
+- `/admin/wallets` shows real joined user wallet balances
+- `/admin/airdrop` executes admin airdrops
+- `/admin/ledger` shows real ledger entries
+- `/admin/audit-logs` shows real admin audit logs
 
 ## v0.1 Foundation
 
@@ -82,7 +117,7 @@ drizzle/      generated SQL migrations
 ### Web
 
 - Next.js app-router frontend
-- Tailwind-based placeholder UI
+- Tailwind-based initial route UI
 - User routes:
   - `/login`
   - `/register`
@@ -119,7 +154,7 @@ Implemented schema:
 - `orders`
 - `trades`
 
-Money-related fields are stored as PostgreSQL `bigint` minimal units. JavaScript floating-point numbers are not used for balances.
+Money-related fields are stored as exact PostgreSQL `numeric(78,0)` minimal units. JavaScript floating-point numbers are not used for balances or amount parsing.
 
 ## Seeded data
 
@@ -252,6 +287,11 @@ It verifies:
 - Normal user login
 - Authenticated `/auth/me`
 - Admin login
+- Admin airdrop execution
+- User wallet balance mutation
+- User and admin ledger entries
+- Admin audit log entry
+- Web build
 - The current user and admin web routes responding without crashing
 
 ## Troubleshooting
@@ -301,6 +341,6 @@ This scaffold does not yet implement:
 - Blockchain integration
 - K-line chart
 - Complex RBAC
-- Full admin actions like airdrop execution, freeze/unfreeze, and trade settlement logic
+- Internal transfer execution, freeze/unfreeze, and trade settlement logic
 
 The schema and module boundaries are prepared so those features can be added incrementally.

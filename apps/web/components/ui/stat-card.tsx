@@ -3,6 +3,7 @@ import { StatusBadge } from "./status-badge";
 
 type StatCardProps = {
   label: string;
+  badgeLabel?: string;
   value: string;
   hint: string;
   tone?: "neutral" | "success" | "warning" | "danger" | "info";
@@ -11,6 +12,7 @@ type StatCardProps = {
 
 export function StatCard({
   label,
+  badgeLabel,
   value,
   hint,
   tone = "neutral",
@@ -25,7 +27,7 @@ export function StatCard({
           </p>
           <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
         </div>
-        <StatusBadge label={label} tone={tone} />
+        <StatusBadge label={badgeLabel ?? label} tone={tone} />
       </div>
       <p className="mt-3 text-sm text-[var(--foreground-soft)]">{hint}</p>
       {extra ? <div className="mt-4">{extra}</div> : null}

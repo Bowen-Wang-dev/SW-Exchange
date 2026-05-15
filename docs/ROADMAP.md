@@ -2,9 +2,13 @@
 
 SW Exchange is being built in focused milestones so we can keep the simulated exchange narrow, testable, and easy to extend.
 
-## Planned milestones
+## Milestone status
 
-### v0.1 Foundation
+Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+
+Next milestone: `v0.4 Internal Transfer`
+
+### v0.1 Foundation - Completed
 
 - Monorepo scaffold with `apps/api`, `apps/web`, and `packages/shared`
 - NestJS API foundation
@@ -13,18 +17,24 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 - Docker Compose local database workflow
 - Seed script and smoke test
 
-### v0.2 Auth + CEX UI Shell
+### v0.2 Auth + CEX UI Shell - Completed
 
 - Frontend auth integration with existing API endpoints
 - Dark, professional exchange-style application shell
 - Protected user and admin routes
 - Redesigned placeholder screens for dashboard, wallet, trade, and admin areas
 
-### v0.3 Admin Airdrop + Wallet Viewer
+### v0.3 Admin Airdrop + Wallet Viewer - Completed
 
-- Admin wallet visibility
-- Admin airdrop execution flow
-- Related ledger and audit visibility
+- Admin user and wallet visibility
+- User wallet viewer backed by real balances
+- Transaction-safe admin airdrop execution for `SWC` and `SWL`
+- Ledger entries for airdrops
+- Admin audit logs for airdrops
+- User and admin ledger viewers
+- Exact decimal parsing/formatting helpers for minimal-unit balances
+
+## Planned milestones
 
 ### v0.4 Internal Transfer
 

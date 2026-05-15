@@ -35,6 +35,7 @@ type SessionResponseUser = AuthUserType | {
   sub: string;
   email: string;
   username: string;
+  nickname?: string | null;
   role: AuthUserType["role"];
   status: AuthUserType["status"];
 };

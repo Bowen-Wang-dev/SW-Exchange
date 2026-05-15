@@ -23,11 +23,10 @@ export class AuthService {
     const user = await this.usersService.create({
       email: dto.email,
       username: dto.username,
+      nickname: dto.nickname?.trim() || null,
       passwordHash,
       role: "USER",
     });
-
-    void dto.nickname;
 
     const token = await this.signToken(user);
 
@@ -70,6 +69,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       username: user.username,
+      nickname: user.nickname,
       role: user.role,
       status: user.status,
     });

@@ -2,11 +2,11 @@ import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class TransfersService {
-  getPlaceholder() {
+  getStatus() {
     return {
       feature: "internal-transfers",
       implemented: false,
-      note: "Placeholder for free internal transfers by username or email.",
+      note: "Internal transfer execution is planned for v0.4.",
     };
   }
 }

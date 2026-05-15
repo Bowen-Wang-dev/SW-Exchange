@@ -1,47 +1,84 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { apiRequest } from "@/lib/api-client";
+import type { WalletBalance } from "@/lib/api-types";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardContent() {
   const { user } = useAuth();
+  const [wallets, setWallets] = useState<WalletBalance[]>([]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadWallets() {
+      try {
+        const response = await apiRequest<WalletBalance[]>("/wallets/me");
+        if (active) {
+          setWallets(response);
+        }
+      } catch {
+        if (active) {
+          setWallets([]);
+        }
+      }
+    }
+
+    void loadWallets();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const swcWallet = wallets.find((wallet) => wallet.asset === "SWC");
+  const swlWallet = wallets.find((wallet) => wallet.asset === "SWL");
+  const swcBalance = swcWallet?.available ?? "0";
+  const swlBalance = swlWallet?.available ?? "0";
+  const swcTotalEquity = `${swcWallet?.total ?? "0"} SWC`;
 
   return (
     <div className="space-y-4">
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description="Your v0.2 exchange console is ready. Wallets, orders, and trades are still placeholder-only, but the shell now behaves like a centralized exchange workspace."
+        description="Your v0.3 console shows live internal wallet balances. Trading opens in later milestones."
         action={<StatusBadge label={user?.status ?? "ACTIVE"} tone="success" />}
       />
 
       <div className="grid gap-4 lg:grid-cols-4">
         <StatCard
           label="Total Equity"
-          value="128,420.00 SWC"
-          hint="Simulated equity placeholder for dashboard layout."
+          badgeLabel="v0.3"
+          value={swcTotalEquity}
+          hint="SWC-denominated estimate. SWL valuation pending until trading goes live."
           tone="info"
         />
         <StatCard
           label="SWC Balance"
-          value="94,200.00"
-          hint="Internal quote asset placeholder."
+          badgeLabel="Live"
+          value={swcBalance}
+          hint="Live available SWC wallet balance."
           tone="success"
         />
         <StatCard
           label="SWL Balance"
-          value="17,480.00"
-          hint="Internal base asset placeholder."
+          badgeLabel="Live"
+          value={swlBalance}
+          hint="Live available SWL wallet balance."
           tone="warning"
         />
         <StatCard
           label="24h PnL"
-          value="+2.84%"
-          hint="Display-only placeholder until trading engine arrives."
-          tone="success"
+          badgeLabel="Coming Soon"
+          value="Not live"
+          hint="PnL will be added after trading and pricing milestones."
+          tone="neutral"
         />
       </div>
 
@@ -78,13 +115,14 @@ export function DashboardContent() {
         </section>
 
         <DataTable
-          columns={["Market", "Status", "Bid", "Ask"]}
+          columns={["Market", "Status", "Bid", "Ask", "Note"]}
           rows={[
             [
               "SWL/SWC",
-              <StatusBadge key="market-status" label="Active" tone="success" />,
-              "0.142600",
-              "0.142900",
+              <StatusBadge key="market-status" label="Setup" tone="info" />,
+              "—",
+              "—",
+              "Order book arrives in v0.5.",
             ],
           ]}
         />

@@ -11,7 +11,7 @@ export default function TransferPage() {
           <PageHeader
             eyebrow="Transfer"
             title="Internal transfer shell"
-            description="Transfers are not implemented in v0.2. This view shows the eventual centralized exchange workflow for moving SWC or SWL between internal users."
+            description="Transfers are not implemented in v0.3. User-to-user internal transfer is the next milestone in v0.4."
             action={<StatusBadge label="Planned v0.4" tone="warning" />}
           />
 
@@ -28,7 +28,7 @@ export default function TransferPage() {
                     </span>
                     <input
                       disabled
-                      placeholder={`${field} placeholder`}
+                      placeholder={field}
                       className="w-full rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-[var(--foreground-muted)]"
                     />
                   </label>
@@ -38,7 +38,7 @@ export default function TransferPage() {
                   disabled
                   className="rounded-2xl bg-white/[0.06] px-4 py-3 text-sm font-semibold text-[var(--foreground-muted)]"
                 >
-                  Transfer placeholder
+                  Transfer disabled
                 </button>
               </div>
             </section>

@@ -16,7 +16,9 @@ export class UsersService {
     @Inject(WalletsService) private readonly walletsService: WalletsService,
   ) {}
 
-  async create(data: Pick<NewUser, "email" | "username" | "passwordHash" | "role">) {
+  async create(
+    data: Pick<NewUser, "email" | "username" | "nickname" | "passwordHash" | "role">,
+  ) {
     const [user] = await this.db
       .insert(users)
       .values({
@@ -61,6 +63,7 @@ export class UsersService {
       id: user.id,
       email: user.email,
       username: user.username,
+      nickname: user.nickname,
       role: user.role,
       status: user.status,
       createdAt: user.createdAt,

@@ -1,8 +1,11 @@
 import { config as loadEnv } from "dotenv";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { Client } from "pg";
 
 loadEnv({ path: ".env" });
 
+const execFileAsync = promisify(execFile);
 const apiBaseUrl = "http://127.0.0.1:3001/api";
 const webBaseUrl = "http://127.0.0.1:3000";
 const databaseUrl = process.env.DATABASE_URL;
@@ -49,7 +52,9 @@ async function main() {
 
   await testApiHealth();
   await testSeedData();
-  await testAuthFlows();
+  const auth = await testAuthFlows();
+  await testV03AirdropFlow(auth);
+  await testWebBuild();
   await testWebRoutes();
 
   console.log("Smoke test completed successfully.");
@@ -187,6 +192,110 @@ async function testAuthFlows() {
   }
 
   console.log("PASS auth flows");
+
+  return {
+    userAccessToken: userLoginJson.accessToken,
+    adminAccessToken: adminLoginJson.accessToken,
+    user: {
+      email: testEmail,
+      username: testUsername,
+    },
+  };
+}
+
+async function testV03AirdropFlow(auth: {
+  userAccessToken: string;
+  adminAccessToken: string;
+  user: { email: string; username: string };
+}) {
+  const beforeWallets = await getJson<Array<{ asset: string; availableRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    auth.userAccessToken,
+    "load user wallets before airdrop",
+  );
+  const beforeSwc = beforeWallets.find((wallet) => wallet.asset === "SWC");
+  if (!beforeSwc) {
+    throw new Error("Expected normal user to have a SWC wallet before airdrop.");
+  }
+
+  const airdropResponse = await fetch(`${apiBaseUrl}/admin/airdrop`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${auth.adminAccessToken}`,
+    },
+    body: JSON.stringify({
+      username: auth.user.username,
+      assetSymbol: "SWC",
+      amount: "1000",
+      note: "Smoke v0.3 airdrop",
+    }),
+  });
+  assertOk(airdropResponse, "admin airdrop");
+  const airdropJson = (await airdropResponse.json()) as {
+    ledgerEntryId?: string;
+    auditLogId?: string;
+    newAvailableRaw?: string;
+  };
+
+  if (!airdropJson.ledgerEntryId || !airdropJson.auditLogId || !airdropJson.newAvailableRaw) {
+    throw new Error(`Unexpected airdrop payload: ${JSON.stringify(airdropJson)}`);
+  }
+
+  const expectedDelta = 1000n * 10n ** 18n;
+  const expectedAvailable = BigInt(beforeSwc.availableRaw) + expectedDelta;
+  if (BigInt(airdropJson.newAvailableRaw) !== expectedAvailable) {
+    throw new Error("Airdrop response did not return the expected new available balance.");
+  }
+
+  const afterWallets = await getJson<Array<{ asset: string; availableRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    auth.userAccessToken,
+    "load user wallets after airdrop",
+  );
+  const afterSwc = afterWallets.find((wallet) => wallet.asset === "SWC");
+  if (!afterSwc || BigInt(afterSwc.availableRaw) !== expectedAvailable) {
+    throw new Error("User SWC wallet did not reflect the airdrop.");
+  }
+
+  const userLedger = await getJson<Array<{ id: string; type: string; asset: string; amountRaw: string }>>(
+    `${apiBaseUrl}/ledger/me`,
+    auth.userAccessToken,
+    "load user ledger",
+  );
+  const userAirdropEntry = userLedger.find((entry) => entry.id === airdropJson.ledgerEntryId);
+  if (!userAirdropEntry || userAirdropEntry.type !== "AIRDROP" || userAirdropEntry.asset !== "SWC") {
+    throw new Error("User ledger did not include the expected AIRDROP entry.");
+  }
+
+  const adminLedger = await getJson<Array<{ id: string; type: string }>>(
+    `${apiBaseUrl}/admin/ledger`,
+    auth.adminAccessToken,
+    "load admin ledger",
+  );
+  if (!adminLedger.some((entry) => entry.id === airdropJson.ledgerEntryId && entry.type === "AIRDROP")) {
+    throw new Error("Admin ledger did not include the expected AIRDROP entry.");
+  }
+
+  const auditLogs = await getJson<Array<{ id: string; action: string }>>(
+    `${apiBaseUrl}/admin/audit-logs`,
+    auth.adminAccessToken,
+    "load admin audit logs",
+  );
+  if (!auditLogs.some((log) => log.id === airdropJson.auditLogId && log.action === "AIRDROP")) {
+    throw new Error("Admin audit logs did not include the expected AIRDROP action.");
+  }
+
+  console.log("PASS v0.3 airdrop, wallets, ledger, and audit flow");
+}
+
+async function testWebBuild() {
+  await execFileAsync("pnpm", ["--filter", "@sw-exchange/web", "build"], {
+    cwd: process.cwd(),
+    maxBuffer: 1024 * 1024 * 10,
+  });
+
+  console.log("PASS web build");
 }
 
 async function testWebRoutes() {
@@ -212,6 +321,16 @@ function assertOk(response: Response, label: string) {
   if (!response.ok) {
     throw new Error(`${label} failed with status ${response.status}`);
   }
+}
+
+async function getJson<T>(url: string, accessToken: string, label: string) {
+  const response = await fetch(url, {
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+    },
+  });
+  assertOk(response, label);
+  return (await response.json()) as T;
 }
 
 function expectValues(actual: string[], expected: string[], label: string) {

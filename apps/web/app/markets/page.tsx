@@ -10,11 +10,11 @@ export default function MarketsPage() {
         <PageHeader
           eyebrow="Markets"
           title="Exchange markets"
-          description="SW Exchange v0.x supports one internal spot market today. The shell is ready for more listings later, but trading logic remains placeholder-only in this milestone."
+          description="SW Exchange v0.x supports one internal spot market today. The market is in setup while order book and matching milestones remain ahead."
         />
 
         <DataTable
-          columns={["Market", "Status", "Last Price", "24h Change", "24h Volume", "Notes"]}
+          columns={["Market", "Status", "Bid", "Ask", "Notes"]}
           rows={[
             [
               <div key="market" className="space-y-1">
@@ -23,13 +23,10 @@ export default function MarketsPage() {
                   Spot
                 </p>
               </div>,
-              <StatusBadge key="status" label="Active" tone="success" />,
-              "0.142800",
-              <span key="change" className="text-emerald-300">
-                +2.84%
-              </span>,
-              "184,220 SWL",
-              "Only supported market in v0.x",
+              <StatusBadge key="status" label="Setup" tone="info" />,
+              "—",
+              "—",
+              "Order book arrives in v0.5.",
             ],
           ]}
         />

@@ -12,7 +12,7 @@ export default function OrdersPage() {
           <PageHeader
             eyebrow="Orders"
             title="Open and historical orders"
-            description="Order history is placeholder-only in v0.2, but the shell is ready for centralized exchange order states, locked funds, and market-specific views."
+            description="Order history is preview-only until limit order support arrives in v0.5. No orders are created in v0.3."
             action={<StatusBadge label="Read-Only" tone="info" />}
           />
 
@@ -20,26 +20,26 @@ export default function OrdersPage() {
             columns={["Order ID", "Market", "Side", "Price", "Amount", "Filled", "Status"]}
             rows={[
               [
-                "ord_demo_1001",
+                "—",
                 "SWL/SWC",
                 <span key="buy" className="text-emerald-300">
                   BUY
                 </span>,
-                "0.142500",
-                "1,200.00",
-                "320.00",
-                <StatusBadge key="open" label="Open" tone="info" />,
+                "—",
+                "—",
+                "—",
+                <StatusBadge key="open" label="Preview" tone="info" />,
               ],
               [
-                "ord_demo_1002",
+                "—",
                 "SWL/SWC",
                 <span key="sell" className="text-rose-300">
                   SELL
                 </span>,
-                "0.143100",
-                "750.00",
-                "750.00",
-                <StatusBadge key="filled" label="Filled" tone="success" />,
+                "—",
+                "—",
+                "—",
+                <StatusBadge key="filled" label="Preview" tone="warning" />,
               ],
             ]}
           />

@@ -10,7 +10,7 @@ export default function HomePage() {
     <AppShell>
       <div className="space-y-4">
         <PageHeader
-          eyebrow="v0.2 Shell"
+          eyebrow="v0.3"
           title="Simulated exchange control center"
           description="SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. No blockchain, no deposit, no withdraw, no market orders, and no K-line are included in this version."
           action={
@@ -34,24 +34,28 @@ export default function HomePage() {
         <div className="grid gap-4 lg:grid-cols-4">
           <StatCard
             label="Current Milestone"
-            value="v0.2"
-            hint="Auth + CEX UI Shell completed and documented."
+            badgeLabel="v0.3"
+            value="v0.3"
+            hint="Admin Airdrop + Wallet Viewer completed."
             tone="success"
           />
           <StatCard
             label="Next Milestone"
-            value="v0.3"
-            hint="Admin Airdrop + Wallet Viewer is the next milestone."
+            badgeLabel="v0.4"
+            value="v0.4"
+            hint="Internal Transfer comes next."
             tone="warning"
           />
           <StatCard
             label="Market Universe"
+            badgeLabel="SWL/SWC"
             value="1"
             hint="Only SWL/SWC is listed in v0.x."
             tone="success"
           />
           <StatCard
             label="Chain Features"
+            badgeLabel="None"
             value="0"
             hint="No deposit, withdraw, or blockchain integration."
             tone="danger"
@@ -88,9 +92,9 @@ export default function HomePage() {
             columns={["Module", "Status", "Summary"]}
             rows={[
               ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
-              ["Wallet", <StatusBadge key="wallet" label="Shell Ready" tone="info" />, "Viewer shell completed, no mutations yet"],
-              ["Trade", <StatusBadge key="trade" label="Shell Ready" tone="info" />, "UI shell completed, no order logic yet"],
-              ["Admin", <StatusBadge key="admin" label="Scoped" tone="success" />, "Single full-permission admin shell ready"],
+              ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances"],
+              ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin SWC/SWL funding is enabled"],
+              ["Trade", <StatusBadge key="trade" label="Preview" tone="info" />, "Limit orders arrive in v0.5 and matching in v0.6"],
             ]}
           />
         </div>
