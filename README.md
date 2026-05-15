@@ -4,7 +4,7 @@ SW Exchange v0.x is a lightweight web-first simulated crypto exchange for intern
 
 Current completed milestone: `v0.5 Limit Order + Order Book`
 
-Next milestone: `v0.6 Matching Engine + Trades`
+Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
 
 This version is intentionally limited:
 
@@ -42,7 +42,14 @@ Current scope:
 - `v0.5 Limit Order + Order Book` completed
 
 - Current completed milestone: `v0.5 Limit Order + Order Book`
-- Next milestone: `v0.6 Matching Engine + Trades`
+- Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+
+## Planned milestones
+
+- `v0.6 Matching Engine + Trades + WebSocket Sync`
+- `v0.7 Admin Fee System + Fee Settlement`
+- `v0.8 Ledger / Audit / Reports polish`
+- `v1.x BSC deposit/withdraw, market orders, K-line`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
 
@@ -389,6 +396,7 @@ This scaffold does not yet implement:
 
 - Order matching engine
 - Automatic trade execution
+- Real-time order, trade, or book sync
 - Trading fees
 - Market order flow
 - Deposit / withdraw

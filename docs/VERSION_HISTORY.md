@@ -2,7 +2,14 @@
 
 Current completed milestone: `v0.5 Limit Order + Order Book`
 
-Next milestone: `v0.6 Matching Engine + Trades`
+Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+
+## Upcoming plan
+
+- `v0.6 Matching Engine + Trades + WebSocket Sync`
+- `v0.7 Admin Fee System + Fee Settlement`
+- `v0.8 Ledger / Audit / Reports polish`
+- `v1.x BSC deposit/withdraw, market orders, K-line`
 
 ## v0.5 Limit Order + Order Book
 
