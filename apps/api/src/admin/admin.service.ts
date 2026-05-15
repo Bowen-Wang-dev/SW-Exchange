@@ -12,10 +12,12 @@ import {
   adminAuditLogs,
   assets,
   ledgerEntries,
+  transfers,
   users,
   wallets,
 } from "../db/schema/index.js";
 import { LedgerService } from "../ledger/ledger.service.js";
+import { TransfersService } from "../transfers/transfers.service.js";
 import { WalletsService } from "../wallets/wallets.service.js";
 import type { AirdropDto } from "./dto/airdrop.dto.js";
 
@@ -31,21 +33,25 @@ export class AdminService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(LedgerService) private readonly ledgerService: LedgerService,
+    @Inject(TransfersService) private readonly transfersService: TransfersService,
     @Inject(WalletsService) private readonly walletsService: WalletsService,
   ) {}
 
   async dashboard() {
-    const [[usersCount], [walletsCount], [ledgerCount], [auditLogCount]] = await Promise.all([
-      this.db.select({ value: count() }).from(users),
-      this.db.select({ value: count() }).from(wallets),
-      this.db.select({ value: count() }).from(ledgerEntries),
-      this.db.select({ value: count() }).from(adminAuditLogs),
-    ]);
+    const [[usersCount], [walletsCount], [ledgerCount], [transferCount], [auditLogCount]] =
+      await Promise.all([
+        this.db.select({ value: count() }).from(users),
+        this.db.select({ value: count() }).from(wallets),
+        this.db.select({ value: count() }).from(ledgerEntries),
+        this.db.select({ value: count() }).from(transfers),
+        this.db.select({ value: count() }).from(adminAuditLogs),
+      ]);
 
     return {
       totalUsers: usersCount?.value ?? 0,
       totalWallets: walletsCount?.value ?? 0,
       totalLedgerEntries: ledgerCount?.value ?? 0,
+      totalTransfers: transferCount?.value ?? 0,
       totalAuditLogs: auditLogCount?.value ?? 0,
     };
   }
@@ -264,6 +270,10 @@ export class AdminService {
 
   listLedger() {
     return this.ledgerService.listAllForAdmin();
+  }
+
+  listTransfers() {
+    return this.transfersService.listAllForAdmin();
   }
 
   async listAuditLogs() {

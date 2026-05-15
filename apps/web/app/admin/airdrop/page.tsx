@@ -63,7 +63,7 @@ export default function AdminAirdropPage() {
             eyebrow="Admin Airdrop"
             title="Airdrop SWC or SWL"
             description="Credit a user's available wallet balance. Every airdrop writes wallet, ledger, and admin audit records together."
-            action={<StatusBadge label="Enabled v0.3" tone="warning" />}
+            action={<StatusBadge label="Enabled" tone="warning" />}
           />
 
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">

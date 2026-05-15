@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+Current completed milestone: `v0.4 Internal Transfer`
 
-Next milestone: `v0.4 Internal Transfer`
+Next milestone: `v0.5 Limit Order + Order Book`
 
 ### v0.1 Foundation - Completed
 
@@ -34,13 +34,17 @@ Next milestone: `v0.4 Internal Transfer`
 - User and admin ledger viewers
 - Exact decimal parsing/formatting helpers for minimal-unit balances
 
-## Planned milestones
-
-### v0.4 Internal Transfer
+### v0.4 Internal Transfer - Completed
 
 - User-to-user internal transfer flow
-- Transfer validation
-- Transfer ledger recording
+- Transfer target by username or email
+- Transfer validation for active users, active assets, self-transfer, amount format, and available balance
+- Transfer ledger recording with paired `TRANSFER_OUT` and `TRANSFER_IN` entries
+- User transfer history
+- Admin transfer list
+- `FROZEN` and `BANNED` recipients are blocked from receiving for the safer/simple v0.4 rule
+
+## Planned milestones
 
 ### v0.5 Limit Order + Order Book
 

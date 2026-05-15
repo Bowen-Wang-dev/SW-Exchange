@@ -81,7 +81,13 @@ export default function LedgerPage() {
                   entry.asset,
                   <span
                     key={`${entry.id}-amount`}
-                    className={entry.amount.startsWith("+") ? "text-emerald-300" : "text-white"}
+                    className={
+                      entry.amount.startsWith("+")
+                        ? "text-emerald-300"
+                        : entry.amount.startsWith("-")
+                          ? "text-rose-300"
+                          : "text-white"
+                    }
                   >
                     {entry.amount}
                   </span>,

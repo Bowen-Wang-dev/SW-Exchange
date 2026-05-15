@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
@@ -54,7 +55,7 @@ export default function WalletPage() {
           <PageHeader
             eyebrow="Wallet"
             title="Internal asset balances"
-            description="View your live SWC and SWL balances. Deposit and withdraw are disabled in v0.x; internal transfer comes in v0.4."
+            description="View your live SWC and SWL balances. Internal transfers are live; deposit and withdraw stay disabled in v0.x."
             action={<StatusBadge label="Internal Only" tone="info" />}
           />
 
@@ -74,9 +75,14 @@ export default function WalletPage() {
                   wallet.locked,
                   wallet.total,
                   <div key={`${wallet.asset}-actions`} className="flex flex-wrap gap-2">
-                    <ActionButton label="Deposit" />
-                    <ActionButton label="Withdraw" />
-                    <ActionButton label="Transfer v0.4" />
+                    <DisabledActionButton label="Deposit" />
+                    <DisabledActionButton label="Withdraw" />
+                    <Link
+                      href="/transfer"
+                      className="rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
+                    >
+                      Transfer
+                    </Link>
                   </div>,
                 ])}
               />
@@ -86,7 +92,8 @@ export default function WalletPage() {
           ) : null}
 
           <div className="rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
-            Deposit and withdraw are disabled in v0.x. User-to-user internal transfer is planned for v0.4.
+            Deposit and withdraw are disabled in v0.x. Use internal transfer for free SWC/SWL
+            movement between active users.
           </div>
         </div>
       </AppShell>
@@ -103,7 +110,7 @@ function Notice({ tone, message }: { tone: "info" | "danger"; message: string })
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }
 
-function ActionButton({ label }: { label: string }) {
+function DisabledActionButton({ label }: { label: string }) {
   return (
     <button
       type="button"

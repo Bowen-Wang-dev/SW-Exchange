@@ -12,7 +12,7 @@ export default function TradesPage() {
           <PageHeader
             eyebrow="Trades"
             title="Executed trade history"
-            description="Trade history opens after the v0.6 matching engine milestone. No fills or fees are generated in v0.3."
+            description="Trade history opens after the v0.6 matching engine milestone. No fills or fees are generated in v0.4."
             action={<StatusBadge label="Pending Engine" tone="warning" />}
           />
 

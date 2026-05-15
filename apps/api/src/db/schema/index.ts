@@ -135,6 +135,7 @@ export const transfers = pgTable("transfers", {
   status: transferStatusEnum("status").notNull().default("SUCCESS"),
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const markets = pgTable("markets", {

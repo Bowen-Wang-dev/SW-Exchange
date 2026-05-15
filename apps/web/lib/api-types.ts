@@ -85,6 +85,7 @@ export type AdminSummary = {
   totalUsers: number;
   totalWallets: number;
   totalLedgerEntries: number;
+  totalTransfers: number;
   totalAuditLogs: number;
 };
 
@@ -106,3 +107,67 @@ export type AirdropResponse = {
   auditLogId: string;
 };
 
+export type TransferResponse = {
+  id: string;
+  from: {
+    id: string;
+    email: string;
+    username: string;
+    nickname: string | null;
+    role: UserRole;
+    status: UserStatus;
+  };
+  to: {
+    id: string;
+    email: string;
+    username: string;
+    nickname: string | null;
+    role: UserRole;
+    status: UserStatus;
+  };
+  assetSymbol: string;
+  amount: string;
+  amountRaw: string;
+  senderNewAvailable: string;
+  senderNewAvailableRaw: string;
+  recipientNewAvailable: string;
+  recipientNewAvailableRaw: string;
+  createdAt: string;
+};
+
+export type TransferHistoryEntry = {
+  id: string;
+  direction: "IN" | "OUT";
+  counterparty: {
+    username: string;
+    email: string;
+  };
+  counterpartyUsername: string;
+  counterpartyEmail: string;
+  assetSymbol: string;
+  amount: string;
+  amountRaw: string;
+  note: string | null;
+  status: "SUCCESS" | "FAILED";
+  createdAt: string;
+};
+
+export type AdminTransferEntry = {
+  id: string;
+  from: {
+    id: string | null;
+    username: string;
+    email: string;
+  };
+  to: {
+    id: string | null;
+    username: string;
+    email: string;
+  };
+  assetSymbol: string;
+  amount: string;
+  amountRaw: string;
+  note: string | null;
+  status: "SUCCESS" | "FAILED";
+  createdAt: string;
+};

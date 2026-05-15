@@ -47,14 +47,14 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description="Your v0.3 console shows live internal wallet balances. Trading opens in later milestones."
+        description="Your v0.4 console shows live balances and free SWC/SWL internal transfers. Trading opens in later milestones."
         action={<StatusBadge label={user?.status ?? "ACTIVE"} tone="success" />}
       />
 
       <div className="grid gap-4 lg:grid-cols-4">
         <StatCard
           label="Total Equity"
-          badgeLabel="v0.3"
+          badgeLabel="v0.4"
           value={swcTotalEquity}
           hint="SWC-denominated estimate. SWL valuation pending until trading goes live."
           tone="info"

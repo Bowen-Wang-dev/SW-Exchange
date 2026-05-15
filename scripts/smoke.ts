@@ -19,6 +19,8 @@ if (!databaseUrl || !adminEmail || !adminUsername || !adminPassword) {
 
 const testUsername = `smoke_${Date.now()}`;
 const testEmail = `${testUsername}@example.com`;
+const receiverUsername = `${testUsername}_receiver`;
+const receiverEmail = `${receiverUsername}@example.com`;
 const testPassword = "SmokeTest123!";
 
 const publicWebRoutes = [
@@ -40,6 +42,7 @@ const protectedWebRoutes = [
   "/admin/users",
   "/admin/wallets",
   "/admin/airdrop",
+  "/admin/transfers",
   "/admin/assets",
   "/admin/orders",
   "/admin/trades",
@@ -54,8 +57,9 @@ async function main() {
   await testSeedData();
   const auth = await testAuthFlows();
   await testV03AirdropFlow(auth);
-  await testWebBuild();
+  await testV04TransferFlow(auth);
   await testWebRoutes();
+  await testWebBuild();
 
   console.log("Smoke test completed successfully.");
 }
@@ -125,28 +129,12 @@ async function testSeedData() {
 }
 
 async function testAuthFlows() {
-  const registerResponse = await fetch(`${apiBaseUrl}/auth/register`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      email: testEmail,
-      username: testUsername,
-      nickname: "Smoke User",
-      password: testPassword,
-    }),
-  });
-  assertOk(registerResponse, "register normal user");
-  const registerJson = (await registerResponse.json()) as {
-    accessToken?: string;
-    user?: { role?: string; email?: string; username?: string };
-  };
-  if (!registerJson.accessToken || registerJson.user?.role !== "USER") {
-    throw new Error(`Unexpected register payload: ${JSON.stringify(registerJson)}`);
-  }
+  const sender = await registerUser(testEmail, testUsername, "Smoke Sender");
+  const receiver = await registerUser(receiverEmail, receiverUsername, "Smoke Receiver");
 
   const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
     headers: {
-      authorization: `Bearer ${registerJson.accessToken}`,
+      authorization: `Bearer ${sender.accessToken}`,
     },
   });
   assertOk(meResponse, "load current user");
@@ -174,6 +162,23 @@ async function testAuthFlows() {
     throw new Error(`Unexpected user login payload: ${JSON.stringify(userLoginJson)}`);
   }
 
+  const receiverLoginResponse = await fetch(`${apiBaseUrl}/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      identifier: receiverEmail,
+      password: testPassword,
+    }),
+  });
+  assertOk(receiverLoginResponse, "login receiver user");
+  const receiverLoginJson = (await receiverLoginResponse.json()) as {
+    accessToken?: string;
+    user?: { role?: string };
+  };
+  if (!receiverLoginJson.accessToken || receiverLoginJson.user?.role !== "USER") {
+    throw new Error(`Unexpected receiver login payload: ${JSON.stringify(receiverLoginJson)}`);
+  }
+
   const adminLoginResponse = await fetch(`${apiBaseUrl}/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -195,11 +200,42 @@ async function testAuthFlows() {
 
   return {
     userAccessToken: userLoginJson.accessToken,
+    receiverAccessToken: receiverLoginJson.accessToken,
     adminAccessToken: adminLoginJson.accessToken,
     user: {
       email: testEmail,
       username: testUsername,
     },
+    receiver: {
+      email: receiverEmail,
+      username: receiverUsername,
+    },
+  };
+}
+
+async function registerUser(email: string, username: string, nickname: string) {
+  const registerResponse = await fetch(`${apiBaseUrl}/auth/register`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email,
+      username,
+      nickname,
+      password: testPassword,
+    }),
+  });
+  assertOk(registerResponse, `register normal user ${username}`);
+  const registerJson = (await registerResponse.json()) as {
+    accessToken?: string;
+    user?: { role?: string; email?: string; username?: string };
+  };
+  if (!registerJson.accessToken || registerJson.user?.role !== "USER") {
+    throw new Error(`Unexpected register payload: ${JSON.stringify(registerJson)}`);
+  }
+
+  return {
+    accessToken: registerJson.accessToken,
+    user: registerJson.user,
   };
 }
 
@@ -228,7 +264,7 @@ async function testV03AirdropFlow(auth: {
       username: auth.user.username,
       assetSymbol: "SWC",
       amount: "1000",
-      note: "Smoke v0.3 airdrop",
+      note: "Smoke v0.4 airdrop",
     }),
   });
   assertOk(airdropResponse, "admin airdrop");
@@ -286,7 +322,130 @@ async function testV03AirdropFlow(auth: {
     throw new Error("Admin audit logs did not include the expected AIRDROP action.");
   }
 
-  console.log("PASS v0.3 airdrop, wallets, ledger, and audit flow");
+  console.log("PASS airdrop, wallets, ledger, and audit flow");
+}
+
+async function testV04TransferFlow(auth: {
+  userAccessToken: string;
+  receiverAccessToken: string;
+  adminAccessToken: string;
+  user: { email: string; username: string };
+  receiver: { email: string; username: string };
+}) {
+  const senderWalletsBefore = await getJson<Array<{ asset: string; availableRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    auth.userAccessToken,
+    "load sender wallets before transfer",
+  );
+  const receiverWalletsBefore = await getJson<Array<{ asset: string; availableRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    auth.receiverAccessToken,
+    "load receiver wallets before transfer",
+  );
+
+  const senderSwcBefore = senderWalletsBefore.find((wallet) => wallet.asset === "SWC");
+  const receiverSwcBefore = receiverWalletsBefore.find((wallet) => wallet.asset === "SWC");
+  if (!senderSwcBefore || !receiverSwcBefore) {
+    throw new Error("Expected both transfer smoke users to have SWC wallets.");
+  }
+
+  const transferResponse = await fetch(`${apiBaseUrl}/transfers`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${auth.userAccessToken}`,
+    },
+    body: JSON.stringify({
+      recipient: auth.receiver.email,
+      assetSymbol: "SWC",
+      amount: "100",
+      note: "Smoke v0.4 transfer",
+    }),
+  });
+  assertOk(transferResponse, "internal transfer");
+  const transferJson = (await transferResponse.json()) as {
+    id?: string;
+    senderNewAvailableRaw?: string;
+    recipientNewAvailableRaw?: string;
+  };
+  if (!transferJson.id || !transferJson.senderNewAvailableRaw || !transferJson.recipientNewAvailableRaw) {
+    throw new Error(`Unexpected transfer payload: ${JSON.stringify(transferJson)}`);
+  }
+
+  const transferAmount = 100n * 10n ** 18n;
+  const expectedSenderAvailable = BigInt(senderSwcBefore.availableRaw) - transferAmount;
+  const expectedReceiverAvailable = BigInt(receiverSwcBefore.availableRaw) + transferAmount;
+
+  if (BigInt(transferJson.senderNewAvailableRaw) !== expectedSenderAvailable) {
+    throw new Error("Transfer response did not return the expected sender balance.");
+  }
+
+  if (BigInt(transferJson.recipientNewAvailableRaw) !== expectedReceiverAvailable) {
+    throw new Error("Transfer response did not return the expected receiver balance.");
+  }
+
+  const senderWalletsAfter = await getJson<Array<{ asset: string; availableRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    auth.userAccessToken,
+    "load sender wallets after transfer",
+  );
+  const receiverWalletsAfter = await getJson<Array<{ asset: string; availableRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    auth.receiverAccessToken,
+    "load receiver wallets after transfer",
+  );
+
+  const senderSwcAfter = senderWalletsAfter.find((wallet) => wallet.asset === "SWC");
+  const receiverSwcAfter = receiverWalletsAfter.find((wallet) => wallet.asset === "SWC");
+  if (!senderSwcAfter || BigInt(senderSwcAfter.availableRaw) !== expectedSenderAvailable) {
+    throw new Error("Sender SWC wallet did not reflect the internal transfer.");
+  }
+  if (!receiverSwcAfter || BigInt(receiverSwcAfter.availableRaw) !== expectedReceiverAvailable) {
+    throw new Error("Receiver SWC wallet did not reflect the internal transfer.");
+  }
+
+  const senderLedger = await getJson<Array<{ type: string; refId: string | null; amountRaw: string }>>(
+    `${apiBaseUrl}/ledger/me`,
+    auth.userAccessToken,
+    "load sender ledger after transfer",
+  );
+  if (
+    !senderLedger.some(
+      (entry) =>
+        entry.refId === transferJson.id &&
+        entry.type === "TRANSFER_OUT" &&
+        BigInt(entry.amountRaw) === -transferAmount,
+    )
+  ) {
+    throw new Error("Sender ledger did not include the expected TRANSFER_OUT entry.");
+  }
+
+  const receiverLedger = await getJson<Array<{ type: string; refId: string | null; amountRaw: string }>>(
+    `${apiBaseUrl}/ledger/me`,
+    auth.receiverAccessToken,
+    "load receiver ledger after transfer",
+  );
+  if (
+    !receiverLedger.some(
+      (entry) =>
+        entry.refId === transferJson.id &&
+        entry.type === "TRANSFER_IN" &&
+        BigInt(entry.amountRaw) === transferAmount,
+    )
+  ) {
+    throw new Error("Receiver ledger did not include the expected TRANSFER_IN entry.");
+  }
+
+  const adminTransfers = await getJson<Array<{ id: string; status: string }>>(
+    `${apiBaseUrl}/admin/transfers`,
+    auth.adminAccessToken,
+    "load admin transfers",
+  );
+  if (!adminTransfers.some((transfer) => transfer.id === transferJson.id && transfer.status === "SUCCESS")) {
+    throw new Error("Admin transfer list did not include the expected transfer.");
+  }
+
+  console.log("PASS v0.4 internal transfer, balances, ledger, and admin transfer list");
 }
 
 async function testWebBuild() {

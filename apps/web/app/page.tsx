@@ -10,7 +10,7 @@ export default function HomePage() {
     <AppShell>
       <div className="space-y-4">
         <PageHeader
-          eyebrow="v0.3"
+          eyebrow="v0.4"
           title="Simulated exchange control center"
           description="SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. No blockchain, no deposit, no withdraw, no market orders, and no K-line are included in this version."
           action={
@@ -34,16 +34,16 @@ export default function HomePage() {
         <div className="grid gap-4 lg:grid-cols-4">
           <StatCard
             label="Current Milestone"
-            badgeLabel="v0.3"
-            value="v0.3"
-            hint="Admin Airdrop + Wallet Viewer completed."
+            badgeLabel="v0.4"
+            value="v0.4"
+            hint="Internal Transfer completed."
             tone="success"
           />
           <StatCard
             label="Next Milestone"
-            badgeLabel="v0.4"
-            value="v0.4"
-            hint="Internal Transfer comes next."
+            badgeLabel="v0.5"
+            value="v0.5"
+            hint="Limit Order + Order Book comes next."
             tone="warning"
           />
           <StatCard
@@ -76,7 +76,7 @@ export default function HomePage() {
             <div className="data-divider mt-5 rounded-2xl border border-[var(--border)]">
               {[
                 "Internal wallet only",
-                "Internal transfer later in roadmap",
+                "Free internal transfer for active users",
                 "Limit spot trading only",
                 "No futures, no market orders",
                 "No K-line and no blockchain flows",
@@ -94,6 +94,7 @@ export default function HomePage() {
               ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin SWC/SWL funding is enabled"],
+              ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
               ["Trade", <StatusBadge key="trade" label="Preview" tone="info" />, "Limit orders arrive in v0.5 and matching in v0.6"],
             ]}
           />

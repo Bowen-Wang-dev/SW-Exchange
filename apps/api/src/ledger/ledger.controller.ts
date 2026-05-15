@@ -9,7 +9,7 @@ export class LedgerController {
   constructor(@Inject(LedgerService) private readonly ledgerService: LedgerService) {}
 
   @Get("me")
-  listMineV03(@Req() request: AuthenticatedRequest) {
+  listMineV04(@Req() request: AuthenticatedRequest) {
     return this.ledgerService.listForUser(request.user.sub);
   }
 

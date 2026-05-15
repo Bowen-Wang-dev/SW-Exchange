@@ -15,6 +15,13 @@
       "when": 1778813740084,
       "tag": "0001_overrated_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778837756276,
+      "tag": "0002_internal_transfer_updated_at",
+      "breakpoints": true
     }
   ]
 }

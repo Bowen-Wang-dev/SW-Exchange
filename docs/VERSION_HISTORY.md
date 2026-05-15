@@ -1,8 +1,43 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+Current completed milestone: `v0.4 Internal Transfer`
 
-Next milestone: `v0.4 Internal Transfer`
+Next milestone: `v0.5 Limit Order + Order Book`
+
+## v0.4 Internal Transfer
+
+This milestone enables free user-to-user internal transfers for active SW Exchange accounts.
+
+### Highlights
+
+- Internal transfer endpoint at `POST /api/transfers`
+- User transfer history endpoint at `GET /api/transfers/me`
+- Admin transfer list endpoint at `GET /api/admin/transfers`
+- Transfer execution moves only `available_balance`; `locked_balance` cannot be transferred
+- Transfer records and paired `TRANSFER_OUT` / `TRANSFER_IN` ledger entries are written in one database transaction
+- Frontend `/transfer` page now submits real SWC/SWL transfers and shows transfer history
+- Wallet Transfer action links to `/transfer`; Deposit and Withdraw remain disabled
+- Admin Transfers page and admin dashboard transfer count added
+- Smoke coverage extended for transfer balance movement, ledger entries, and admin transfer listing
+
+### Developer and operational notes
+
+- Money parsing continues to use decimal strings converted to bigint minimal units with no floating-point math.
+- Recipients must be `ACTIVE`. This blocks both `FROZEN` and `BANNED` accounts from receiving transfers for the safer/simple v0.4 rule.
+- Successful transfers are persisted after validation; failed transfer attempts are rejected without transfer records.
+
+### Constraints kept in place
+
+This release remains within the v0.4 boundary:
+
+- No limit orders
+- No order book
+- No matching engine
+- No trades
+- No market orders
+- No blockchain deposit or withdraw
+- No K-line chart
+- No complex RBAC
 
 ## v0.3 Admin Airdrop + Wallet Viewer
 
@@ -27,7 +62,7 @@ This milestone makes wallets and ledger/audit accounting real for the first admi
 
 ### Constraints kept in place
 
-This release remains within the v0.3 boundary:
+This release remained within the v0.3 boundary:
 
 - No internal transfer execution
 - No limit orders

@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
+Current completed milestone: `v0.4 Internal Transfer`
 
-Next milestone: `v0.4 Internal Transfer`
+Next milestone: `v0.5 Limit Order + Order Book`
 
 This version is intentionally limited:
 
@@ -24,6 +24,8 @@ Current scope:
 - User ledger viewer
 - Admin user and wallet viewer
 - Admin SWC/SWL airdrop flow
+- User SWC/SWL internal transfer flow
+- User and admin transfer history
 - Admin ledger and audit log viewer
 - SWL/SWC spot limit-order foundation only
 
@@ -32,10 +34,10 @@ Current scope:
 - `v0.1 Foundation` completed
 - `v0.2 Auth + CEX UI Shell` completed
 - `v0.3 Admin Airdrop + Wallet Viewer` completed
-- `v0.4 Internal Transfer` next
+- `v0.4 Internal Transfer` completed
 
-- Current completed milestone: `v0.3 Admin Airdrop + Wallet Viewer`
-- Next milestone: `v0.4 Internal Transfer`
+- Current completed milestone: `v0.4 Internal Transfer`
+- Next milestone: `v0.5 Limit Order + Order Book`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
 
@@ -58,6 +60,24 @@ packages/
   shared/     shared constants and types
 drizzle/      generated SQL migrations
 ```
+
+## v0.4 Internal Transfer
+
+### API
+
+- `POST /api/transfers`
+- `GET /api/transfers/me`
+- `GET /api/admin/transfers`
+
+Internal transfers are free and support only active `SWC` and `SWL`. The sender and recipient must both be `ACTIVE`; this intentionally blocks `FROZEN` and `BANNED` accounts from receiving for the safer/simple v0.4 rule. Transfer execution runs in one database transaction, moves only `available_balance`, leaves `locked_balance` unchanged, creates a transfer record, and writes paired `TRANSFER_OUT` / `TRANSFER_IN` ledger entries.
+
+### Web
+
+- `/transfer` executes internal transfers and shows personal transfer history
+- `/wallet` links the Transfer action to `/transfer`; Deposit and Withdraw remain disabled
+- `/admin/transfers` shows all internal transfers newest first
+- `/admin` includes total transfer count
+- `/ledger` and `/admin/ledger` show transfer ledger entries
 
 ## v0.3 Admin Airdrop + Wallet Viewer
 
@@ -134,6 +154,7 @@ Admin airdrops can credit only active `SWC` or `SWL` assets. Each airdrop runs i
   - `/admin/users`
   - `/admin/wallets`
   - `/admin/airdrop`
+  - `/admin/transfers`
   - `/admin/assets`
   - `/admin/orders`
   - `/admin/trades`

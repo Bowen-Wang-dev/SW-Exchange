@@ -26,6 +26,7 @@ export const adminSidebarNavigation: NavigationItem[] = [
   { href: "/admin/users", label: "Users" },
   { href: "/admin/wallets", label: "Wallets" },
   { href: "/admin/airdrop", label: "Airdrop" },
+  { href: "/admin/transfers", label: "Transfers" },
   { href: "/admin/assets", label: "Assets" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/trades", label: "Trades" },

@@ -5,5 +5,6 @@ import { TransfersService } from "./transfers.service.js";
 @Module({
   controllers: [TransfersController],
   providers: [TransfersService],
+  exports: [TransfersService],
 })
 export class TransfersModule {}

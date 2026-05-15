@@ -41,11 +41,11 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description="Current milestone: v0.3. Admin airdrop and wallet viewer are live; internal transfer comes next in v0.4."
+        description="Current milestone: v0.4. Admin airdrop, wallet viewer, and internal transfer review are live."
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
-      <div className="grid gap-4 lg:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-5">
         <StatCard
           label="Total Users"
           badgeLabel="Live"
@@ -66,6 +66,13 @@ export function AdminDashboardContent() {
           value={String(summary?.totalLedgerEntries ?? "-")}
           hint="Live accounting entry count."
           tone="warning"
+        />
+        <StatCard
+          label="Transfers"
+          badgeLabel="Live"
+          value={String(summary?.totalTransfers ?? "-")}
+          hint="Live internal transfer count."
+          tone="success"
         />
         <StatCard
           label="Audit Logs"
@@ -95,6 +102,7 @@ export function AdminDashboardContent() {
           <div className="data-divider mt-4 rounded-2xl border border-[var(--border)]">
             {[
               "Airdrops update wallet, ledger, and audit records in one transaction.",
+              "Internal transfers update both wallets and paired ledger entries in one transaction.",
               "Wallet viewer pages are live for both admin and normal users.",
               "All later sensitive actions should map to ledger and audit entries.",
             ].map((item) => (
@@ -111,6 +119,7 @@ export function AdminDashboardContent() {
             ["Users", <StatusBadge key="users" label="Live" tone="success" />, "Admin user list endpoint"],
             ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "SWC/SWL balances"],
             ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only SWC/SWL funding"],
+            ["Transfers", <StatusBadge key="transfers" label="Live" tone="success" />, "Free user-to-user internal transfers"],
             ["Audit", <StatusBadge key="audit" label="Live" tone="info" />, "Airdrop audit trail"],
           ]}
         />

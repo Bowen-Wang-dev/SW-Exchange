@@ -12,7 +12,7 @@ export default function OrdersPage() {
           <PageHeader
             eyebrow="Orders"
             title="Open and historical orders"
-            description="Order history is preview-only until limit order support arrives in v0.5. No orders are created in v0.3."
+            description="Order history is preview-only until limit order support arrives in v0.5. No orders are created in v0.4."
             action={<StatusBadge label="Read-Only" tone="info" />}
           />
 

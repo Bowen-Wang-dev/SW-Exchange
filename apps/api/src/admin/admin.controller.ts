@@ -48,6 +48,11 @@ export class AdminController {
     return this.adminService.listLedger();
   }
 
+  @Get("transfers")
+  listTransfers() {
+    return this.adminService.listTransfers();
+  }
+
   @Get("audit-logs")
   listAuditLogs() {
     return this.adminService.listAuditLogs();
