@@ -58,6 +58,11 @@ export class AdminController {
     return this.adminService.listOrders();
   }
 
+  @Get("trades")
+  listTrades() {
+    return this.adminService.listTrades();
+  }
+
   @Get("audit-logs")
   listAuditLogs() {
     return this.adminService.listAuditLogs();

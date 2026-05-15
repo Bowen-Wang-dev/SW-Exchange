@@ -211,6 +211,9 @@ export const trades = pgTable("trades", {
   amount: numeric("amount", { precision: 78, scale: 0, mode: "bigint" })
     .notNull()
     .default(sql`0`),
+  quoteAmount: numeric("quote_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
   buyerFee: numeric("buyer_fee", { precision: 78, scale: 0, mode: "bigint" })
     .notNull()
     .default(sql`0`),

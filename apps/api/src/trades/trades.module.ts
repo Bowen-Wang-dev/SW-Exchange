@@ -5,5 +5,6 @@ import { TradesService } from "./trades.service.js";
 @Module({
   controllers: [TradesController],
   providers: [TradesService],
+  exports: [TradesService],
 })
 export class TradesModule {}

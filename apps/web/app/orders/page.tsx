@@ -59,8 +59,8 @@ export default function OrdersPage() {
           <PageHeader
             eyebrow="Orders"
             title="Order history"
-            description="Review SWL/SWC limit orders and cancel open orders."
-            action={<StatusBadge label="v0.5 Live" tone="success" />}
+            description="Review SWL/SWC limit orders, filled amounts, remaining amounts, and cancel open or partially filled orders."
+            action={<StatusBadge label="v0.6 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -98,7 +98,7 @@ export default function OrdersPage() {
                     label={order.status}
                     tone={orderStatusTone(order.status)}
                   />,
-                  isOpenOrder(order.status) ? (
+                  isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n ? (
                     <button
                       key={`${order.id}-cancel`}
                       type="button"
@@ -128,7 +128,7 @@ function isOpenOrder(status: OrderStatus) {
 }
 
 function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (status === "OPEN") {
+  if (status === "OPEN" || status === "PARTIAL_FILLED") {
     return "info";
   }
 

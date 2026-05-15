@@ -51,8 +51,8 @@ export default function AdminOrdersPage() {
           <PageHeader
             eyebrow="Admin Orders"
             title="Order review"
-            description="Inspect all SWL/SWC limit orders newest first."
-            action={<StatusBadge label="v0.5 Live" tone="success" />}
+            description="Inspect all SWL/SWC limit orders, fills, remaining amounts, and cancellation states newest first."
+            action={<StatusBadge label="v0.6 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -110,7 +110,7 @@ export default function AdminOrdersPage() {
 }
 
 function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (status === "OPEN") {
+  if (status === "OPEN" || status === "PARTIAL_FILLED") {
     return "info";
   }
 

@@ -1,14 +1,22 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Get, Inject, Query, Req, UseGuards } from "@nestjs/common";
+import { Public } from "../common/decorators/public.decorator.js";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
+import type { AuthenticatedRequest } from "../common/interfaces/authenticated-request.interface.js";
 import { TradesService } from "./trades.service.js";
 
-@UseGuards(JwtAuthGuard)
 @Controller("trades")
 export class TradesController {
-  constructor(private readonly tradesService: TradesService) {}
+  constructor(@Inject(TradesService) private readonly tradesService: TradesService) {}
 
-  @Get()
-  list() {
-    return this.tradesService.listPlaceholder();
+  @Public()
+  @Get("recent")
+  listRecent(@Query("marketSymbol") marketSymbol?: string) {
+    return this.tradesService.listRecent(marketSymbol);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  listMine(@Req() request: AuthenticatedRequest) {
+    return this.tradesService.listMine(request.user.sub);
   }
 }

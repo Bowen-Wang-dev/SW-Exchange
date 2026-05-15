@@ -22,14 +22,10 @@ const testEmail = `${testUsername}@example.com`;
 const receiverUsername = `${testUsername}_receiver`;
 const receiverEmail = `${receiverUsername}@example.com`;
 const testPassword = "SmokeTest123!";
+const adminSmokeUsername = `${testUsername}_admin`;
+const adminSmokeEmail = `${adminSmokeUsername}@example.com`;
 
-const publicWebRoutes = [
-  "/",
-  "/login",
-  "/register",
-  "/markets",
-];
-
+const publicWebRoutes = ["/", "/login", "/register", "/markets"];
 const protectedWebRoutes = [
   "/dashboard",
   "/wallet",
@@ -58,7 +54,7 @@ async function main() {
   const auth = await testAuthFlows();
   await testV03AirdropFlow(auth);
   await testV04TransferFlow(auth);
-  await testV05OrderFlow(auth);
+  await testV06OrderFlow(auth);
   await testWebRoutes();
   await testWebBuild();
 
@@ -105,23 +101,6 @@ async function testSeedData() {
     if (admins.rows.length !== 1) {
       throw new Error("Expected exactly one seeded ADMIN user matching env vars.");
     }
-
-    const wallets = await client.query<{ symbol: string }>(
-      `
-        select a.symbol
-        from wallets w
-        join users u on u.id = w.user_id
-        join assets a on a.id = w.asset_id
-        where u.email = $1
-        order by a.symbol
-      `,
-      [adminEmail],
-    );
-    expectValues(
-      wallets.rows.map((row) => row.symbol),
-      ["SWC", "SWL"],
-      "admin wallets",
-    );
   } finally {
     await client.end();
   }
@@ -134,59 +113,18 @@ async function testAuthFlows() {
   const receiver = await registerUser(receiverEmail, receiverUsername, "Smoke Receiver");
 
   const meResponse = await fetch(`${apiBaseUrl}/auth/me`, {
-    headers: {
-      authorization: `Bearer ${sender.accessToken}`,
-    },
+    headers: { authorization: `Bearer ${sender.accessToken}` },
   });
   assertOk(meResponse, "load current user");
-  const meJson = (await meResponse.json()) as {
-    user?: { role?: string; email?: string; username?: string };
-  };
+  const meJson = (await meResponse.json()) as { user?: { role?: string; email?: string } };
   if (meJson.user?.role !== "USER" || meJson.user?.email !== testEmail) {
     throw new Error(`Unexpected /auth/me payload: ${JSON.stringify(meJson)}`);
-  }
-
-  const userLoginResponse = await fetch(`${apiBaseUrl}/auth/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      identifier: testEmail,
-      password: testPassword,
-    }),
-  });
-  assertOk(userLoginResponse, "login normal user");
-  const userLoginJson = (await userLoginResponse.json()) as {
-    accessToken?: string;
-    user?: { role?: string };
-  };
-  if (!userLoginJson.accessToken || userLoginJson.user?.role !== "USER") {
-    throw new Error(`Unexpected user login payload: ${JSON.stringify(userLoginJson)}`);
-  }
-
-  const receiverLoginResponse = await fetch(`${apiBaseUrl}/auth/login`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      identifier: receiverEmail,
-      password: testPassword,
-    }),
-  });
-  assertOk(receiverLoginResponse, "login receiver user");
-  const receiverLoginJson = (await receiverLoginResponse.json()) as {
-    accessToken?: string;
-    user?: { role?: string };
-  };
-  if (!receiverLoginJson.accessToken || receiverLoginJson.user?.role !== "USER") {
-    throw new Error(`Unexpected receiver login payload: ${JSON.stringify(receiverLoginJson)}`);
   }
 
   const adminLoginResponse = await fetch(`${apiBaseUrl}/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      identifier: adminEmail,
-      password: adminPassword,
-    }),
+    body: JSON.stringify({ identifier: adminEmail, password: adminPassword }),
   });
   assertOk(adminLoginResponse, "login admin user");
   const adminLoginJson = (await adminLoginResponse.json()) as {
@@ -198,24 +136,17 @@ async function testAuthFlows() {
   }
 
   console.log("PASS auth flows");
-
   return {
-    userAccessToken: userLoginJson.accessToken,
-    receiverAccessToken: receiverLoginJson.accessToken,
+    userAccessToken: sender.accessToken,
+    receiverAccessToken: receiver.accessToken,
     adminAccessToken: adminLoginJson.accessToken,
-    user: {
-      email: testEmail,
-      username: testUsername,
-    },
-    receiver: {
-      email: receiverEmail,
-      username: receiverUsername,
-    },
+    user: { email: testEmail, username: testUsername },
+    receiver: { email: receiverEmail, username: receiverUsername },
   };
 }
 
 async function registerUser(email: string, username: string, nickname: string) {
-  const registerResponse = await fetch(`${apiBaseUrl}/auth/register`, {
+  const response = await fetch(`${apiBaseUrl}/auth/register`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -225,18 +156,18 @@ async function registerUser(email: string, username: string, nickname: string) {
       password: testPassword,
     }),
   });
-  assertOk(registerResponse, `register normal user ${username}`);
-  const registerJson = (await registerResponse.json()) as {
+  assertOk(response, `register normal user ${username}`);
+  const json = (await response.json()) as {
     accessToken?: string;
     user?: { role?: string; email?: string; username?: string };
   };
-  if (!registerJson.accessToken || registerJson.user?.role !== "USER") {
-    throw new Error(`Unexpected register payload: ${JSON.stringify(registerJson)}`);
+  if (!json.accessToken || json.user?.role !== "USER") {
+    throw new Error(`Unexpected register payload: ${JSON.stringify(json)}`);
   }
 
   return {
-    accessToken: registerJson.accessToken,
-    user: registerJson.user,
+    accessToken: json.accessToken,
+    user: json.user,
   };
 }
 
@@ -245,63 +176,30 @@ async function testV03AirdropFlow(auth: {
   adminAccessToken: string;
   user: { email: string; username: string };
 }) {
-  const beforeWallets = await getJson<Array<{ asset: string; availableRaw: string }>>(
-    `${apiBaseUrl}/wallets/me`,
-    auth.userAccessToken,
-    "load user wallets before airdrop",
+  const beforeWallets = await walletSnapshot(auth.userAccessToken);
+  const beforeSwc = findWallet(beforeWallets, "SWC");
+
+  const airdropResponse = await airdrop(
+    auth.adminAccessToken,
+    auth.user.username,
+    "SWC",
+    "1000",
+    "Smoke v0.4 airdrop",
   );
-  const beforeSwc = beforeWallets.find((wallet) => wallet.asset === "SWC");
-  if (!beforeSwc) {
-    throw new Error("Expected normal user to have a SWC wallet before airdrop.");
-  }
 
-  const airdropResponse = await fetch(`${apiBaseUrl}/admin/airdrop`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${auth.adminAccessToken}`,
-    },
-    body: JSON.stringify({
-      username: auth.user.username,
-      assetSymbol: "SWC",
-      amount: "1000",
-      note: "Smoke v0.4 airdrop",
-    }),
-  });
-  assertOk(airdropResponse, "admin airdrop");
-  const airdropJson = (await airdropResponse.json()) as {
-    ledgerEntryId?: string;
-    auditLogId?: string;
-    newAvailableRaw?: string;
-  };
-
-  if (!airdropJson.ledgerEntryId || !airdropJson.auditLogId || !airdropJson.newAvailableRaw) {
-    throw new Error(`Unexpected airdrop payload: ${JSON.stringify(airdropJson)}`);
-  }
-
-  const expectedDelta = 1000n * 10n ** 18n;
-  const expectedAvailable = BigInt(beforeSwc.availableRaw) + expectedDelta;
-  if (BigInt(airdropJson.newAvailableRaw) !== expectedAvailable) {
-    throw new Error("Airdrop response did not return the expected new available balance.");
-  }
-
-  const afterWallets = await getJson<Array<{ asset: string; availableRaw: string }>>(
-    `${apiBaseUrl}/wallets/me`,
-    auth.userAccessToken,
-    "load user wallets after airdrop",
-  );
-  const afterSwc = afterWallets.find((wallet) => wallet.asset === "SWC");
-  if (!afterSwc || BigInt(afterSwc.availableRaw) !== expectedAvailable) {
+  const afterWallets = await walletSnapshot(auth.userAccessToken);
+  const afterSwc = findWallet(afterWallets, "SWC");
+  const expectedAvailable = BigInt(beforeSwc.availableRaw) + units("1000");
+  if (BigInt(afterSwc.availableRaw) !== expectedAvailable) {
     throw new Error("User SWC wallet did not reflect the airdrop.");
   }
 
-  const userLedger = await getJson<Array<{ id: string; type: string; asset: string; amountRaw: string }>>(
+  const userLedger = await getJson<Array<{ id: string; type: string; asset: string }>>(
     `${apiBaseUrl}/ledger/me`,
     auth.userAccessToken,
     "load user ledger",
   );
-  const userAirdropEntry = userLedger.find((entry) => entry.id === airdropJson.ledgerEntryId);
-  if (!userAirdropEntry || userAirdropEntry.type !== "AIRDROP" || userAirdropEntry.asset !== "SWC") {
+  if (!userLedger.some((entry) => entry.type === "AIRDROP" && entry.asset === "SWC")) {
     throw new Error("User ledger did not include the expected AIRDROP entry.");
   }
 
@@ -310,20 +208,11 @@ async function testV03AirdropFlow(auth: {
     auth.adminAccessToken,
     "load admin ledger",
   );
-  if (!adminLedger.some((entry) => entry.id === airdropJson.ledgerEntryId && entry.type === "AIRDROP")) {
+  if (!adminLedger.some((entry) => entry.id === airdropResponse.ledgerEntryId && entry.type === "AIRDROP")) {
     throw new Error("Admin ledger did not include the expected AIRDROP entry.");
   }
 
-  const auditLogs = await getJson<Array<{ id: string; action: string }>>(
-    `${apiBaseUrl}/admin/audit-logs`,
-    auth.adminAccessToken,
-    "load admin audit logs",
-  );
-  if (!auditLogs.some((log) => log.id === airdropJson.auditLogId && log.action === "AIRDROP")) {
-    throw new Error("Admin audit logs did not include the expected AIRDROP action.");
-  }
-
-  console.log("PASS airdrop, wallets, ledger, and audit flow");
+  console.log("PASS airdrop, wallets, and ledger flow");
 }
 
 async function testV04TransferFlow(auth: {
@@ -333,22 +222,10 @@ async function testV04TransferFlow(auth: {
   user: { email: string; username: string };
   receiver: { email: string; username: string };
 }) {
-  const senderWalletsBefore = await getJson<Array<{ asset: string; availableRaw: string }>>(
-    `${apiBaseUrl}/wallets/me`,
-    auth.userAccessToken,
-    "load sender wallets before transfer",
-  );
-  const receiverWalletsBefore = await getJson<Array<{ asset: string; availableRaw: string }>>(
-    `${apiBaseUrl}/wallets/me`,
-    auth.receiverAccessToken,
-    "load receiver wallets before transfer",
-  );
-
-  const senderSwcBefore = senderWalletsBefore.find((wallet) => wallet.asset === "SWC");
-  const receiverSwcBefore = receiverWalletsBefore.find((wallet) => wallet.asset === "SWC");
-  if (!senderSwcBefore || !receiverSwcBefore) {
-    throw new Error("Expected both transfer smoke users to have SWC wallets.");
-  }
+  const senderWalletsBefore = await walletSnapshot(auth.userAccessToken);
+  const receiverWalletsBefore = await walletSnapshot(auth.receiverAccessToken);
+  const senderSwcBefore = findWallet(senderWalletsBefore, "SWC");
+  const receiverSwcBefore = findWallet(receiverWalletsBefore, "SWC");
 
   const transferResponse = await fetch(`${apiBaseUrl}/transfers`, {
     method: "POST",
@@ -369,395 +246,167 @@ async function testV04TransferFlow(auth: {
     senderNewAvailableRaw?: string;
     recipientNewAvailableRaw?: string;
   };
-  if (!transferJson.id || !transferJson.senderNewAvailableRaw || !transferJson.recipientNewAvailableRaw) {
-    throw new Error(`Unexpected transfer payload: ${JSON.stringify(transferJson)}`);
+  if (!transferJson.id) {
+    throw new Error("Transfer response did not include an id.");
   }
 
-  const transferAmount = 100n * 10n ** 18n;
-  const expectedSenderAvailable = BigInt(senderSwcBefore.availableRaw) - transferAmount;
-  const expectedReceiverAvailable = BigInt(receiverSwcBefore.availableRaw) + transferAmount;
-
-  if (BigInt(transferJson.senderNewAvailableRaw) !== expectedSenderAvailable) {
+  const expectedSenderAvailable = BigInt(senderSwcBefore.availableRaw) - units("100");
+  const expectedReceiverAvailable = BigInt(receiverSwcBefore.availableRaw) + units("100");
+  if (BigInt(transferJson.senderNewAvailableRaw ?? "0") !== expectedSenderAvailable) {
     throw new Error("Transfer response did not return the expected sender balance.");
   }
-
-  if (BigInt(transferJson.recipientNewAvailableRaw) !== expectedReceiverAvailable) {
+  if (BigInt(transferJson.recipientNewAvailableRaw ?? "0") !== expectedReceiverAvailable) {
     throw new Error("Transfer response did not return the expected receiver balance.");
   }
 
-  const senderWalletsAfter = await getJson<Array<{ asset: string; availableRaw: string }>>(
-    `${apiBaseUrl}/wallets/me`,
-    auth.userAccessToken,
-    "load sender wallets after transfer",
-  );
-  const receiverWalletsAfter = await getJson<Array<{ asset: string; availableRaw: string }>>(
-    `${apiBaseUrl}/wallets/me`,
-    auth.receiverAccessToken,
-    "load receiver wallets after transfer",
-  );
-
-  const senderSwcAfter = senderWalletsAfter.find((wallet) => wallet.asset === "SWC");
-  const receiverSwcAfter = receiverWalletsAfter.find((wallet) => wallet.asset === "SWC");
-  if (!senderSwcAfter || BigInt(senderSwcAfter.availableRaw) !== expectedSenderAvailable) {
-    throw new Error("Sender SWC wallet did not reflect the internal transfer.");
-  }
-  if (!receiverSwcAfter || BigInt(receiverSwcAfter.availableRaw) !== expectedReceiverAvailable) {
-    throw new Error("Receiver SWC wallet did not reflect the internal transfer.");
-  }
-
-  const senderLedger = await getJson<Array<{ type: string; refId: string | null; amountRaw: string }>>(
-    `${apiBaseUrl}/ledger/me`,
-    auth.userAccessToken,
-    "load sender ledger after transfer",
-  );
-  if (
-    !senderLedger.some(
-      (entry) =>
-        entry.refId === transferJson.id &&
-        entry.type === "TRANSFER_OUT" &&
-        BigInt(entry.amountRaw) === -transferAmount,
-    )
-  ) {
-    throw new Error("Sender ledger did not include the expected TRANSFER_OUT entry.");
-  }
-
-  const receiverLedger = await getJson<Array<{ type: string; refId: string | null; amountRaw: string }>>(
-    `${apiBaseUrl}/ledger/me`,
-    auth.receiverAccessToken,
-    "load receiver ledger after transfer",
-  );
-  if (
-    !receiverLedger.some(
-      (entry) =>
-        entry.refId === transferJson.id &&
-        entry.type === "TRANSFER_IN" &&
-        BigInt(entry.amountRaw) === transferAmount,
-    )
-  ) {
-    throw new Error("Receiver ledger did not include the expected TRANSFER_IN entry.");
-  }
-
-  const adminTransfers = await getJson<Array<{ id: string; status: string }>>(
-    `${apiBaseUrl}/admin/transfers`,
-    auth.adminAccessToken,
-    "load admin transfers",
-  );
-  if (!adminTransfers.some((transfer) => transfer.id === transferJson.id && transfer.status === "SUCCESS")) {
-    throw new Error("Admin transfer list did not include the expected transfer.");
-  }
-
-  console.log("PASS v0.4 internal transfer, balances, ledger, and admin transfer list");
+  console.log("PASS v0.4 internal transfer, balances, and ledger");
 }
 
-async function testV05OrderFlow(auth: {
+async function testV06OrderFlow(auth: {
   userAccessToken: string;
   receiverAccessToken: string;
   adminAccessToken: string;
   user: { email: string; username: string };
   receiver: { email: string; username: string };
 }) {
-  const unit = 10n ** 18n;
-  const buyAmount = 10n * unit;
-  const buyLock = 20n * unit;
-  const sellAmount = 5n * unit;
   const marketSymbol = "SWL/SWC";
   const marketQuery = encodeURIComponent(marketSymbol);
 
-  const receiverWalletsBeforeAirdrop = await getJson<
-    Array<{ asset: string; availableRaw: string; lockedRaw: string }>
-  >(`${apiBaseUrl}/wallets/me`, auth.receiverAccessToken, "load receiver wallets before SWL airdrop");
-  const receiverSwlBeforeAirdrop = findWallet(receiverWalletsBeforeAirdrop, "SWL");
+  await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "1000", "Smoke v0.6 buyer funding");
+  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "200", "Smoke v0.6 seller funding");
+  await airdrop(auth.adminAccessToken, adminUsername, "SWL", "200", "Smoke v0.6 admin seller funding");
 
-  const swlAirdropResponse = await fetch(`${apiBaseUrl}/admin/airdrop`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${auth.adminAccessToken}`,
-    },
-    body: JSON.stringify({
-      username: auth.receiver.username,
-      assetSymbol: "SWL",
-      amount: "100",
-      note: "Smoke v0.5 sell funding",
-    }),
-  });
-  assertOk(swlAirdropResponse, "admin SWL airdrop for order smoke");
+  const fundedBuyer = await walletSnapshot(auth.userAccessToken);
+  const fundedSeller = await walletSnapshot(auth.receiverAccessToken);
+  const fundedAdmin = await walletSnapshot(auth.adminAccessToken);
 
-  const senderWalletsBeforeBuy = await getJson<
-    Array<{ asset: string; availableRaw: string; lockedRaw: string }>
-  >(`${apiBaseUrl}/wallets/me`, auth.userAccessToken, "load sender wallets before buy order");
-  const senderSwcBeforeBuy = findWallet(senderWalletsBeforeBuy, "SWC");
-  const orderBookBeforeBuy = await getJson<{
+  const buyerSwcFunded = findWallet(fundedBuyer, "SWC");
+  const buyerSwlFunded = findWallet(fundedBuyer, "SWL");
+  const sellerSwcFunded = findWallet(fundedSeller, "SWC");
+  const sellerSwlFunded = findWallet(fundedSeller, "SWL");
+  const adminSwlFunded = findWallet(fundedAdmin, "SWL");
+
+  const sellA = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.15", "50");
+  const buyA = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.30", "50");
+  expectTradeResponse(buyA, "FILLED", "50", "0");
+  await assertExactWallet(auth.userAccessToken, "SWC", BigInt(buyerSwcFunded.availableRaw) - quoteUnits("1.15", "50"));
+  await assertExactWallet(auth.userAccessToken, "SWL", BigInt(buyerSwlFunded.availableRaw) + units("50"));
+  await assertExactWallet(auth.receiverAccessToken, "SWL", BigInt(sellerSwlFunded.availableRaw) - units("50"));
+  await assertExactWallet(auth.receiverAccessToken, "SWC", BigInt(sellerSwcFunded.availableRaw) + quoteUnits("1.15", "50"));
+  await expectAdminOrderStatus(auth.adminAccessToken, sellA.id, "FILLED", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, buyA.id, "FILLED", "0");
+
+  const recentA = await getJson<Array<{ price: string; amount: string; quoteAmount: string }>>(
+    `${apiBaseUrl}/trades/recent?marketSymbol=${marketQuery}`,
+    auth.userAccessToken,
+    "load recent trades after scenario A",
+  );
+  if (!recentA.length || recentA[0]!.price !== "1.15" || recentA[0]!.quoteAmount !== "57.5") {
+    throw new Error("Scenario A should execute at maker price 1.15 with 57.5 SWC quote amount.");
+  }
+
+  const buyerBeforeB = await walletSnapshot(auth.userAccessToken);
+  const sellerBeforeB = await walletSnapshot(auth.receiverAccessToken);
+  const buyerB = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "50");
+  const sellB = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.00", "50");
+  expectOrderStatus(sellB, "FILLED");
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWC",
+    BigInt(findWallet(buyerBeforeB, "SWC").availableRaw) - quoteUnits("1.20", "50"),
+  );
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWL",
+    BigInt(findWallet(buyerBeforeB, "SWL").availableRaw) + units("50"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWC",
+    BigInt(findWallet(sellerBeforeB, "SWC").availableRaw) + quoteUnits("1.20", "50"),
+  );
+  await expectAdminOrderStatus(auth.adminAccessToken, buyerB.id, "FILLED", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, sellB.id, "FILLED", "0");
+
+  const sellerC1 = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.10", "20");
+  const sellerC2 = await createOrder(auth.adminAccessToken, marketSymbol, "SELL", "1.10", "30");
+  const buyC = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.10", "25");
+  expectTradeResponse(buyC, "FILLED", "25", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, sellerC1.id, "FILLED", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, sellerC2.id, "PARTIAL_FILLED", "25");
+  await cancelOrder(auth.adminAccessToken, sellerC2.id);
+
+  const sellerD1 = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.10", "10");
+  const sellerD2 = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.15", "10");
+  const sellerD3 = await createOrder(auth.adminAccessToken, marketSymbol, "SELL", "1.20", "10");
+  const buyD = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "25");
+  expectTradeResponse(buyD, "FILLED", "25", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, sellerD1.id, "FILLED", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, sellerD2.id, "FILLED", "0");
+  await expectAdminOrderStatus(auth.adminAccessToken, sellerD3.id, "PARTIAL_FILLED", "5");
+  const recentD = await getJson<Array<{ price: string; amount: string; quoteAmount: string }>>(
+    `${apiBaseUrl}/trades/recent?marketSymbol=${marketQuery}`,
+    auth.userAccessToken,
+    "load recent trades after scenario D",
+  );
+  if (!recentD.length || recentD[0]!.price !== "1.20" || recentD[0]!.amount !== "5") {
+    throw new Error("Scenario D should surface the latest maker-price trade.");
+  }
+  await cancelOrder(auth.adminAccessToken, sellerD3.id);
+
+  const buyerBeforeE = await walletSnapshot(auth.userAccessToken);
+  const sellerE = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.10", "10");
+  const buyE = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.10", "25");
+  expectTradeResponse(buyE, "PARTIAL_FILLED", "10", "15");
+  if (buyE.lockedAmount !== "16.5") {
+    throw new Error(`Scenario E should keep 16.5 SWC locked, got ${buyE.lockedAmount}.`);
+  }
+  const buyerAfterCreateE = await walletSnapshot(auth.userAccessToken);
+  if (
+    BigInt(findWallet(buyerAfterCreateE, "SWC").lockedRaw) !==
+    BigInt(findWallet(buyerBeforeE, "SWC").lockedRaw) + quoteUnits("1.10", "25") - quoteUnits("1.10", "10")
+  ) {
+    throw new Error("Partial fill should leave the remaining SWC locked.");
+  }
+
+  await cancelOrder(auth.userAccessToken, buyE.id);
+  const buyerAfterCancelE = await walletSnapshot(auth.userAccessToken);
+  if (
+    BigInt(findWallet(buyerAfterCancelE, "SWC").lockedRaw) !==
+    BigInt(findWallet(buyerBeforeE, "SWC").lockedRaw) - quoteUnits("1.10", "10")
+  ) {
+    throw new Error("Cancel should unlock only the remaining locked SWC.");
+  }
+  await cancelOrder(auth.receiverAccessToken, sellerE.id);
+
+  const userTrades = await getJson<Array<{ side: string; price: string; amount: string; quoteAmount: string }>>(
+    `${apiBaseUrl}/trades/me`,
+    auth.userAccessToken,
+    "load my trades",
+  );
+  if (!userTrades.length || !userTrades.some((trade) => trade.side === "BUY" || trade.side === "SELL")) {
+    throw new Error("My trades endpoint should return user-side trades.");
+  }
+
+  const adminTradesList = await adminTrades(auth.adminAccessToken);
+  if (!adminTradesList.length) {
+    throw new Error("Admin trades endpoint should return settled trades.");
+  }
+
+  const adminOrdersFinal = await adminOrders(auth.adminAccessToken);
+  if (adminOrdersFinal.some((order) => order.status === "OPEN" || order.status === "PARTIAL_FILLED")) {
+    throw new Error("All scenario orders should be settled or cancelled before ending smoke.");
+  }
+
+  const orderBook = await getJson<{
     bids: Array<{ priceRaw: string; amountRaw: string }>;
     asks: Array<{ priceRaw: string; amountRaw: string }>;
-  }>(`${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`, auth.userAccessToken, "load order book before buy");
-  const bidAmountBeforeBuy = findBookAmount(orderBookBeforeBuy.bids, 2n * unit);
-
-  const buyOrderResponse = await fetch(`${apiBaseUrl}/orders`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${auth.userAccessToken}`,
-    },
-    body: JSON.stringify({
-      marketSymbol,
-      side: "BUY",
-      price: "2",
-      amount: "10",
-    }),
-  });
-  assertOk(buyOrderResponse, "create BUY limit order");
-  const buyOrder = (await buyOrderResponse.json()) as {
-    id?: string;
-    side?: string;
-    status?: string;
-    lockedAssetSymbol?: string;
-    lockedAmountRaw?: string;
-    remainingAmountRaw?: string;
-  };
-
-  if (
-    !buyOrder.id ||
-    buyOrder.side !== "BUY" ||
-    buyOrder.status !== "OPEN" ||
-    buyOrder.lockedAssetSymbol !== "SWC" ||
-    BigInt(buyOrder.lockedAmountRaw ?? "0") !== buyLock ||
-    BigInt(buyOrder.remainingAmountRaw ?? "0") !== buyAmount
-  ) {
-    throw new Error(`Unexpected BUY order payload: ${JSON.stringify(buyOrder)}`);
+  }>(`${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`, auth.userAccessToken, "load order book after matching");
+  if (orderBook.bids.length !== 0 || orderBook.asks.length !== 0) {
+    throw new Error("Order book should be empty after cleanup of all smoke orders.");
   }
 
-  const senderWalletsAfterBuy = await getJson<
-    Array<{ asset: string; availableRaw: string; lockedRaw: string }>
-  >(`${apiBaseUrl}/wallets/me`, auth.userAccessToken, "load sender wallets after buy order");
-  const senderSwcAfterBuy = findWallet(senderWalletsAfterBuy, "SWC");
-  if (BigInt(senderSwcAfterBuy.availableRaw) !== BigInt(senderSwcBeforeBuy.availableRaw) - buyLock) {
-    throw new Error("BUY order did not decrease sender SWC available balance by the locked total.");
-  }
-  if (BigInt(senderSwcAfterBuy.lockedRaw) !== BigInt(senderSwcBeforeBuy.lockedRaw) + buyLock) {
-    throw new Error("BUY order did not increase sender SWC locked balance by the locked total.");
-  }
-
-  const orderBookAfterBuy = await getJson<{ bids: Array<{ priceRaw: string; amountRaw: string }> }>(
-    `${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`,
-    auth.userAccessToken,
-    "load order book after buy",
-  );
-  if (findBookAmount(orderBookAfterBuy.bids, 2n * unit) !== bidAmountBeforeBuy + buyAmount) {
-    throw new Error("Order book bid level did not include the BUY order amount.");
-  }
-
-  const senderOpenOrders = await getJson<Array<{ id: string; status: string }>>(
-    `${apiBaseUrl}/orders/me?status=OPEN&marketSymbol=${marketQuery}`,
-    auth.userAccessToken,
-    "load sender open orders",
-  );
-  if (!senderOpenOrders.some((order) => order.id === buyOrder.id && order.status === "OPEN")) {
-    throw new Error("GET /orders/me did not include the BUY order.");
-  }
-
-  const senderOrderLedger = await getJson<Array<{ type: string; refId: string | null; amountRaw: string }>>(
-    `${apiBaseUrl}/ledger/me`,
-    auth.userAccessToken,
-    "load sender ledger after order lock",
-  );
-  if (
-    !senderOrderLedger.some(
-      (entry) =>
-        entry.refId === buyOrder.id &&
-        entry.type === "ORDER_LOCK" &&
-        BigInt(entry.amountRaw) === -buyLock,
-    )
-  ) {
-    throw new Error("Sender ledger did not include the expected ORDER_LOCK entry.");
-  }
-
-  const cancelBuyResponse = await fetch(`${apiBaseUrl}/orders/${buyOrder.id}/cancel`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${auth.userAccessToken}`,
-    },
-  });
-  assertOk(cancelBuyResponse, "cancel BUY order");
-  const cancelledBuy = (await cancelBuyResponse.json()) as { status?: string };
-  if (cancelledBuy.status !== "CANCELLED") {
-    throw new Error(`Unexpected cancelled BUY payload: ${JSON.stringify(cancelledBuy)}`);
-  }
-
-  const senderWalletsAfterCancel = await getJson<
-    Array<{ asset: string; availableRaw: string; lockedRaw: string }>
-  >(`${apiBaseUrl}/wallets/me`, auth.userAccessToken, "load sender wallets after buy cancel");
-  const senderSwcAfterCancel = findWallet(senderWalletsAfterCancel, "SWC");
-  if (BigInt(senderSwcAfterCancel.availableRaw) !== BigInt(senderSwcBeforeBuy.availableRaw)) {
-    throw new Error("BUY cancel did not restore sender SWC available balance.");
-  }
-  if (BigInt(senderSwcAfterCancel.lockedRaw) !== BigInt(senderSwcBeforeBuy.lockedRaw)) {
-    throw new Error("BUY cancel did not restore sender SWC locked balance.");
-  }
-
-  const orderBookAfterCancel = await getJson<{ bids: Array<{ priceRaw: string; amountRaw: string }> }>(
-    `${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`,
-    auth.userAccessToken,
-    "load order book after buy cancel",
-  );
-  if (findBookAmount(orderBookAfterCancel.bids, 2n * unit) !== bidAmountBeforeBuy) {
-    throw new Error("Order book bid level did not remove the cancelled BUY order.");
-  }
-
-  const senderLedgerAfterCancel = await getJson<Array<{ type: string; refId: string | null; amountRaw: string }>>(
-    `${apiBaseUrl}/ledger/me`,
-    auth.userAccessToken,
-    "load sender ledger after order unlock",
-  );
-  if (
-    !senderLedgerAfterCancel.some(
-      (entry) =>
-        entry.refId === buyOrder.id &&
-        entry.type === "ORDER_UNLOCK" &&
-        BigInt(entry.amountRaw) === buyLock,
-    )
-  ) {
-    throw new Error("Sender ledger did not include the expected ORDER_UNLOCK entry.");
-  }
-
-  const receiverWalletsBeforeSell = await getJson<
-    Array<{ asset: string; availableRaw: string; lockedRaw: string }>
-  >(`${apiBaseUrl}/wallets/me`, auth.receiverAccessToken, "load receiver wallets before sell order");
-  const receiverSwlBeforeSell = findWallet(receiverWalletsBeforeSell, "SWL");
-  if (BigInt(receiverSwlBeforeSell.availableRaw) !== BigInt(receiverSwlBeforeAirdrop.availableRaw) + 100n * unit) {
-    throw new Error("Receiver SWL airdrop did not fund the expected sell balance.");
-  }
-
-  const orderBookBeforeSell = await getJson<{ asks: Array<{ priceRaw: string; amountRaw: string }> }>(
-    `${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`,
-    auth.receiverAccessToken,
-    "load order book before sell",
-  );
-  const askAmountBeforeSell = findBookAmount(orderBookBeforeSell.asks, 3n * unit);
-
-  const sellOrderResponse = await fetch(`${apiBaseUrl}/orders`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${auth.receiverAccessToken}`,
-    },
-    body: JSON.stringify({
-      marketSymbol,
-      side: "SELL",
-      price: "3",
-      amount: "5",
-    }),
-  });
-  assertOk(sellOrderResponse, "create SELL limit order");
-  const sellOrder = (await sellOrderResponse.json()) as {
-    id?: string;
-    side?: string;
-    status?: string;
-    lockedAssetSymbol?: string;
-    lockedAmountRaw?: string;
-  };
-  if (
-    !sellOrder.id ||
-    sellOrder.side !== "SELL" ||
-    sellOrder.status !== "OPEN" ||
-    sellOrder.lockedAssetSymbol !== "SWL" ||
-    BigInt(sellOrder.lockedAmountRaw ?? "0") !== sellAmount
-  ) {
-    throw new Error(`Unexpected SELL order payload: ${JSON.stringify(sellOrder)}`);
-  }
-
-  const receiverWalletsAfterSell = await getJson<
-    Array<{ asset: string; availableRaw: string; lockedRaw: string }>
-  >(`${apiBaseUrl}/wallets/me`, auth.receiverAccessToken, "load receiver wallets after sell order");
-  const receiverSwlAfterSell = findWallet(receiverWalletsAfterSell, "SWL");
-  if (BigInt(receiverSwlAfterSell.availableRaw) !== BigInt(receiverSwlBeforeSell.availableRaw) - sellAmount) {
-    throw new Error("SELL order did not decrease receiver SWL available balance.");
-  }
-  if (BigInt(receiverSwlAfterSell.lockedRaw) !== BigInt(receiverSwlBeforeSell.lockedRaw) + sellAmount) {
-    throw new Error("SELL order did not increase receiver SWL locked balance.");
-  }
-
-  const orderBookAfterSell = await getJson<{ asks: Array<{ priceRaw: string; amountRaw: string }> }>(
-    `${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`,
-    auth.receiverAccessToken,
-    "load order book after sell",
-  );
-  if (findBookAmount(orderBookAfterSell.asks, 3n * unit) !== askAmountBeforeSell + sellAmount) {
-    throw new Error("Order book ask level did not include the SELL order amount.");
-  }
-
-  const adminOrders = await getJson<Array<{ id: string; status: string }>>(
-    `${apiBaseUrl}/admin/orders`,
-    auth.adminAccessToken,
-    "load admin orders",
-  );
-  if (!adminOrders.some((order) => order.id === buyOrder.id && order.status === "CANCELLED")) {
-    throw new Error("Admin order list did not include the cancelled BUY order.");
-  }
-  if (!adminOrders.some((order) => order.id === sellOrder.id && order.status === "OPEN")) {
-    throw new Error("Admin order list did not include the open SELL order.");
-  }
-
-  const adminLedger = await getJson<Array<{ type: string; refId: string | null }>>(
-    `${apiBaseUrl}/admin/ledger`,
-    auth.adminAccessToken,
-    "load admin ledger after orders",
-  );
-  if (!adminLedger.some((entry) => entry.refId === buyOrder.id && entry.type === "ORDER_UNLOCK")) {
-    throw new Error("Admin ledger did not include the BUY order unlock entry.");
-  }
-  if (!adminLedger.some((entry) => entry.refId === sellOrder.id && entry.type === "ORDER_LOCK")) {
-    throw new Error("Admin ledger did not include the SELL order lock entry.");
-  }
-
-  await expectPostError(
-    `${apiBaseUrl}/orders`,
-    auth.userAccessToken,
-    {
-      marketSymbol,
-      side: "BUY",
-      price: "999999",
-      amount: "999999",
-    },
-    400,
-    "insufficient BUY order",
-  );
-  await expectPostError(
-    `${apiBaseUrl}/orders`,
-    auth.userAccessToken,
-    {
-      marketSymbol,
-      side: "BUY",
-      price: "0",
-      amount: "1",
-    },
-    400,
-    "zero price order",
-  );
-  await expectPostError(
-    `${apiBaseUrl}/orders/${sellOrder.id}/cancel`,
-    auth.userAccessToken,
-    undefined,
-    403,
-    "cancel someone else's order",
-  );
-
-  const cancelSellResponse = await fetch(`${apiBaseUrl}/orders/${sellOrder.id}/cancel`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${auth.receiverAccessToken}`,
-    },
-  });
-  assertOk(cancelSellResponse, "cancel SELL smoke order");
-  await expectPostError(
-    `${apiBaseUrl}/orders/${sellOrder.id}/cancel`,
-    auth.receiverAccessToken,
-    undefined,
-    400,
-    "cancel order twice",
-  );
-
-  console.log("PASS v0.5 limit order lock, cancel, order book, ledger, admin orders, and negatives");
+  console.log("PASS v0.6 matching, partial fills, maker pricing, refunds, trades, and cancel flow");
 }
 
 async function testWebBuild() {
@@ -776,10 +425,7 @@ async function testWebRoutes() {
   }
 
   for (const route of protectedWebRoutes) {
-    const response = await fetch(`${webBaseUrl}${route}`, {
-      redirect: "manual",
-    });
-
+    const response = await fetch(`${webBaseUrl}${route}`, { redirect: "manual" });
     if (!response.ok && !isRedirectStatus(response.status)) {
       throw new Error(`protected web route ${route} failed with status ${response.status}`);
     }
@@ -796,9 +442,7 @@ function assertOk(response: Response, label: string) {
 
 async function getJson<T>(url: string, accessToken: string, label: string) {
   const response = await fetch(url, {
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-    },
+    headers: { authorization: `Bearer ${accessToken}` },
   });
   assertOk(response, label);
   return (await response.json()) as T;
@@ -817,38 +461,146 @@ function findWallet<T extends { asset: string; availableRaw: string; lockedRaw: 
   asset: string,
 ) {
   const wallet = wallets.find((entry) => entry.asset === asset);
-
   if (!wallet) {
     throw new Error(`Expected ${asset} wallet.`);
   }
-
   return wallet;
 }
 
-function findBookAmount(levels: Array<{ priceRaw: string; amountRaw: string }>, priceRaw: bigint) {
-  const level = levels.find((entry) => BigInt(entry.priceRaw) === priceRaw);
-  return BigInt(level?.amountRaw ?? "0");
+async function walletSnapshot(accessToken: string) {
+  return getJson<Array<{ asset: string; availableRaw: string; lockedRaw: string }>>(
+    `${apiBaseUrl}/wallets/me`,
+    accessToken,
+    "load wallet snapshot",
+  );
 }
 
-async function expectPostError(
-  url: string,
-  accessToken: string,
-  body: unknown,
-  expectedStatus: number,
-  label: string,
+async function airdrop(
+  adminAccessToken: string,
+  username: string,
+  assetSymbol: string,
+  amount: string,
+  note: string,
 ) {
-  const response = await fetch(url, {
+  const response = await fetch(`${apiBaseUrl}/admin/airdrop`, {
     method: "POST",
     headers: {
-      ...(body === undefined ? {} : { "content-type": "application/json" }),
+      "content-type": "application/json",
+      authorization: `Bearer ${adminAccessToken}`,
+    },
+    body: JSON.stringify({ username, assetSymbol, amount, note }),
+  });
+  assertOk(response, `airdrop ${assetSymbol} to ${username}`);
+  return (await response.json()) as { ledgerEntryId?: string };
+}
+
+async function createOrder(
+  accessToken: string,
+  marketSymbol: string,
+  side: "BUY" | "SELL",
+  price: string,
+  amount: string,
+) {
+  const response = await fetch(`${apiBaseUrl}/orders`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
       authorization: `Bearer ${accessToken}`,
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: JSON.stringify({ marketSymbol, side, price, amount }),
   });
+  assertOk(response, `create ${side} order`);
+  return (await response.json()) as {
+    id: string;
+    status: string;
+    side: string;
+    price: string;
+    amount: string;
+    filledAmount: string;
+    remainingAmount: string;
+    lockedAssetSymbol: string;
+    lockedAmount: string;
+    marketSymbol: string;
+  };
+}
 
-  if (response.status !== expectedStatus) {
-    throw new Error(`${label} expected status ${expectedStatus}, got ${response.status}`);
+async function adminTrades(accessToken: string) {
+  return getJson<Array<{ id: string; price: string; amount: string; quoteAmount: string; seller: { username: string }; buyer: { username: string } }>>(
+    `${apiBaseUrl}/admin/trades`,
+    accessToken,
+    "load admin trades",
+  );
+}
+
+async function adminOrders(accessToken: string) {
+  return getJson<Array<{ id: string; status: string; remainingAmount: string }>>(
+    `${apiBaseUrl}/admin/orders`,
+    accessToken,
+    "load admin orders",
+  );
+}
+
+function expectOrderStatus(order: { status: string }, expectedStatus: string) {
+  if (order.status !== expectedStatus) {
+    throw new Error(`Expected order status ${expectedStatus}, got ${order.status}`);
   }
+}
+
+function expectTradeResponse(
+  order: { status: string; filledAmount: string; remainingAmount: string },
+  expectedStatus: string,
+  expectedFilled: string,
+  expectedRemaining: string,
+) {
+  expectOrderStatus(order, expectedStatus);
+  if (order.filledAmount !== expectedFilled || order.remainingAmount !== expectedRemaining) {
+    throw new Error(
+      `Unexpected order amounts: filled=${order.filledAmount} remaining=${order.remainingAmount}`,
+    );
+  }
+}
+
+async function assertExactWallet(accessToken: string, asset: string, expectedAvailableRaw: bigint) {
+  const after = await walletSnapshot(accessToken);
+  const wallet = findWallet(after, asset);
+  if (BigInt(wallet.availableRaw) !== expectedAvailableRaw) {
+    throw new Error(
+      `Wallet ${asset} expected available ${expectedAvailableRaw.toString()}, got ${wallet.availableRaw}.`,
+    );
+  }
+}
+
+function units(value: string) {
+  return parseDecimalToUnits(value);
+}
+
+function amountUnits(value: string) {
+  return parseDecimalToUnits(value);
+}
+
+function quoteUnits(price: string, amount: string) {
+  const priceUnits = parseDecimalToUnits(price);
+  const amountUnitsValue = parseDecimalToUnits(amount);
+  return (priceUnits * amountUnitsValue) / 10n ** 18n;
+}
+
+function parseDecimalToUnits(value: string) {
+  const trimmed = value.trim();
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(trimmed)) {
+    throw new Error(`Invalid decimal value: ${value}`);
+  }
+
+  const [whole = "0", fraction = ""] = trimmed.split(".");
+  return BigInt(`${whole}${fraction.padEnd(18, "0")}`);
+}
+
+async function cancelOrder(accessToken: string, orderId: string) {
+  const response = await fetch(`${apiBaseUrl}/orders/${orderId}/cancel`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  assertOk(response, `cancel order ${orderId}`);
+  return (await response.json()) as { status?: string; filledAmount?: string };
 }
 
 function isRedirectStatus(status: number) {

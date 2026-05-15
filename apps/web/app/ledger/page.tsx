@@ -55,7 +55,7 @@ export default function LedgerPage() {
           <PageHeader
             eyebrow="Ledger"
             title="Balance change ledger"
-            description="Review your accounting trail for wallet balance changes. Airdrops appear here immediately after admin execution."
+            description="Review your accounting trail for wallet balance changes, including order locks, trade settlement, and better-price unlocks."
             action={<StatusBadge label="Accounting" tone="info" />}
           />
 
@@ -73,6 +73,7 @@ export default function LedgerPage() {
                   "Available After",
                   "Locked After",
                   "Reference",
+                  "Note",
                   "Created",
                 ]}
                 rows={entries.map((entry) => [
@@ -98,6 +99,7 @@ export default function LedgerPage() {
                   entry.availableAfter,
                   entry.lockedAfter,
                   `${entry.refType}: ${shortId(entry.refId)}`,
+                  ledgerNote(entry),
                   formatDateTime(entry.createdAt),
                 ])}
               />
@@ -129,9 +131,27 @@ function ledgerTypeTone(type: string): "neutral" | "success" | "warning" | "dang
     return "info";
   }
 
-  if (type === "AIRDROP") {
+  if (type === "AIRDROP" || type === "TRADE_BUY" || type === "TRADE_SELL") {
     return "success";
   }
 
   return "neutral";
+}
+
+function ledgerNote(entry: LedgerEntry) {
+  if (entry.type === "TRADE_BUY") {
+    return entry.asset === "SWL" ? "Bought SWL from a matched limit order." : "Buy-side settlement.";
+  }
+
+  if (entry.type === "TRADE_SELL") {
+    return "Sold SWL and received SWC.";
+  }
+
+  if (entry.type === "ORDER_UNLOCK") {
+    return entry.note?.includes("Better price")
+      ? "Better-price refund/unlock."
+      : "Remaining locked balance unlocked.";
+  }
+
+  return entry.note ?? "-";
 }

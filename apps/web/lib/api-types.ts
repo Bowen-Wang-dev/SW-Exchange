@@ -231,3 +231,31 @@ export type OrderBook = {
   bids: OrderBookLevel[];
   asks: OrderBookLevel[];
 };
+
+export type TradeEntry = {
+  id: string;
+  marketId: string;
+  marketSymbol: string;
+  market: string;
+  side?: OrderSide;
+  price: string;
+  priceRaw: string;
+  amount: string;
+  amountRaw: string;
+  quoteAmount: string;
+  quoteAmountRaw: string;
+  createdAt: string;
+};
+
+export type AdminTradeEntry = TradeEntry & {
+  buyer: {
+    id: string;
+    email: string;
+    username: string;
+  };
+  seller: {
+    id: string;
+    email: string;
+    username: string;
+  };
+};

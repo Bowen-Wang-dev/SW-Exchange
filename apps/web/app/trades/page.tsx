@@ -1,11 +1,50 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { apiRequest, ApiError } from "@/lib/api-client";
+import type { OrderSide, TradeEntry } from "@/lib/api-types";
+import { formatDateTime, shortId } from "@/lib/format";
 import { TRADE_HISTORY_COPY } from "@/lib/milestone-copy";
 
 export default function TradesPage() {
+  const [trades, setTrades] = useState<TradeEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadTrades() {
+      try {
+        setIsLoading(true);
+        const response = await apiRequest<TradeEntry[]>("/trades/me");
+        if (active) {
+          setTrades(response);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(loadError instanceof ApiError ? loadError.message : "Unable to load trades.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadTrades();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <ProtectedRoute>
       <AppShell>
@@ -14,38 +53,51 @@ export default function TradesPage() {
             eyebrow="Trades"
             title="Executed trade history"
             description={TRADE_HISTORY_COPY}
-            action={<StatusBadge label="Pending Engine" tone="warning" />}
+            action={<StatusBadge label="v0.6 Live" tone="success" />}
           />
 
-          <DataTable
-            columns={["Trade ID", "Market", "Side", "Price", "Amount", "Fee (v0.7)", "Time"]}
-            rows={[
-              [
-                "—",
-                "SWL/SWC",
-                <span key="buy" className="text-emerald-300">
-                  Buy
-                </span>,
-                "—",
-                "—",
-                "—",
-                "—",
-              ],
-              [
-                "—",
-                "SWL/SWC",
-                <span key="sell" className="text-rose-300">
-                  Sell
-                </span>,
-                "—",
-                "—",
-                "—",
-                "—",
-              ],
-            ]}
-          />
+          {error ? <Notice tone="danger" message={error} /> : null}
+          {isLoading ? <Notice tone="info" message="Loading trades..." /> : null}
+
+          {!isLoading && !error ? (
+            trades.length > 0 ? (
+              <DataTable
+                columns={["Time", "Trade ID", "Market", "Side", "Price", "Amount", "Total"]}
+                rows={trades.map((trade) => [
+                  formatDateTime(trade.createdAt),
+                  shortId(trade.id),
+                  trade.marketSymbol,
+                  <SideText key={`${trade.id}-side`} side={trade.side ?? "BUY"} />,
+                  trade.price,
+                  trade.amount,
+                  trade.quoteAmount,
+                ])}
+              />
+            ) : (
+              <Notice tone="info" message="No completed trades yet." />
+            )
+          ) : null}
+
+          <div className="rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
+            Fees arrive in v0.7. v0.6 trade settlement credits buyers and sellers at gross fill amounts.
+          </div>
         </div>
       </AppShell>
     </ProtectedRoute>
   );
+}
+
+function SideText({ side }: { side: OrderSide }) {
+  return (
+    <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
+  );
+}
+
+function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
+  const classes =
+    tone === "danger"
+      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+
+  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

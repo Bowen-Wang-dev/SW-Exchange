@@ -18,6 +18,7 @@ import {
 } from "../db/schema/index.js";
 import { LedgerService } from "../ledger/ledger.service.js";
 import { OrdersService } from "../orders/orders.service.js";
+import { TradesService } from "../trades/trades.service.js";
 import { TransfersService } from "../transfers/transfers.service.js";
 import { WalletsService } from "../wallets/wallets.service.js";
 import type { AirdropDto } from "./dto/airdrop.dto.js";
@@ -35,6 +36,7 @@ export class AdminService {
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(LedgerService) private readonly ledgerService: LedgerService,
     @Inject(OrdersService) private readonly ordersService: OrdersService,
+    @Inject(TradesService) private readonly tradesService: TradesService,
     @Inject(TransfersService) private readonly transfersService: TransfersService,
     @Inject(WalletsService) private readonly walletsService: WalletsService,
   ) {}
@@ -282,6 +284,10 @@ export class AdminService {
 
   listOrders() {
     return this.ordersService.listAllForAdmin();
+  }
+
+  listTrades() {
+    return this.tradesService.listAllForAdmin();
   }
 
   async listAuditLogs() {

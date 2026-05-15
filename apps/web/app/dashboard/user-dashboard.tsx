@@ -48,7 +48,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.5 console shows live balances, internal transfers, limit orders, and the order book. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.6 console shows live balances, internal transfers, limit orders, matching, trades, and the order book. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label={user?.status ?? "ACTIVE"} tone="success" />}
       />
 
@@ -57,7 +57,7 @@ export function DashboardContent() {
           label="Total Equity"
           badgeLabel="Live"
           value={swcTotalEquity}
-          hint="SWC-denominated estimate. SWL valuation remains manual until matching and trades arrive."
+          hint="SWC-denominated wallet total. SWL valuation remains a manual estimate in v0.x."
           tone="info"
         />
         <StatCard
@@ -123,7 +123,7 @@ export function DashboardContent() {
               <StatusBadge key="market-status" label="Live" tone="success" />,
               "—",
               "—",
-              `Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`,
+              "Limit orders, maker-price matching, trades, and polling sync are live. Fees arrive in v0.7.",
             ],
           ]}
         />

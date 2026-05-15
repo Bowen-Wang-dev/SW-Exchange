@@ -1,0 +1,1 @@
+ALTER TABLE "trades" ADD COLUMN "quote_amount" numeric(78, 0) DEFAULT 0 NOT NULL;

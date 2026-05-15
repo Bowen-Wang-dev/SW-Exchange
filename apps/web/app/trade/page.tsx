@@ -7,12 +7,21 @@ import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { OrderBook, OrderBookLevel, OrderEntry, OrderSide, WalletBalance } from "@/lib/api-types";
+import type {
+  OrderBook,
+  OrderBookLevel,
+  OrderEntry,
+  OrderSide,
+  OrderStatus,
+  TradeEntry,
+  WalletBalance,
+} from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
-import { TRADE_PAGE_COPY, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
+import { TRADE_PAGE_COPY } from "@/lib/milestone-copy";
 
 const MARKET_SYMBOL = "SWL/SWC";
 const MONEY_DECIMALS = 18;
+const POLL_INTERVAL_MS = 5000;
 
 export default function TradePage() {
   const [side, setSide] = useState<OrderSide>("BUY");
@@ -21,6 +30,7 @@ export default function TradePage() {
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [orderBook, setOrderBook] = useState<OrderBook | null>(null);
   const [myOrders, setMyOrders] = useState<OrderEntry[]>([]);
+  const [recentTrades, setRecentTrades] = useState<TradeEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -33,25 +43,45 @@ export default function TradePage() {
 
   useEffect(() => {
     void loadTradeData();
+    const intervalId = window.setInterval(() => {
+      void loadTradeData({ silent: true });
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
   }, []);
 
-  async function loadTradeData() {
+  async function loadTradeData(options: { silent?: boolean } = {}) {
     try {
-      setIsLoading(true);
-      const [bookResponse, ordersResponse, walletResponse] = await Promise.all([
+      if (!options.silent) {
+        setIsLoading(true);
+      }
+
+      const [bookResponse, ordersResponse, walletResponse, tradesResponse] = await Promise.all([
         apiRequest<OrderBook>(`/order-book?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
-        apiRequest<OrderEntry[]>(`/orders/me?status=OPEN&marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
+        apiRequest<OrderEntry[]>(`/orders/me?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
         apiRequest<WalletBalance[]>("/wallets/me"),
+        apiRequest<TradeEntry[]>(`/trades/recent?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
       ]);
 
       setOrderBook(bookResponse);
-      setMyOrders(ordersResponse);
+      setMyOrders(
+        ordersResponse.filter(
+          (order) => isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n,
+        ),
+      );
       setWallets(walletResponse);
-      setError(null);
+      setRecentTrades(tradesResponse);
+      if (!options.silent) {
+        setError(null);
+      }
     } catch (loadError) {
-      setError(loadError instanceof ApiError ? loadError.message : "Unable to load trade data.");
+      if (!options.silent) {
+        setError(loadError instanceof ApiError ? loadError.message : "Unable to load trade data.");
+      }
     } finally {
-      setIsLoading(false);
+      if (!options.silent) {
+        setIsLoading(false);
+      }
     }
   }
 
@@ -74,7 +104,7 @@ export default function TradePage() {
 
       setAmount("");
       setSuccess(
-        `${order.side} order ${shortId(order.id)} opened. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
+        `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} SWL, remaining ${order.remainingAmount} SWL. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
       );
       await loadTradeData();
     } catch (submitError) {
@@ -110,7 +140,7 @@ export default function TradePage() {
             eyebrow="Trade"
             title="SWL/SWC spot terminal"
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.5 Live" tone="success" />}
+            action={<StatusBadge label="v0.6 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -214,34 +244,41 @@ export default function TradePage() {
             <section className="panel rounded-3xl p-5">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-white">Recent Trades</h2>
-                <StatusBadge label="v0.6" tone="neutral" />
+                <StatusBadge label="Polling Sync" tone="info" />
               </div>
-              <div className="mt-5 rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-8 text-center text-sm text-[var(--foreground-soft)]">
-                {REAL_TIME_SYNC_COPY}
-              </div>
+              <RecentTradesTable trades={recentTrades} />
             </section>
           </div>
 
           {myOrders.length > 0 ? (
             <DataTable
-              columns={["Time", "Market", "Side", "Price", "Amount", "Remaining", "Status", "Action"]}
+              columns={["Time", "Market", "Side", "Price", "Amount", "Filled", "Remaining", "Status", "Action"]}
               rows={myOrders.map((order) => [
                 formatDateTime(order.createdAt),
                 order.marketSymbol,
                 <SideText key={`${order.id}-side`} side={order.side} />,
                 order.price,
                 order.amount,
+                order.filledAmount,
                 order.remainingAmount,
-                <StatusBadge key={`${order.id}-status`} label={order.status} tone="info" />,
-                <button
-                  key={`${order.id}-cancel`}
-                  type="button"
-                  onClick={() => void cancelOrder(order.id)}
-                  disabled={cancellingId === order.id}
-                  className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:border-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {cancellingId === order.id ? "Cancelling..." : "Cancel"}
-                </button>,
+                <StatusBadge
+                  key={`${order.id}-status`}
+                  label={order.status}
+                  tone={orderStatusTone(order.status)}
+                />,
+                isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n ? (
+                  <button
+                    key={`${order.id}-cancel`}
+                    type="button"
+                    onClick={() => void cancelOrder(order.id)}
+                    disabled={cancellingId === order.id}
+                    className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:border-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {cancellingId === order.id ? "Cancelling..." : "Cancel"}
+                  </button>
+                ) : (
+                  "-"
+                ),
               ])}
             />
           ) : !isLoading ? (
@@ -306,6 +343,60 @@ function SideText({ side }: { side: OrderSide }) {
   return (
     <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
   );
+}
+
+function RecentTradesTable({ trades }: { trades: TradeEntry[] }) {
+  return (
+    <div className="data-divider mt-5 overflow-hidden rounded-2xl border border-[var(--border)]">
+      <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr] gap-2 bg-white/[0.03] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+        <span>Time</span>
+        <span>Price</span>
+        <span>Amount</span>
+        <span className="text-right">Total</span>
+      </div>
+      {trades.length > 0 ? (
+        trades.slice(0, 12).map((trade) => (
+          <div
+            key={trade.id}
+            className="grid grid-cols-[1.1fr_1fr_1fr_1fr] gap-2 px-3 py-2 text-sm"
+          >
+            <span className="text-[var(--foreground-muted)]">{formatDateTime(trade.createdAt)}</span>
+            <span className="text-white">{trade.price}</span>
+            <span className="text-[var(--foreground-soft)]">{trade.amount}</span>
+            <span className="text-right text-[var(--foreground-soft)]">{trade.quoteAmount}</span>
+          </div>
+        ))
+      ) : (
+        <div className="px-3 py-6 text-center text-sm text-[var(--foreground-muted)]">
+          No trades yet.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isOpenOrder(status: OrderStatus) {
+  return status === "OPEN" || status === "PARTIAL_FILLED";
+}
+
+function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning" | "danger" | "info" {
+  if (status === "OPEN" || status === "PARTIAL_FILLED") {
+    return "info";
+  }
+
+  if (status === "CANCELLED") {
+    return "warning";
+  }
+
+  if (status === "FILLED") {
+    return "success";
+  }
+
+  if (status === "REJECTED") {
+    return "danger";
+  }
+
+  return "neutral";
 }
 
 function Notice({

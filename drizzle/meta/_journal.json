@@ -29,6 +29,13 @@
       "when": 1778841771901,
       "tag": "0003_lethal_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778857257253,
+      "tag": "0004_fantastic_mad_thinker",
+      "breakpoints": true
     }
   ]
 }

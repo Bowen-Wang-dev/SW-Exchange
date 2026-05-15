@@ -42,7 +42,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.5. Limit orders, order book, admin review, and internal transfers are live. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.6. Matching Engine + Trades live for SWL/SWC. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -111,7 +111,7 @@ export function AdminDashboardContent() {
             {[
               "Airdrops update wallet, ledger, and audit records in one transaction.",
               "Internal transfers update both wallets and paired ledger entries in one transaction.",
-              "Limit orders lock and unlock wallet balances through ledger entries.",
+              "Limit orders lock balances, match at maker prices, and settle through ledger entries.",
               "Wallet viewer pages are live for both admin and normal users.",
               "All later sensitive actions should map to ledger and audit entries.",
             ].map((item) => (
@@ -129,7 +129,8 @@ export function AdminDashboardContent() {
             ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "SWC/SWL balances"],
             ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only SWC/SWL funding"],
             ["Transfers", <StatusBadge key="transfers" label="Live" tone="success" />, "Free user-to-user internal transfers"],
-            ["Orders", <StatusBadge key="orders" label="Live" tone="success" />, "Limit order lock and cancel review"],
+            ["Orders", <StatusBadge key="orders" label="Live" tone="success" />, "Limit order matching, fills, and cancel review"],
+            ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled SWL/SWC trade review"],
             ["Audit", <StatusBadge key="audit" label="Live" tone="info" />, "Airdrop audit trail"],
           ]}
         />
