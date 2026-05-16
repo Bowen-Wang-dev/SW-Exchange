@@ -1,11 +1,26 @@
-import { Body, Controller, Get, Inject, Patch, Post, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Inject,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { Roles } from "../common/decorators/roles.decorator.js";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
 import { RolesGuard } from "../common/guards/roles.guard.js";
 import type { AuthenticatedRequest } from "../common/interfaces/authenticated-request.interface.js";
 import { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import { AirdropDto } from "./dto/airdrop.dto.js";
+import { UpdateAssetStatusDto } from "./dto/update-asset-status.dto.js";
 import { UpdateFeeSettingsDto } from "./dto/update-fee-settings.dto.js";
+import { UpdateMarketStatusDto } from "./dto/update-market-status.dto.js";
+import { UpdateUserStatusDto } from "./dto/update-user-status.dto.js";
 import { AdminService } from "./admin.service.js";
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,6 +37,15 @@ export class AdminController {
   @Get("users")
   listUsers() {
     return this.adminService.listUsers();
+  }
+
+  @Patch("users/:id/status")
+  updateUserStatus(
+    @Req() request: AuthenticatedRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateUserStatusDto,
+  ) {
+    return this.adminService.updateUserStatus(request.user.sub, id, dto);
   }
 
   @Get("wallets")
@@ -71,6 +95,24 @@ export class AdminController {
   @Get("transfers")
   listTransfers() {
     return this.adminService.listTransfers();
+  }
+
+  @Patch("assets/:symbol/status")
+  updateAssetStatus(
+    @Req() request: AuthenticatedRequest,
+    @Param("symbol") symbol: string,
+    @Body() dto: UpdateAssetStatusDto,
+  ) {
+    return this.adminService.updateAssetStatus(request.user.sub, symbol, dto);
+  }
+
+  @Patch("markets/:symbol/status")
+  updateMarketStatus(
+    @Req() request: AuthenticatedRequest,
+    @Param("symbol") symbol: string,
+    @Body() dto: UpdateMarketStatusDto,
+  ) {
+    return this.adminService.updateMarketStatus(request.user.sub, symbol, dto);
   }
 
   @Get("orders")

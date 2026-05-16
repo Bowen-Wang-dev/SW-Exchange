@@ -42,7 +42,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.7.1. Admin Wallet Buckets / Wallet Model Polish is live for SWL/SWC. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.8. Admin Controls + User Status Management is live for SWL/SWC. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -113,6 +113,7 @@ export function AdminDashboardContent() {
               "Internal transfers update both wallets and paired ledger entries in one transaction.",
               "Limit orders lock balances, match at maker prices, and settle through ledger entries.",
               "Trading fees are configurable by admin and settle into the admin Fee Wallet.",
+              "User, asset, and market status controls write admin audit logs.",
               "Wallet viewer pages are live for both admin and normal users.",
               "All later sensitive actions should map to ledger and audit entries.",
             ].map((item) => (

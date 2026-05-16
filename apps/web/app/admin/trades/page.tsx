@@ -53,7 +53,7 @@ export default function AdminTradesPage() {
             eyebrow="Admin Trades"
             title="Trade review"
             description={ADMIN_TRADE_REVIEW_COPY}
-            action={<StatusBadge label="v0.7 Live" tone="success" />}
+            action={<StatusBadge label="v0.8 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

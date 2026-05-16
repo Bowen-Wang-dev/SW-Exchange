@@ -53,7 +53,7 @@ export default function TradesPage() {
             eyebrow="Trades"
             title="Executed trade history"
             description={TRADE_HISTORY_COPY}
-            action={<StatusBadge label="v0.7 Live" tone="success" />}
+            action={<StatusBadge label="v0.8 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -80,7 +80,7 @@ export default function TradesPage() {
           ) : null}
 
           <div className="rounded-2xl border border-emerald-300/16 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100">
-            Fees are live in v0.7. Buyer fees are charged in SWL and seller fees are charged in SWC at execution time.
+            Fees are live. Buyer fees are charged in SWL and seller fees are charged in SWC at execution time.
           </div>
         </div>
       </AppShell>

@@ -45,6 +45,11 @@ export class UsersService {
     return (user as User | undefined) ?? null;
   }
 
+  async findById(id: string) {
+    const [user] = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    return (user as User | undefined) ?? null;
+  }
+
   async findByEmailOrUsername(email: string, username: string) {
     const [user] = await this.db
       .select()

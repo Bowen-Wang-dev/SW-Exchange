@@ -98,7 +98,7 @@ export default function AdminWalletsPage() {
             eyebrow="Admin Wallets"
             title="Wallet buckets"
             description="Review the admin MAIN wallet and platform wallet buckets for SWC and SWL."
-            action={<StatusBadge label="v0.7.1 Wallet Model" tone="info" />}
+            action={<StatusBadge label="Wallet Buckets" tone="info" />}
           />
 
           <div className="flex flex-wrap gap-2">

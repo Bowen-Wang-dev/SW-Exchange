@@ -1,4 +1,10 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { and, asc, count, desc, eq, inArray, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import {
@@ -12,6 +18,7 @@ import {
   adminAuditLogs,
   assets,
   ledgerEntries,
+  markets,
   transfers,
   users,
   wallets,
@@ -26,7 +33,10 @@ import { TransfersService } from "../transfers/transfers.service.js";
 import { WalletsService } from "../wallets/wallets.service.js";
 import type { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import type { AirdropDto } from "./dto/airdrop.dto.js";
+import type { UpdateAssetStatusDto } from "./dto/update-asset-status.dto.js";
 import type { UpdateFeeSettingsDto } from "./dto/update-fee-settings.dto.js";
+import type { UpdateMarketStatusDto } from "./dto/update-market-status.dto.js";
+import type { UpdateUserStatusDto } from "./dto/update-user-status.dto.js";
 
 const ADMIN_SYSTEM_WALLET_TYPES = ["FEE", "TREASURY", "AIRDROP", "HOT"] as const;
 const WALLET_TYPE_LABELS: Record<WalletType, string> = {
@@ -49,6 +59,7 @@ type WalletFilters = {
   email?: string;
   assetSymbol?: string;
 };
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 @Injectable()
 export class AdminService {
@@ -105,6 +116,109 @@ export class AdminService {
       created_at: user.createdAt,
       updated_at: user.updatedAt,
     }));
+  }
+
+  async updateUserStatus(adminUserId: string, targetUserId: string, dto: UpdateUserStatusDto) {
+    const requestedStatus = this.normalizeUserStatus(dto.status);
+    const note = dto.note?.trim() || null;
+
+    return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
+      const [targetUser] = await tx
+        .select({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          nickname: users.nickname,
+          role: users.role,
+          status: users.status,
+          isSystem: users.isSystem,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        })
+        .from(users)
+        .where(eq(users.id, targetUserId))
+        .for("update")
+        .limit(1);
+
+      if (!targetUser || targetUser.isSystem) {
+        throw new NotFoundException("Target user was not found.");
+      }
+
+      if (targetUser.id === adminUserId && requestedStatus !== "ACTIVE") {
+        throw new ForbiddenException("Cannot freeze or ban your own admin account.");
+      }
+
+      if (targetUser.role === "ADMIN" && targetUser.status === "ACTIVE" && requestedStatus !== "ACTIVE") {
+        const [activeAdminCount] = await tx
+          .select({ value: count() })
+          .from(users)
+          .where(
+            and(
+              eq(users.role, "ADMIN"),
+              eq(users.status, "ACTIVE"),
+              eq(users.isSystem, false),
+            ),
+          );
+
+        if ((activeAdminCount?.value ?? 0) <= 1) {
+          throw new ForbiddenException("Cannot freeze or ban the only active admin account.");
+        }
+      }
+
+      if (targetUser.status === requestedStatus) {
+        return {
+          ...targetUser,
+          created_at: targetUser.createdAt,
+          updated_at: targetUser.updatedAt,
+        };
+      }
+
+      const updatedAt = new Date();
+      const [updatedUser] = await tx
+        .update(users)
+        .set({
+          status: requestedStatus,
+          updatedAt,
+        })
+        .where(eq(users.id, targetUser.id))
+        .returning({
+          id: users.id,
+          email: users.email,
+          username: users.username,
+          nickname: users.nickname,
+          role: users.role,
+          status: users.status,
+          isSystem: users.isSystem,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        });
+
+      if (!updatedUser) {
+        throw new Error("Failed to update user status.");
+      }
+
+      await tx.insert(adminAuditLogs).values({
+        adminUserId,
+        action: "UPDATE_USER_STATUS",
+        targetType: "USER",
+        targetId: targetUser.id,
+        beforeValue: {
+          status: targetUser.status,
+        },
+        afterValue: {
+          status: updatedUser.status,
+          note,
+        },
+      });
+
+      return {
+        ...updatedUser,
+        created_at: updatedUser.createdAt,
+        updated_at: updatedUser.updatedAt,
+      };
+    });
   }
 
   async listWallets(filters: WalletFilters = {}) {
@@ -212,11 +326,15 @@ export class AdminService {
       const [asset] = await tx
         .select()
         .from(assets)
-        .where(and(eq(assets.symbol, assetSymbol), eq(assets.isActive, true)))
+        .where(eq(assets.symbol, assetSymbol))
         .limit(1);
 
       if (!asset) {
-        throw new NotFoundException(`Active asset ${assetSymbol} was not found.`);
+        throw new NotFoundException(`Asset ${assetSymbol} was not found.`);
+      }
+
+      if (!asset.isActive) {
+        throw new BadRequestException("ASSET_PAUSED");
       }
 
       const amount = this.parseAdminBucketTransferAmount(dto.amount, asset.decimals);
@@ -394,18 +512,27 @@ export class AdminService {
     }
 
     return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
       const [asset] = await tx
         .select()
         .from(assets)
-        .where(and(eq(assets.symbol, assetSymbol), eq(assets.isActive, true)))
+        .where(eq(assets.symbol, assetSymbol))
         .limit(1);
 
       if (!asset) {
-        throw new NotFoundException(`Active asset ${assetSymbol} was not found.`);
+        throw new NotFoundException(`Asset ${assetSymbol} was not found.`);
+      }
+
+      if (!asset.isActive) {
+        throw new BadRequestException("ASSET_PAUSED");
       }
 
       const amount = this.parseAirdropAmount(dto.amount, asset.decimals);
       const targetUser = await this.findTargetUser(tx, dto);
+      if (targetUser.status !== "ACTIVE") {
+        throw new ForbiddenException("TARGET_USER_NOT_ACTIVE");
+      }
 
       await tx
         .insert(wallets)
@@ -546,6 +673,130 @@ export class AdminService {
     return this.feesService.updateFeeSettings(adminUserId, dto);
   }
 
+  async updateAssetStatus(adminUserId: string, symbol: string, dto: UpdateAssetStatusDto) {
+    const assetSymbol = symbol.trim().toUpperCase();
+    const isActive = this.normalizeAssetStatus(dto);
+    const note = dto.note?.trim() || null;
+
+    return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
+      const [asset] = await tx
+        .select()
+        .from(assets)
+        .where(eq(assets.symbol, assetSymbol))
+        .for("update")
+        .limit(1);
+
+      if (!asset) {
+        throw new NotFoundException(`Asset ${assetSymbol} was not found.`);
+      }
+
+      if (asset.isActive === isActive) {
+        return this.formatAssetStatusResponse(asset);
+      }
+
+      const updatedAt = new Date();
+      const [updatedAsset] = await tx
+        .update(assets)
+        .set({
+          isActive,
+          updatedAt,
+        })
+        .where(eq(assets.id, asset.id))
+        .returning();
+
+      if (!updatedAsset) {
+        throw new Error("Failed to update asset status.");
+      }
+
+      await tx.insert(adminAuditLogs).values({
+        adminUserId,
+        action: "UPDATE_ASSET_STATUS",
+        targetType: "ASSET",
+        targetId: asset.id,
+        beforeValue: {
+          symbol: asset.symbol,
+          status: asset.isActive ? "ACTIVE" : "PAUSED",
+          isActive: asset.isActive,
+        },
+        afterValue: {
+          symbol: updatedAsset.symbol,
+          status: updatedAsset.isActive ? "ACTIVE" : "PAUSED",
+          isActive: updatedAsset.isActive,
+          note,
+        },
+      });
+
+      return this.formatAssetStatusResponse(updatedAsset);
+    });
+  }
+
+  async updateMarketStatus(adminUserId: string, symbol: string, dto: UpdateMarketStatusDto) {
+    const marketSymbol = symbol.trim().toUpperCase();
+    const status = this.normalizeMarketStatus(dto.status);
+    const note = dto.note?.trim() || null;
+
+    return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
+      const [market] = await tx
+        .select()
+        .from(markets)
+        .where(eq(markets.symbol, marketSymbol))
+        .for("update")
+        .limit(1);
+
+      if (!market) {
+        throw new NotFoundException(`Market ${marketSymbol} was not found.`);
+      }
+
+      if (market.status === status) {
+        return {
+          ...market,
+          created_at: market.createdAt,
+          updated_at: market.updatedAt,
+        };
+      }
+
+      const updatedAt = new Date();
+      const [updatedMarket] = await tx
+        .update(markets)
+        .set({
+          status,
+          updatedAt,
+        })
+        .where(eq(markets.id, market.id))
+        .returning();
+
+      if (!updatedMarket) {
+        throw new Error("Failed to update market status.");
+      }
+
+      await tx.insert(adminAuditLogs).values({
+        adminUserId,
+        action: "UPDATE_MARKET_STATUS",
+        targetType: "MARKET",
+        targetId: market.id,
+        beforeValue: {
+          symbol: market.symbol,
+          status: market.status,
+        },
+        afterValue: {
+          symbol: updatedMarket.symbol,
+          status: updatedMarket.status,
+          note,
+        },
+      });
+
+      return {
+        ...updatedMarket,
+        created_at: updatedMarket.createdAt,
+        updated_at: updatedMarket.updatedAt,
+      };
+    });
+  }
+
   async listAuditLogs() {
     const rows = await this.db
       .select({
@@ -666,6 +917,77 @@ export class AdminService {
     }
 
     return walletType as WalletType;
+  }
+
+  private normalizeUserStatus(input: string) {
+    const status = input.trim().toUpperCase();
+    if (status !== "ACTIVE" && status !== "FROZEN" && status !== "BANNED") {
+      throw new BadRequestException("Invalid user status.");
+    }
+
+    return status;
+  }
+
+  private normalizeAssetStatus(dto: UpdateAssetStatusDto) {
+    if (typeof dto.isActive === "boolean") {
+      return dto.isActive;
+    }
+
+    if (!dto.status?.trim()) {
+      throw new BadRequestException("status or isActive is required.");
+    }
+
+    const status = dto.status.trim().toUpperCase();
+    if (status === "ACTIVE") {
+      return true;
+    }
+
+    if (status === "PAUSED") {
+      return false;
+    }
+
+    throw new BadRequestException("Invalid asset status.");
+  }
+
+  private normalizeMarketStatus(input: string) {
+    const status = input.trim().toUpperCase();
+    if (status !== "ACTIVE" && status !== "PAUSED") {
+      throw new BadRequestException("Invalid market status.");
+    }
+
+    return status;
+  }
+
+  private async assertActiveAdmin(tx: Transaction, adminUserId: string) {
+    const [adminUser] = await tx
+      .select({
+        id: users.id,
+        role: users.role,
+        status: users.status,
+        isSystem: users.isSystem,
+      })
+      .from(users)
+      .where(eq(users.id, adminUserId))
+      .limit(1);
+
+    if (!adminUser) {
+      throw new NotFoundException("Admin user was not found.");
+    }
+
+    if (adminUser.role !== "ADMIN" || adminUser.isSystem || adminUser.status !== "ACTIVE") {
+      throw new ForbiddenException("Only an active admin user can perform admin controls.");
+    }
+
+    return adminUser;
+  }
+
+  private formatAssetStatusResponse(asset: typeof assets.$inferSelect) {
+    return {
+      ...asset,
+      status: asset.isActive ? "ACTIVE" : "PAUSED",
+      created_at: asset.createdAt,
+      updated_at: asset.updatedAt,
+    };
   }
 
   private auditWalletBalance(

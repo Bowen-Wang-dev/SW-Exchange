@@ -76,6 +76,33 @@ export type AdminUser = {
   updated_at?: string;
 };
 
+export type AssetStatus = "ACTIVE" | "PAUSED";
+
+export type AssetRow = {
+  id: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  isActive: boolean;
+  status?: AssetStatus;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type MarketStatus = "ACTIVE" | "PAUSED";
+
+export type MarketRow = {
+  id: string;
+  symbol: string;
+  status: MarketStatus;
+  baseAssetId: string;
+  quoteAssetId: string;
+  priceDecimals: number;
+  amountDecimals: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type LedgerEntry = {
   id: string;
   userId: string;

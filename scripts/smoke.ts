@@ -49,16 +49,36 @@ const protectedWebRoutes = [
   "/admin/audit-logs",
 ];
 
+async function execPnpm(args: string[], options: Parameters<typeof execFileAsync>[2]) {
+  try {
+    return await execFileAsync("pnpm", args, options);
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "ENOENT"
+    ) {
+      return execFileAsync("corepack", ["pnpm", ...args], options);
+    }
+
+    throw error;
+  }
+}
+
 async function main() {
   console.log("Smoke test starting...");
 
   await testApiHealth();
   await testSeedData();
   const auth = await testAuthFlows();
+  await resetV08OperationalControls(auth.adminAccessToken);
   await testV03AirdropFlow(auth);
   await testV04TransferFlow(auth);
   await testV07FeeFlow(auth);
   await testV06OrderFlow(auth);
+  await testV08AdminControlsFlow(auth);
+  await resetV08OperationalControls(auth.adminAccessToken);
   await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
   await testWebRoutes();
   await testWebBuild();
@@ -575,6 +595,138 @@ async function testV06OrderFlow(auth: {
   console.log("PASS v0.6 matching regression, partial fills, maker pricing, refunds, trades, and cancel flow");
 }
 
+async function testV08AdminControlsFlow(auth: {
+  userAccessToken: string;
+  receiverAccessToken: string;
+  adminAccessToken: string;
+  user: { email: string; username: string };
+  receiver: { email: string; username: string };
+}) {
+  const marketSymbol = "SWL/SWC";
+  const marketQuery = encodeURIComponent(marketSymbol);
+
+  await resetV08OperationalControls(auth.adminAccessToken);
+  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "2", "Smoke v0.8 cancel funding");
+  const frozenOrder = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "999", "1");
+
+  await setUserStatus(auth.adminAccessToken, auth.receiver.username, "FROZEN", "Smoke v0.8 freeze");
+  await expectGetJsonOk(`${apiBaseUrl}/wallets/me`, auth.receiverAccessToken, "frozen wallet read");
+  await expectGetJsonOk(`${apiBaseUrl}/ledger/me`, auth.receiverAccessToken, "frozen ledger read");
+  await expectGetJsonOk(`${apiBaseUrl}/orders/me`, auth.receiverAccessToken, "frozen orders read");
+  await expectGetJsonOk(`${apiBaseUrl}/trades/me`, auth.receiverAccessToken, "frozen trades read");
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/transfers`,
+    auth.receiverAccessToken,
+    {
+      recipient: auth.user.email,
+      assetSymbol: "SWL",
+      amount: "1",
+      note: "Smoke v0.8 frozen transfer block",
+    },
+    403,
+    "USER_NOT_ACTIVE",
+    "frozen transfer block",
+  );
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/orders`,
+    auth.receiverAccessToken,
+    { marketSymbol, side: "SELL", price: "999", amount: "1" },
+    403,
+    "USER_NOT_ACTIVE",
+    "frozen order block",
+  );
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/orders/${frozenOrder.id}/cancel`,
+    auth.receiverAccessToken,
+    {},
+    403,
+    "USER_NOT_ACTIVE",
+    "frozen cancel block",
+  );
+  await setUserStatus(auth.adminAccessToken, auth.receiver.username, "ACTIVE", "Smoke v0.8 unfreeze");
+  await cancelOrder(auth.receiverAccessToken, frozenOrder.id);
+
+  await setUserStatus(auth.adminAccessToken, auth.receiver.username, "BANNED", "Smoke v0.8 ban");
+  await expectLoginRejected(auth.receiver.email, testPassword, "banned user login");
+  await expectGetRejected(
+    `${apiBaseUrl}/wallets/me`,
+    auth.receiverAccessToken,
+    401,
+    "banned existing token block",
+  );
+  await setUserStatus(auth.adminAccessToken, auth.receiver.username, "ACTIVE", "Smoke v0.8 unban");
+
+  await setAssetStatus(auth.adminAccessToken, "SWL", "PAUSED", "Smoke v0.8 pause SWL");
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/transfers`,
+    auth.userAccessToken,
+    {
+      recipient: auth.receiver.email,
+      assetSymbol: "SWL",
+      amount: "1",
+      note: "Smoke v0.8 paused asset transfer block",
+    },
+    400,
+    "ASSET_PAUSED",
+    "paused asset transfer block",
+  );
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/airdrop`,
+    auth.adminAccessToken,
+    {
+      username: auth.user.username,
+      assetSymbol: "SWL",
+      amount: "1",
+      note: "Smoke v0.8 paused asset airdrop block",
+    },
+    400,
+    "ASSET_PAUSED",
+    "paused asset airdrop block",
+  );
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/orders`,
+    auth.userAccessToken,
+    { marketSymbol, side: "BUY", price: "1", amount: "1" },
+    400,
+    "ASSET_PAUSED",
+    "paused asset order block",
+  );
+  await setAssetStatus(auth.adminAccessToken, "SWL", "ACTIVE", "Smoke v0.8 resume SWL");
+
+  await expectAdminControlRejectedForNonAdmin(
+    auth.userAccessToken,
+    auth.adminAccessToken,
+    auth.receiver.username,
+  );
+
+  const cancellableOrder = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "0.01", "1");
+  await setMarketStatus(auth.adminAccessToken, marketSymbol, "PAUSED", "Smoke v0.8 pause market");
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/orders`,
+    auth.userAccessToken,
+    { marketSymbol, side: "BUY", price: "0.01", amount: "1" },
+    400,
+    "MARKET_PAUSED",
+    "paused market order block",
+  );
+  await getJson(`${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`, auth.userAccessToken, "paused market order book");
+  await cancelOrder(auth.userAccessToken, cancellableOrder.id);
+  await setMarketStatus(auth.adminAccessToken, marketSymbol, "ACTIVE", "Smoke v0.8 resume market");
+
+  const auditLogs = await getJson<Array<{ action: string }>>(
+    `${apiBaseUrl}/admin/audit-logs`,
+    auth.adminAccessToken,
+    "load audit logs after v0.8 controls",
+  );
+  for (const action of ["UPDATE_USER_STATUS", "UPDATE_ASSET_STATUS", "UPDATE_MARKET_STATUS"]) {
+    if (!auditLogs.some((entry) => entry.action === action)) {
+      throw new Error(`Expected ${action} audit log.`);
+    }
+  }
+
+  console.log("PASS v0.8 admin user, asset, and market controls");
+}
+
 async function testWebBuild() {
   const previousWebNextEnv = await readFile(webNextEnvPath, "utf8");
   const previousWebTsconfig = await readFile(webTsconfigPath, "utf8");
@@ -582,7 +734,7 @@ async function testWebBuild() {
   await rm(smokeNextDistPath, { recursive: true, force: true });
 
   try {
-    await execFileAsync("pnpm", ["--filter", "@sw-exchange/web", "build"], {
+    await execPnpm(["--filter", "@sw-exchange/web", "build"], {
       cwd: process.cwd(),
       env: {
         ...process.env,
@@ -629,6 +781,118 @@ async function getJson<T>(url: string, accessToken: string, label: string) {
   return (await response.json()) as T;
 }
 
+async function expectGetJsonOk(url: string, accessToken: string, label: string) {
+  const response = await fetch(url, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  assertOk(response, label);
+  await response.json();
+}
+
+async function expectGetRejected(
+  url: string,
+  accessToken: string,
+  expectedStatus: number,
+  label: string,
+) {
+  const response = await fetch(url, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (response.status !== expectedStatus) {
+    throw new Error(`${label} should fail with status ${expectedStatus}, got ${response.status}.`);
+  }
+}
+
+async function expectPostJsonRejected(
+  url: string,
+  accessToken: string,
+  body: unknown,
+  expectedStatus: number,
+  expectedMessage: string,
+  label: string,
+) {
+  await expectJsonRejected("POST", url, accessToken, body, expectedStatus, expectedMessage, label);
+}
+
+async function expectPatchJsonRejected(
+  url: string,
+  accessToken: string,
+  body: unknown,
+  expectedStatus: number,
+  expectedMessage: string,
+  label: string,
+) {
+  await expectJsonRejected("PATCH", url, accessToken, body, expectedStatus, expectedMessage, label);
+}
+
+async function expectJsonRejected(
+  method: "POST" | "PATCH",
+  url: string,
+  accessToken: string,
+  body: unknown,
+  expectedStatus: number,
+  expectedMessage: string,
+  label: string,
+) {
+  const response = await fetch(url, {
+    method,
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status !== expectedStatus) {
+    throw new Error(`${label} should fail with status ${expectedStatus}, got ${response.status}.`);
+  }
+
+  const { message, hasStack } = await readErrorPayload(response);
+  if (message !== expectedMessage) {
+    throw new Error(`${label} should return ${expectedMessage}, got ${message ?? "no message"}.`);
+  }
+  if (hasStack) {
+    throw new Error(`${label} should not expose stack traces.`);
+  }
+}
+
+async function expectLoginRejected(identifier: string, password: string, label: string) {
+  const response = await fetch(`${apiBaseUrl}/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ identifier, password }),
+  });
+
+  if (response.status !== 401) {
+    throw new Error(`${label} should fail with status 401, got ${response.status}.`);
+  }
+}
+
+async function readErrorPayload(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return { message: null, hasStack: false };
+  }
+
+  try {
+    const payload = JSON.parse(text) as { message?: unknown; stack?: unknown };
+    if (typeof payload.message === "string") {
+      return { message: payload.message, hasStack: "stack" in payload };
+    }
+
+    if (Array.isArray(payload.message)) {
+      return {
+        message: payload.message.filter((item) => typeof item === "string").join(" "),
+        hasStack: "stack" in payload,
+      };
+    }
+  } catch {
+    return { message: null, hasStack: false };
+  }
+
+  return { message: null, hasStack: false };
+}
+
 async function expectForbidden(url: string, accessToken: string, label: string) {
   const response = await fetch(url, {
     headers: { authorization: `Bearer ${accessToken}` },
@@ -636,6 +900,118 @@ async function expectForbidden(url: string, accessToken: string, label: string) 
   if (response.status !== 403) {
     throw new Error(`${label} should be forbidden, got status ${response.status}`);
   }
+}
+
+async function expectAdminControlRejectedForNonAdmin(
+  userAccessToken: string,
+  adminAccessToken: string,
+  targetUsername: string,
+) {
+  await expectForbidden(`${apiBaseUrl}/admin/users`, userAccessToken, "non-admin list users");
+
+  await expectPatchJsonRejected(
+    `${apiBaseUrl}/admin/assets/SWL/status`,
+    userAccessToken,
+    { status: "PAUSED", note: "Smoke non-admin asset control rejection" },
+    403,
+    "Forbidden resource",
+    "non-admin asset status update",
+  );
+
+  await expectPatchJsonRejected(
+    `${apiBaseUrl}/admin/markets/${encodeURIComponent("SWL/SWC")}/status`,
+    userAccessToken,
+    { status: "PAUSED", note: "Smoke non-admin market control rejection" },
+    403,
+    "Forbidden resource",
+    "non-admin market status update",
+  );
+
+  const adminUsersList = await getJson<Array<{ id: string; username: string; status: string }>>(
+    `${apiBaseUrl}/admin/users`,
+    adminAccessToken,
+    `load admin users for ${targetUsername}`,
+  );
+  const targetUser = adminUsersList.find((user) => user.username === targetUsername);
+  if (!targetUser) {
+    throw new Error(`Expected admin users to include ${targetUsername}.`);
+  }
+
+  await expectPatchJsonRejected(
+    `${apiBaseUrl}/admin/users/${targetUser.id}/status`,
+    userAccessToken,
+    { status: "FROZEN", note: "Smoke non-admin user control rejection" },
+    403,
+    "Forbidden resource",
+    "non-admin user status update",
+  );
+}
+
+async function resetV08OperationalControls(adminAccessToken: string) {
+  await setAssetStatus(adminAccessToken, "SWC", "ACTIVE", "Smoke v0.8 reset SWC active");
+  await setAssetStatus(adminAccessToken, "SWL", "ACTIVE", "Smoke v0.8 reset SWL active");
+  await setMarketStatus(adminAccessToken, "SWL/SWC", "ACTIVE", "Smoke v0.8 reset market active");
+}
+
+async function setUserStatus(
+  adminAccessToken: string,
+  username: string,
+  status: "ACTIVE" | "FROZEN" | "BANNED",
+  note: string,
+) {
+  const adminUsersList = await getJson<Array<{ id: string; username: string; status: string }>>(
+    `${apiBaseUrl}/admin/users`,
+    adminAccessToken,
+    `load admin users for ${username}`,
+  );
+  const targetUser = adminUsersList.find((user) => user.username === username);
+  if (!targetUser) {
+    throw new Error(`Expected admin users to include ${username}.`);
+  }
+
+  const response = await fetch(`${apiBaseUrl}/admin/users/${targetUser.id}/status`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${adminAccessToken}`,
+    },
+    body: JSON.stringify({ status, note }),
+  });
+  assertOk(response, `update ${username} status to ${status}`);
+}
+
+async function setAssetStatus(
+  adminAccessToken: string,
+  symbol: "SWC" | "SWL",
+  status: "ACTIVE" | "PAUSED",
+  note: string,
+) {
+  const response = await fetch(`${apiBaseUrl}/admin/assets/${symbol}/status`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${adminAccessToken}`,
+    },
+    body: JSON.stringify({ status, note }),
+  });
+  assertOk(response, `update ${symbol} status to ${status}`);
+}
+
+async function setMarketStatus(
+  adminAccessToken: string,
+  marketSymbol: "SWL/SWC",
+  status: "ACTIVE" | "PAUSED",
+  note: string,
+) {
+  const response = await fetch(`${apiBaseUrl}/admin/markets/${encodeURIComponent(marketSymbol)}/status`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${adminAccessToken}`,
+    },
+    body: JSON.stringify({ status, note }),
+  });
+  assertOk(response, `update ${marketSymbol} status to ${status}`);
 }
 
 function expectValues(actual: string[], expected: string[], label: string) {

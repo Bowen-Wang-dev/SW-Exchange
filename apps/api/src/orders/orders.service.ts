@@ -37,9 +37,11 @@ type MarketDetails = {
   amountDecimals: number;
   baseAssetId: string;
   baseAssetSymbol: string;
+  baseAssetIsActive: boolean;
   baseAssetDecimals: number;
   quoteAssetId: string;
   quoteAssetSymbol: string;
+  quoteAssetIsActive: boolean;
   quoteAssetDecimals: number;
 };
 
@@ -126,7 +128,7 @@ export class OrdersService {
       }
 
       if (user.status !== "ACTIVE") {
-        throw new ForbiddenException("Only ACTIVE users can place orders.");
+        throw new ForbiddenException("USER_NOT_ACTIVE");
       }
 
       const market = await this.findMarketDetails(tx, marketSymbol);
@@ -135,7 +137,11 @@ export class OrdersService {
       }
 
       if (market.status !== "ACTIVE") {
-        throw new BadRequestException(`Market ${marketSymbol} is not active.`);
+        throw new BadRequestException("MARKET_PAUSED");
+      }
+
+      if (!market.baseAssetIsActive || !market.quoteAssetIsActive) {
+        throw new BadRequestException("ASSET_PAUSED");
       }
 
       const price = this.parsePrice(dto.price, market.priceDecimals);
@@ -256,6 +262,23 @@ export class OrdersService {
 
   async cancelOrder(userId: string, orderId: string) {
     return this.db.transaction(async (tx) => {
+      const [user] = await tx
+        .select({
+          id: users.id,
+          status: users.status,
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        throw new NotFoundException("User was not found.");
+      }
+
+      if (user.status !== "ACTIVE") {
+        throw new ForbiddenException("USER_NOT_ACTIVE");
+      }
+
       const [order] = await this.selectOrderRows(tx)
         .where(eq(orders.id, orderId))
         .for("update")
@@ -392,6 +415,14 @@ export class OrdersService {
   }
 
   private async matchIncomingOrder(tx: Transaction, incomingOrder: OrderRow, market: MarketDetails) {
+    if (
+      market.status !== "ACTIVE" ||
+      !market.baseAssetIsActive ||
+      !market.quoteAssetIsActive
+    ) {
+      return incomingOrder;
+    }
+
     const oppositeSide = incomingOrder.side === "BUY" ? "SELL" : "BUY";
     const priceCondition =
       incomingOrder.side === "BUY"
@@ -413,10 +444,12 @@ export class OrdersService {
         updatedAt: orders.updatedAt,
       })
       .from(orders)
+      .innerJoin(users, eq(orders.userId, users.id))
       .where(
         and(
           eq(orders.marketId, market.id),
           eq(orders.side, oppositeSide),
+          eq(users.status, "ACTIVE"),
           inArray(orders.status, OPEN_ORDER_STATUSES),
           sql`${orders.remainingAmount} > 0`,
           priceCondition,
@@ -983,9 +1016,11 @@ export class OrdersService {
         amountDecimals: markets.amountDecimals,
         baseAssetId: markets.baseAssetId,
         baseAssetSymbol: baseAssets.symbol,
+        baseAssetIsActive: baseAssets.isActive,
         baseAssetDecimals: baseAssets.decimals,
         quoteAssetId: markets.quoteAssetId,
         quoteAssetSymbol: quoteAssets.symbol,
+        quoteAssetIsActive: quoteAssets.isActive,
         quoteAssetDecimals: quoteAssets.decimals,
       })
       .from(markets)
@@ -1001,7 +1036,7 @@ export class OrdersService {
     const symbol = input.trim().toUpperCase();
 
     if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported in v0.7.");
+      throw new BadRequestException("Only SWL/SWC is supported.");
     }
 
     return symbol;

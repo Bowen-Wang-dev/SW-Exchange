@@ -10,6 +10,7 @@ import { apiRequest, ApiError } from "@/lib/api-client";
 import type {
   OrderBook,
   OrderBookLevel,
+  MarketRow,
   OrderEntry,
   OrderSide,
   OrderStatus,
@@ -28,6 +29,7 @@ export default function TradePage() {
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
+  const [marketStatus, setMarketStatus] = useState<MarketRow["status"]>("ACTIVE");
   const [orderBook, setOrderBook] = useState<OrderBook | null>(null);
   const [myOrders, setMyOrders] = useState<OrderEntry[]>([]);
   const [recentTrades, setRecentTrades] = useState<TradeEntry[]>([]);
@@ -56,14 +58,18 @@ export default function TradePage() {
         setIsLoading(true);
       }
 
-      const [bookResponse, ordersResponse, walletResponse, tradesResponse] = await Promise.all([
-        apiRequest<OrderBook>(`/order-book?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
-        apiRequest<OrderEntry[]>(`/orders/me?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
-        apiRequest<WalletBalance[]>("/wallets/me"),
-        apiRequest<TradeEntry[]>(`/trades/recent?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
-      ]);
+      const [bookResponse, ordersResponse, walletResponse, tradesResponse, marketsResponse] =
+        await Promise.all([
+          apiRequest<OrderBook>(`/order-book?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
+          apiRequest<OrderEntry[]>(`/orders/me?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
+          apiRequest<WalletBalance[]>("/wallets/me"),
+          apiRequest<TradeEntry[]>(`/trades/recent?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
+          apiRequest<MarketRow[]>("/markets"),
+        ]);
+      const currentMarket = marketsResponse.find((market) => market.symbol === MARKET_SYMBOL);
 
       setOrderBook(bookResponse);
+      setMarketStatus(currentMarket?.status ?? "ACTIVE");
       setMyOrders(
         ordersResponse.filter(
           (order) => isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n,
@@ -140,11 +146,14 @@ export default function TradePage() {
             eyebrow="Trade"
             title="SWL/SWC spot terminal"
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.7 Live" tone="success" />}
+            action={<StatusBadge label="v0.8 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
           {success ? <Notice tone="success" message={success} /> : null}
+          {marketStatus === "PAUSED" ? (
+            <Notice tone="info" message="Market paused by admin." />
+          ) : null}
           {isLoading ? <Notice tone="info" message="Loading trade data..." /> : null}
 
           <div className="grid gap-4 xl:grid-cols-[0.9fr_1fr_0.85fr]">
@@ -229,14 +238,20 @@ export default function TradePage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || marketStatus === "PAUSED"}
                   className={`rounded-2xl px-4 py-3 text-sm font-semibold text-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     side === "BUY"
                       ? "bg-[var(--success)] hover:bg-emerald-300"
                       : "bg-[var(--danger)] text-white hover:bg-rose-400"
                   }`}
                 >
-                  {isSubmitting ? "Submitting..." : side === "BUY" ? "Buy SWL" : "Sell SWL"}
+                  {isSubmitting
+                    ? "Submitting..."
+                    : marketStatus === "PAUSED"
+                      ? "Market paused"
+                      : side === "BUY"
+                        ? "Buy SWL"
+                        : "Sell SWL"}
                 </button>
               </form>
             </section>

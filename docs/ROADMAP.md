@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
+Current completed milestone: `v0.8 Admin Controls + User Status Management`
 
-Next milestone: `v0.8 Ledger / Audit / Reports polish`
+Next milestone: `v0.9 Ledger / Audit / Reports polish`
 
 ### v0.1 Foundation - Completed
 
@@ -103,7 +103,20 @@ Next milestone: `v0.8 Ledger / Audit / Reports polish`
 - Airdrops remain unlimited in v0.x and do not debit the `AIRDROP` bucket
 - `HOT` is a future v1.x chain wallet placeholder; no blockchain, deposit, or withdraw logic is implemented
 
-### v0.8 Ledger / Audit / Reports polish
+### v0.8 Admin Controls + User Status Management - Completed
+
+- Admin can set user status to `ACTIVE`, `FROZEN`, or `BANNED`
+- `FROZEN` users can login and view balances/history, but cannot transfer, place orders, cancel orders, or trade through matching
+- `BANNED` users cannot login, and existing banned sessions are rejected by authenticated API requests
+- Transfer recipients and admin airdrop targets must be `ACTIVE`
+- Admin can pause/resume `SWC` and `SWL`; paused assets block transfers, airdrops, and new orders involving that asset
+- Admin can pause/resume the `SWL/SWC` market
+- Paused markets block new orders and matching while order book/history remain viewable
+- Active users can still cancel open orders while a market is paused so funds can unlock
+- Admin audit logs include `UPDATE_USER_STATUS`, `UPDATE_ASSET_STATUS`, and `UPDATE_MARKET_STATUS`
+- No deposit, withdraw, blockchain, chain address, market order, K-line, futures, contract, or leverage behavior is implemented
+
+### v0.9 Ledger / Audit / Reports polish
 
 - Ledger, audit, and reporting polish if needed
 - Reporting views or operational summaries if needed

@@ -1,6 +1,16 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
+Current completed milestone: `v0.8 Admin Controls + User Status Management`
+
+## Account Status
+
+User statuses are:
+
+- `ACTIVE`: normal account behavior
+- `FROZEN`: can login and view dashboard, wallets, ledger, orders, and trades, but cannot transfer, place orders, cancel orders, or trade through matching
+- `BANNED`: cannot login; existing banned sessions are rejected by authenticated API requests
+
+Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the safer/simple v0.8 rule.
 
 ## Wallet Buckets
 
@@ -36,6 +46,20 @@ To move system funds to a user:
 
 1. Admin bucket transfer: `FEE`, `TREASURY`, `AIRDROP`, or `HOT` to admin `MAIN`
 2. Normal transfer: admin `MAIN` to user `MAIN`
+
+## Asset And Market Status
+
+Assets are either active or paused.
+
+- Paused assets remain visible in wallets and balance views
+- Paused assets cannot be transferred or airdropped
+- Paused assets cannot be used for new orders
+
+The `SWL/SWC` market is either `ACTIVE` or `PAUSED`.
+
+- Paused markets block new orders and matching
+- Order book and trade history remain viewable
+- Active users may still cancel existing open orders while the market is paused so locked funds can unlock
 
 ## Future v1.x Blockchain Plan
 

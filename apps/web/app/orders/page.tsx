@@ -60,7 +60,7 @@ export default function OrdersPage() {
             eyebrow="Orders"
             title="Order history"
             description="Review SWL/SWC limit orders, filled amounts, remaining amounts, and cancel open or partially filled orders."
-            action={<StatusBadge label="v0.7 Live" tone="success" />}
+            action={<StatusBadge label="v0.8 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

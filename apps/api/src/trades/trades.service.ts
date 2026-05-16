@@ -179,7 +179,7 @@ export class TradesService {
     const symbol = input.trim().toUpperCase();
 
     if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported in v0.7.");
+      throw new BadRequestException("Only SWL/SWC is supported.");
     }
 
     return symbol;

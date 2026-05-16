@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
+Current completed milestone: `v0.8 Admin Controls + User Status Management`
 
-Next milestone: `v0.8 Ledger / Audit / Reports polish`
+Next milestone: `v0.9 Ledger / Audit / Reports polish`
 
 This version is intentionally limited:
 
@@ -41,6 +41,10 @@ Current scope:
 - Admin MAIN/FEE/TREASURY/AIRDROP/HOT wallet bucket model
 - Trade records with persisted fee amounts and fee rates
 - FEE ledger entries for fees charged and fee income
+- Admin user freeze/ban controls
+- Admin asset pause/resume controls
+- Admin SWL/SWC market pause/resume controls
+- Admin audit logs for user, asset, and market status changes
 
 ## Milestone status
 
@@ -52,16 +56,32 @@ Current scope:
 - `v0.6 Matching Engine + Trades + WebSocket Sync` completed
 - `v0.7 Admin Fee System + Fee Settlement` completed
 - `v0.7.1 Admin Wallet Buckets / Wallet Model Polish` completed
+- `v0.8 Admin Controls + User Status Management` completed
 
-- Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
-- Next milestone: `v0.8 Ledger / Audit / Reports polish`
+- Current completed milestone: `v0.8 Admin Controls + User Status Management`
+- Next milestone: `v0.9 Ledger / Audit / Reports polish`
 
 ## Planned milestones
 
-- `v0.8 Ledger / Audit / Reports polish`
+- `v0.9 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), and [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md) for milestone planning, released history, and the current wallet bucket model.
+
+## v0.8 Admin Controls + User Status Management
+
+v0.8 adds operational controls for accounts, assets, and the single `SWL/SWC` market.
+
+- User statuses are `ACTIVE`, `FROZEN`, and `BANNED`
+- `FROZEN` users can login and view dashboard, wallet, ledger, orders, and trades
+- `FROZEN` users cannot transfer, place orders, cancel orders, or trade through matching
+- `BANNED` users cannot login and existing banned sessions are rejected by authenticated API requests
+- Transfer recipients and admin airdrop targets must be `ACTIVE`
+- Assets can be paused; paused assets cannot be transferred, airdropped, or used for new orders
+- The `SWL/SWC` market can be paused; paused markets block new orders and matching
+- Active users may still cancel existing open orders while the market is paused so they can unlock funds
+- Status changes write `UPDATE_USER_STATUS`, `UPDATE_ASSET_STATUS`, and `UPDATE_MARKET_STATUS` admin audit logs
+- No deposit, withdraw, blockchain, chain address, market order, futures, leverage, or K-line behavior is implemented
 
 ## v0.7.1 Admin Wallet Buckets / Wallet Model Polish
 

@@ -1,13 +1,13 @@
-export const CURRENT_MILESTONE_VERSION = "v0.7.1";
-export const CURRENT_MILESTONE_TITLE = "Admin Wallet Buckets / Wallet Model Polish";
-export const NEXT_MILESTONE_VERSION = "v0.8";
+export const CURRENT_MILESTONE_VERSION = "v0.8";
+export const CURRENT_MILESTONE_TITLE = "Admin Controls + User Status Management";
+export const NEXT_MILESTONE_VERSION = "v0.9";
 export const NEXT_MILESTONE_TITLE = "Ledger/Audit/Reports Polish";
 
 export const REAL_TIME_SYNC_COPY =
-  "Matching, trades, configurable fee settlement, and admin wallet buckets are live in v0.7.1.";
+  "Matching, trades, configurable fee settlement, admin wallet buckets, and v0.8 operational controls are live.";
 
 export const TRADE_PAGE_COPY =
-  "v0.7 matching is live. Eligible limit orders execute using price-time priority at maker prices, with admin-configured fees applied at execution.";
+  "SWL/SWC matching is live. Eligible limit orders execute using price-time priority at maker prices when the market and assets are active.";
 
 export const TRADE_HISTORY_COPY =
   "Review your settled SWL/SWC fills. Historical trades keep the fee amounts charged at execution time.";

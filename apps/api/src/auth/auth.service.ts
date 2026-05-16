@@ -53,7 +53,7 @@ export class AuthService {
     }
 
     if (user.status === "BANNED") {
-      throw new UnauthorizedException("This account is banned.");
+      throw new UnauthorizedException("USER_BANNED");
     }
 
     const token = await this.signToken(user);

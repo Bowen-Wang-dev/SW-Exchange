@@ -141,6 +141,7 @@ export default function AdminAirdropPage() {
               <div className="data-divider mt-4 rounded-2xl border border-[var(--border)]">
                 {[
                   "Only active SWC and SWL assets are allowed.",
+                  "Target users must be ACTIVE; FROZEN and BANNED accounts cannot receive airdrops.",
                   "Amounts must be positive plain decimal strings, never scientific notation.",
                   "Airdrops write wallet, ledger, and audit records in one transaction.",
                   "Only a single full-permission admin exists in v0.x.",

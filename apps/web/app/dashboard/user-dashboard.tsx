@@ -48,8 +48,13 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.7.1 console shows live balances, internal transfers, limit orders, matching, trades, fee settlement, and the order book. ${REAL_TIME_SYNC_COPY}`}
-        action={<StatusBadge label={user?.status ?? "ACTIVE"} tone="success" />}
+        description={`Your v0.8 console shows live balances, internal transfers, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
+        action={
+          <StatusBadge
+            label={user?.status ?? "ACTIVE"}
+            tone={user?.status === "ACTIVE" ? "success" : "warning"}
+          />
+        }
       />
 
       <div className="grid gap-4 lg:grid-cols-4">

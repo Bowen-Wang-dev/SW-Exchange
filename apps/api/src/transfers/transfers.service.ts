@@ -76,7 +76,7 @@ export class TransfersService {
       }
 
       if (sender.status !== "ACTIVE") {
-        throw new ForbiddenException("Sender must be ACTIVE to transfer.");
+        throw new ForbiddenException("USER_NOT_ACTIVE");
       }
 
       if (sender.isSystem) {
@@ -106,7 +106,7 @@ export class TransfersService {
       }
 
       if (recipient.status !== "ACTIVE") {
-        throw new ForbiddenException("Recipient must be ACTIVE to receive transfers.");
+        throw new ForbiddenException("TARGET_USER_NOT_ACTIVE");
       }
 
       if (recipient.isSystem) {
@@ -116,11 +116,15 @@ export class TransfersService {
       const [asset] = await tx
         .select()
         .from(assets)
-        .where(and(eq(assets.symbol, assetSymbol), eq(assets.isActive, true)))
+        .where(eq(assets.symbol, assetSymbol))
         .limit(1);
 
       if (!asset) {
-        throw new NotFoundException(`Active asset ${assetSymbol} was not found.`);
+        throw new NotFoundException(`Asset ${assetSymbol} was not found.`);
+      }
+
+      if (!asset.isActive) {
+        throw new BadRequestException("ASSET_PAUSED");
       }
 
       const amount = this.parseTransferAmount(dto.amount, asset.decimals);

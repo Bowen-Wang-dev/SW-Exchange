@@ -1,13 +1,48 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
+Current completed milestone: `v0.8 Admin Controls + User Status Management`
 
-Next milestone: `v0.8 Ledger / Audit / Reports polish`
+Next milestone: `v0.9 Ledger / Audit / Reports polish`
 
 ## Upcoming plan
 
-- `v0.8 Ledger / Audit / Reports polish`
+- `v0.9 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
+
+## v0.8 Admin Controls + User Status Management
+
+This milestone adds operational controls for users, assets, and the single `SWL/SWC` market.
+
+### Highlights
+
+- Admin user status endpoint at `PATCH /api/admin/users/:id/status`
+- Admin asset status endpoint at `PATCH /api/admin/assets/:symbol/status`
+- Admin market status endpoint at `PATCH /api/admin/markets/:symbol/status`
+- `/admin/users` shows status badges and freeze, unfreeze, ban, and unban actions
+- `/admin/assets` shows asset pause/resume controls and a `SWL/SWC` market pause/resume control
+- `/admin/audit-logs` displays `UPDATE_USER_STATUS`, `UPDATE_ASSET_STATUS`, and `UPDATE_MARKET_STATUS`
+- Frozen users can login and view dashboard, wallet, ledger, orders, and trades
+- Frozen users cannot transfer, place orders, cancel orders, or trade through matching
+- Banned users cannot login, and existing banned sessions are rejected by authenticated API requests
+- Paused assets block transfers, airdrops, and new orders involving that asset
+- Paused markets block new orders and matching while keeping order book/history viewable
+- Active users can still cancel existing orders while a market is paused so locked funds can unlock
+
+### Developer and operational notes
+
+- No schema migration was required because `users.status`, `assets.is_active`, and `markets.status` already existed.
+- Transfer recipients and admin airdrop targets must be `ACTIVE`; v0.8 keeps the safer rule that frozen accounts cannot receive user transfers or admin airdrops.
+- Matching skips resting orders owned by non-active users.
+- Status changes write admin audit logs with before and after state plus the optional admin note.
+
+### Constraints kept in place
+
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
+- No market orders
+- No futures, contracts, or leverage
+- No K-line chart
 
 ## v0.7.1 Admin Wallet Buckets / Wallet Model Polish
 
