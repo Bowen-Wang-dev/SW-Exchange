@@ -35,10 +35,11 @@ export class UsersService {
   }
 
   async findByIdentifier(identifier: string) {
+    const normalizedIdentifier = identifier.trim();
     const [user] = await this.db
       .select()
       .from(users)
-      .where(or(eq(users.email, identifier), eq(users.username, identifier)))
+      .where(or(eq(users.email, normalizedIdentifier), eq(users.username, normalizedIdentifier)))
       .limit(1);
 
     return (user as User | undefined) ?? null;

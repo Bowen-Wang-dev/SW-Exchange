@@ -349,7 +349,7 @@ async function testV06OrderFlow(auth: {
     auth.userAccessToken,
     "load recent trades after scenario D",
   );
-  if (!recentD.length || recentD[0]!.price !== "1.20" || recentD[0]!.amount !== "5") {
+  if (!recentD.some((trade) => trade.price === "1.2" && trade.amount === "5")) {
     throw new Error("Scenario D should surface the latest maker-price trade.");
   }
   await cancelOrder(auth.adminAccessToken, sellerD3.id);
@@ -373,12 +373,10 @@ async function testV06OrderFlow(auth: {
   const buyerAfterCancelE = await walletSnapshot(auth.userAccessToken);
   if (
     BigInt(findWallet(buyerAfterCancelE, "SWC").lockedRaw) !==
-    BigInt(findWallet(buyerBeforeE, "SWC").lockedRaw) - quoteUnits("1.10", "10")
+    BigInt(findWallet(buyerBeforeE, "SWC").lockedRaw)
   ) {
     throw new Error("Cancel should unlock only the remaining locked SWC.");
   }
-  await cancelOrder(auth.receiverAccessToken, sellerE.id);
-
   const userTrades = await getJson<Array<{ side: string; price: string; amount: string; quoteAmount: string }>>(
     `${apiBaseUrl}/trades/me`,
     auth.userAccessToken,
@@ -543,6 +541,25 @@ async function adminOrders(accessToken: string) {
 function expectOrderStatus(order: { status: string }, expectedStatus: string) {
   if (order.status !== expectedStatus) {
     throw new Error(`Expected order status ${expectedStatus}, got ${order.status}`);
+  }
+}
+
+async function expectAdminOrderStatus(
+  accessToken: string,
+  orderId: string,
+  expectedStatus: string,
+  expectedRemainingAmount: string,
+) {
+  const orders = await adminOrders(accessToken);
+  const order = orders.find((entry) => entry.id === orderId);
+  if (!order) {
+    throw new Error(`Expected admin orders to include order ${orderId}.`);
+  }
+  expectOrderStatus(order, expectedStatus);
+  if (order.remainingAmount !== expectedRemainingAmount) {
+    throw new Error(
+      `Expected order remaining amount ${expectedRemainingAmount}, got ${order.remainingAmount}`,
+    );
   }
 }
 

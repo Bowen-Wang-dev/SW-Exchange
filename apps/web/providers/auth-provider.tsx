@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function login(identifier: string, password: string) {
     const response = await apiRequest<AuthResponse>("/auth/login", {
       method: "POST",
-      body: { identifier, password },
+      body: { identifier: identifier.trim(), password },
     });
 
     const normalized = normalizeAuthUser(response.user);
