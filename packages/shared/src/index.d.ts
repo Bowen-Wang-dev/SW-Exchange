@@ -18,5 +18,3 @@ export declare const DEFAULT_MARKETS: readonly [{
     readonly baseAssetSymbol: "SWL";
     readonly quoteAssetSymbol: "SWC";
 }];
-export declare const TRADING_FEE_BPS = 10;
-export declare const TRADING_FEE_RATE = "0.001";

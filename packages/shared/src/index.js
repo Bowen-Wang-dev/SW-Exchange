@@ -21,5 +21,3 @@ export const DEFAULT_MARKETS = [
         quoteAssetSymbol: "SWC",
     },
 ];
-export const TRADING_FEE_BPS = 10;
-export const TRADING_FEE_RATE = "0.001";

@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.5 Limit Order + Order Book`
+Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
 
-Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+Next milestone: `v0.7 Admin Fee System + Fee Settlement`
 
 ### v0.1 Foundation - Completed
 
@@ -56,9 +56,9 @@ Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
 - `ORDER_LOCK` and `ORDER_UNLOCK` ledger entries
 - No matching engine, trades, fees, market orders, or K-line chart
 
-## Planned milestones
+## Milestone details and upcoming work
 
-### v0.6 Matching Engine + Trades + WebSocket Sync
+### v0.6 Matching Engine + Trades + WebSocket Sync - Completed
 
 - Matching engine for `SWL/SWC`
 - Trade creation and user/admin trade history
@@ -70,7 +70,8 @@ Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
 - Order state transitions
 - Balance mutation during trade settlement
 - Transaction rollback safety around matching and settlement
-- WebSocket or equivalent real-time sync for order book, trades, and orders if feasible
+- Lightweight polling sync for order book, trades, orders, and displayed balances
+- Self-trade prevention for crossed orders from the same user
 - No fee system in this milestone; fees move to v0.7
 
 ### v0.7 Admin Fee System + Fee Settlement

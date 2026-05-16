@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.5 Limit Order + Order Book`
+Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
 
-Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+Next milestone: `v0.7 Admin Fee System + Fee Settlement`
 
 This version is intentionally limited:
 
@@ -14,7 +14,7 @@ This version is intentionally limited:
 - No KYC
 - No market orders
 - No candlestick / K-line chart
-- No automatic matching or trade execution yet
+- No trading fees yet
 
 Current scope:
 
@@ -29,9 +29,13 @@ Current scope:
 - User and admin transfer history
 - Admin ledger and audit log viewer
 - SWL/SWC limit order placement and cancellation
+- SWL/SWC automatic matching with price-time priority
+- SWL/SWC trade recording and trade history
 - SWL/SWC order book grouped by price
 - User and admin order history
+- User and admin trade history
 - ORDER_LOCK and ORDER_UNLOCK ledger entries
+- TRADE_BUY and TRADE_SELL ledger entries
 
 ## Milestone status
 
@@ -40,18 +44,41 @@ Current scope:
 - `v0.3 Admin Airdrop + Wallet Viewer` completed
 - `v0.4 Internal Transfer` completed
 - `v0.5 Limit Order + Order Book` completed
+- `v0.6 Matching Engine + Trades + WebSocket Sync` completed
 
-- Current completed milestone: `v0.5 Limit Order + Order Book`
-- Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+- Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+- Next milestone: `v0.7 Admin Fee System + Fee Settlement`
 
 ## Planned milestones
 
-- `v0.6 Matching Engine + Trades + WebSocket Sync`
 - `v0.7 Admin Fee System + Fee Settlement`
 - `v0.8 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
+
+## v0.6 Matching Engine + Trades + WebSocket Sync
+
+### API
+
+- `POST /api/orders` now attempts matching immediately after order creation
+- `GET /api/trades/recent?marketSymbol=SWL/SWC`
+- `GET /api/trades/me`
+- `GET /api/admin/trades`
+
+Only the `SWL/SWC` market is enabled. Matching uses price priority first and time priority second. Incoming BUY orders match resting SELL orders priced at or below the buy limit, consuming the lowest sell prices first. Incoming SELL orders match resting BUY orders priced at or above the sell limit, consuming the highest buy prices first. Trades execute at the resting maker order price.
+
+Order creation, matching, wallet settlement, order state updates, trade creation, and ledger entries run in one database transaction. Partial fills keep the remaining amount open; filled and cancelled orders are excluded from the order book. Crossed orders from different users execute automatically. Crossed orders from the same user are skipped to prevent self-trading.
+
+v0.6 does not charge trading fees. Buyer and seller trade fee columns remain zero, no fee ledger entries are created, and fee settlement is planned for v0.7.
+
+### Web
+
+- `/trade` shows the order book, recent trades, open orders, wallet balances, and limit order entry
+- `/trade` refreshes data after order placement/cancellation and uses lightweight 5-second polling while open
+- `/trades` shows the current user's settled fills
+- `/admin/trades` shows all settled fills for admin review
+- Trade and ledger copy explicitly states that fees arrive in v0.7
 
 ## Stack
 

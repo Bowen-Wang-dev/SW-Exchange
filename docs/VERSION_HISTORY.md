@@ -1,15 +1,49 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.5 Limit Order + Order Book`
+Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
 
-Next milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+Next milestone: `v0.7 Admin Fee System + Fee Settlement`
 
 ## Upcoming plan
 
-- `v0.6 Matching Engine + Trades + WebSocket Sync`
 - `v0.7 Admin Fee System + Fee Settlement`
 - `v0.8 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
+
+## v0.6 Matching Engine + Trades + WebSocket Sync
+
+This milestone enables automatic SWL/SWC limit order matching, trade records, trade history, and lightweight polling sync.
+
+### Highlights
+
+- Limit orders now match automatically when an eligible opposite-side order exists
+- Matching uses price priority, then time priority
+- Trades execute at the resting maker order price
+- Partial fills and multi-order matching are supported
+- Better-price refunds are applied for incoming BUY orders whose limit price is above the maker price
+- Crossed orders from different users execute; crossed orders from the same user are skipped to prevent self-trading
+- Filled and cancelled orders are excluded from the order book
+- User trade history endpoint at `GET /api/trades/me`
+- Recent trade endpoint at `GET /api/trades/recent?marketSymbol=SWL/SWC`
+- Admin trade list endpoint at `GET /api/admin/trades`
+- `/trade` refreshes order book, recent trades, open orders, and displayed balances after order placement/cancellation, with 5-second polling as the v0.6 sync fallback
+
+### Developer and operational notes
+
+- Order creation, matching, wallet settlement, order state updates, trade creation, and ledger entries run in one database transaction.
+- Buyer and seller settlement uses bigint minimal-unit arithmetic; no JavaScript floating-point math is used for balances, prices, totals, or quote amounts.
+- v0.6 writes `TRADE_BUY`, `TRADE_SELL`, `ORDER_LOCK`, and `ORDER_UNLOCK` ledger entries for trading flows.
+
+### Constraints kept in place
+
+This release remains within the v0.6 boundary:
+
+- No trading fees are charged
+- No fee ledger entries are created
+- No admin fee settings
+- No market orders
+- No blockchain deposit or withdraw
+- No K-line chart
 
 ## v0.5 Limit Order + Order Book
 

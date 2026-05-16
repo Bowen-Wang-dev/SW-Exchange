@@ -377,6 +377,25 @@ async function testV06OrderFlow(auth: {
   ) {
     throw new Error("Cancel should unlock only the remaining locked SWC.");
   }
+
+  await expectForbidden(`${apiBaseUrl}/admin/orders`, auth.userAccessToken, "normal user admin orders");
+  await expectForbidden(`${apiBaseUrl}/admin/trades`, auth.userAccessToken, "normal user admin trades");
+  await expectCreateOrderRejected(auth.userAccessToken, marketSymbol, "BUY", "1e-3", "1");
+
+  const tradesBeforeSelfCross = await adminTrades(auth.adminAccessToken);
+  const selfSell = await createOrder(auth.userAccessToken, marketSymbol, "SELL", "1.00", "1");
+  const selfBuy = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "1");
+  expectOrderStatus(selfSell, "OPEN");
+  expectOrderStatus(selfBuy, "OPEN");
+  await expectAdminOrderStatus(auth.adminAccessToken, selfSell.id, "OPEN", "1");
+  await expectAdminOrderStatus(auth.adminAccessToken, selfBuy.id, "OPEN", "1");
+  const tradesAfterSelfCross = await adminTrades(auth.adminAccessToken);
+  if (tradesAfterSelfCross.length !== tradesBeforeSelfCross.length) {
+    throw new Error("Crossed orders from the same user should not self-trade.");
+  }
+  await cancelOrder(auth.userAccessToken, selfBuy.id);
+  await cancelOrder(auth.userAccessToken, selfSell.id);
+
   const userTrades = await getJson<Array<{ side: string; price: string; amount: string; quoteAmount: string }>>(
     `${apiBaseUrl}/trades/me`,
     auth.userAccessToken,
@@ -390,6 +409,8 @@ async function testV06OrderFlow(auth: {
   if (!adminTradesList.length) {
     throw new Error("Admin trades endpoint should return settled trades.");
   }
+  await assertNoFeeLedgerEntries(auth.adminAccessToken);
+  await assertNoTradeFeesPersisted();
 
   const adminOrdersFinal = await adminOrders(auth.adminAccessToken);
   if (adminOrdersFinal.some((order) => order.status === "OPEN" || order.status === "PARTIAL_FILLED")) {
@@ -444,6 +465,15 @@ async function getJson<T>(url: string, accessToken: string, label: string) {
   });
   assertOk(response, label);
   return (await response.json()) as T;
+}
+
+async function expectForbidden(url: string, accessToken: string, label: string) {
+  const response = await fetch(url, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (response.status !== 403) {
+    throw new Error(`${label} should be forbidden, got status ${response.status}`);
+  }
 }
 
 function expectValues(actual: string[], expected: string[], label: string) {
@@ -522,6 +552,26 @@ async function createOrder(
   };
 }
 
+async function expectCreateOrderRejected(
+  accessToken: string,
+  marketSymbol: string,
+  side: "BUY" | "SELL",
+  price: string,
+  amount: string,
+) {
+  const response = await fetch(`${apiBaseUrl}/orders`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ marketSymbol, side, price, amount }),
+  });
+  if (response.status < 400) {
+    throw new Error(`Expected invalid ${side} order to be rejected.`);
+  }
+}
+
 async function adminTrades(accessToken: string) {
   return getJson<Array<{ id: string; price: string; amount: string; quoteAmount: string; seller: { username: string }; buyer: { username: string } }>>(
     `${apiBaseUrl}/admin/trades`,
@@ -536,6 +586,33 @@ async function adminOrders(accessToken: string) {
     accessToken,
     "load admin orders",
   );
+}
+
+async function assertNoFeeLedgerEntries(accessToken: string) {
+  const ledger = await getJson<Array<{ type: string }>>(
+    `${apiBaseUrl}/admin/ledger`,
+    accessToken,
+    "load admin ledger for fee audit",
+  );
+  if (ledger.some((entry) => entry.type === "FEE")) {
+    throw new Error("v0.6 smoke should not create FEE ledger entries.");
+  }
+}
+
+async function assertNoTradeFeesPersisted() {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+
+  try {
+    const result = await client.query<{ count: string }>(
+      "select count(*) from trades where buyer_fee <> 0 or seller_fee <> 0",
+    );
+    if (result.rows[0]?.count !== "0") {
+      throw new Error("v0.6 trades should persist zero buyer and seller fees.");
+    }
+  } finally {
+    await client.end();
+  }
 }
 
 function expectOrderStatus(order: { status: string }, expectedStatus: string) {
