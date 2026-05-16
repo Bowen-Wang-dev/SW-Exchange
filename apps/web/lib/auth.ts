@@ -7,6 +7,7 @@ export type AuthUser = {
   nickname?: string | null;
   role: UserRole;
   status: UserStatus;
+  isSystem?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -24,34 +25,52 @@ type SessionUserPayload = {
   nickname?: string | null;
   role: UserRole;
   status: UserStatus;
+  isSystem?: boolean;
   createdAt?: string;
   updatedAt?: string;
 };
 
 const ACCESS_TOKEN_KEY = "sw_exchange_access_token";
+let memoryAccessToken: string | null = null;
 
 export function getStoredAccessToken() {
   if (typeof window === "undefined") {
     return null;
   }
 
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  try {
+    return window.localStorage.getItem(ACCESS_TOKEN_KEY) ?? memoryAccessToken;
+  } catch {
+    return memoryAccessToken;
+  }
 }
 
 export function setStoredAccessToken(token: string) {
+  memoryAccessToken = token;
+
   if (typeof window === "undefined") {
     return;
   }
 
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  try {
+    window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  } catch {
+    // If storage is unavailable, keep the in-memory session for the current tab.
+  }
 }
 
 export function clearStoredAccessToken() {
+  memoryAccessToken = null;
+
   if (typeof window === "undefined") {
     return;
   }
 
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  try {
+    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  } catch {
+    // Storage may be blocked by the browser; failing to clear should not freeze auth state.
+  }
 }
 
 export function normalizeAuthUser(user: SessionUserPayload): AuthUser {
@@ -62,6 +81,7 @@ export function normalizeAuthUser(user: SessionUserPayload): AuthUser {
     nickname: user.nickname,
     role: user.role,
     status: user.status,
+    isSystem: user.isSystem,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

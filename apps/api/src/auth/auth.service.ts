@@ -43,6 +43,10 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials.");
     }
 
+    if (user.isSystem) {
+      throw new UnauthorizedException("System accounts cannot log in.");
+    }
+
     const isValidPassword = await compare(dto.password, user.passwordHash);
     if (!isValidPassword) {
       throw new UnauthorizedException("Invalid credentials.");
@@ -72,6 +76,7 @@ export class AuthService {
       nickname: user.nickname,
       role: user.role,
       status: user.status,
+      isSystem: user.isSystem,
     });
   }
 }

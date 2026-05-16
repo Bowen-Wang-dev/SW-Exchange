@@ -17,6 +17,8 @@ import {
 import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
 import { assets, ledgerEntries, markets, orders, users, wallets } from "../db/schema/index.js";
+import type { WalletType } from "../db/schema/index.js";
+import { FeesService, type ActiveFeeConfig } from "../fees/fees.service.js";
 import { TradesService } from "../trades/trades.service.js";
 import type { CreateOrderDto } from "./dto/create-order.dto.js";
 
@@ -47,6 +49,7 @@ type WalletRecord = {
   assetId: string;
   availableBalance: bigint;
   lockedBalance: bigint;
+  walletType: WalletType;
   assetSymbol: string;
   assetName: string;
   assetDecimals: number;
@@ -100,6 +103,7 @@ type RestingOrderRow = {
 export class OrdersService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: Database,
+    @Inject(FeesService) private readonly feesService: FeesService,
     @Inject(TradesService) private readonly tradesService: TradesService,
   ) {}
 
@@ -429,6 +433,7 @@ export class OrdersService {
     let currentLockedAmount = incomingOrder.lockedAmount;
     let currentFilledAmount = incomingOrder.filledAmount;
     let currentRemainingAmount = incomingOrder.remainingAmount;
+    let activeFeeConfig: ActiveFeeConfig | null = null;
 
     for (const resting of restingOrders) {
       if (currentRemainingAmount <= 0n) {
@@ -466,6 +471,16 @@ export class OrdersService {
         market.baseAssetDecimals,
         market.quoteAssetDecimals,
       );
+
+      activeFeeConfig ??= await this.feesService.getActiveFeeConfigForMarket(tx, market.id);
+      const buyerFee = this.feesService.calculateFee(
+        fillAmount,
+        activeFeeConfig.buyerFeeRateBps,
+      );
+      const sellerFee = this.feesService.calculateFee(
+        quoteAmount,
+        activeFeeConfig.sellerFeeRateBps,
+      );
       const trade = await this.tradesService.createTradeRecord(tx, {
         marketId: market.id,
         buyOrderId: incomingOrder.side === "BUY" ? incomingOrder.id : restingState.id,
@@ -475,6 +490,12 @@ export class OrdersService {
         price: tradePrice,
         amount: fillAmount,
         quoteAmount,
+        buyerFee,
+        sellerFee,
+        buyerFeeAssetId: market.baseAssetId,
+        sellerFeeAssetId: market.quoteAssetId,
+        buyerFeeRateBps: activeFeeConfig.buyerFeeRateBps,
+        sellerFeeRateBps: activeFeeConfig.sellerFeeRateBps,
       });
 
       await this.settleBuyerSide(tx, {
@@ -485,6 +506,9 @@ export class OrdersService {
         fillAmount,
         tradePrice,
         quoteAmount,
+        buyerFee,
+        buyerFeeRateBps: activeFeeConfig.buyerFeeRateBps,
+        adminFeeUserId: activeFeeConfig.adminFeeUserId,
         buyerSideIsIncoming: incomingOrder.side === "BUY",
       });
 
@@ -496,6 +520,9 @@ export class OrdersService {
         fillAmount,
         tradePrice,
         quoteAmount,
+        sellerFee,
+        sellerFeeRateBps: activeFeeConfig.sellerFeeRateBps,
+        adminFeeUserId: activeFeeConfig.adminFeeUserId,
         sellerSideIsIncoming: incomingOrder.side === "SELL",
       });
 
@@ -578,10 +605,24 @@ export class OrdersService {
       fillAmount: bigint;
       tradePrice: bigint;
       quoteAmount: bigint;
+      buyerFee: bigint;
+      buyerFeeRateBps: number;
+      adminFeeUserId: string;
       buyerSideIsIncoming: boolean;
     },
   ) {
-    const { market, trade, buyerOrder, buyerUserId, fillAmount, tradePrice, quoteAmount } = input;
+    const {
+      market,
+      trade,
+      buyerOrder,
+      buyerUserId,
+      fillAmount,
+      tradePrice,
+      quoteAmount,
+      buyerFee,
+      buyerFeeRateBps,
+      adminFeeUserId,
+    } = input;
 
     const quoteWallet = await this.ensureWalletForUpdate(tx, buyerUserId, market.quoteAssetId);
     const lockedQuoteForFill = this.calculateQuoteTotalMinimalUnits(
@@ -635,10 +676,10 @@ export class OrdersService {
     }
 
     const baseWallet = await this.ensureWalletForUpdate(tx, buyerUserId, market.baseAssetId);
-    const baseWalletAvailableAfter = baseWallet.availableBalance + fillAmount;
+    const baseWalletAvailableAfterGross = baseWallet.availableBalance + fillAmount;
 
     await this.updateWallet(tx, baseWallet, {
-      availableBalance: baseWalletAvailableAfter,
+      availableBalance: baseWalletAvailableAfterGross,
       lockedBalance: baseWallet.lockedBalance,
       updatedAt: new Date(),
     });
@@ -648,12 +689,42 @@ export class OrdersService {
       assetId: market.baseAssetId,
       type: "TRADE_BUY",
       amount: fillAmount,
-      balanceAvailableAfter: baseWalletAvailableAfter,
+      balanceAvailableAfter: baseWalletAvailableAfterGross,
       balanceLockedAfter: baseWallet.lockedBalance,
       refType: "TRADE",
       refId: trade.id,
       note: `Buy fill received ${market.baseAssetSymbol} at maker price ${formatMinimalUnitsToHuman(tradePrice, market.priceDecimals)} on ${market.symbol}`,
     });
+
+    if (buyerFee > 0n) {
+      const baseWalletAvailableAfterFee = baseWalletAvailableAfterGross - buyerFee;
+
+      await this.updateWallet(tx, baseWallet, {
+        availableBalance: baseWalletAvailableAfterFee,
+        lockedBalance: baseWallet.lockedBalance,
+        updatedAt: new Date(),
+      });
+
+      await tx.insert(ledgerEntries).values({
+        userId: buyerUserId,
+        assetId: market.baseAssetId,
+        type: "FEE",
+        amount: -buyerFee,
+        balanceAvailableAfter: baseWalletAvailableAfterFee,
+        balanceLockedAfter: baseWallet.lockedBalance,
+        refType: "TRADE",
+        refId: trade.id,
+        note: `Buyer fee ${this.feesService.formatBpsAsHuman(buyerFeeRateBps)} charged in ${market.baseAssetSymbol} on ${market.symbol}`,
+      });
+
+      await this.creditAdminFeeWallet(tx, {
+        adminUserId: adminFeeUserId,
+        assetId: market.baseAssetId,
+        amount: buyerFee,
+        tradeId: trade.id,
+        note: `Fee income: buyer fee ${this.feesService.formatBpsAsHuman(buyerFeeRateBps)} in ${market.baseAssetSymbol} on ${market.symbol}`,
+      });
+    }
   }
 
   private async settleSellerSide(
@@ -666,10 +737,23 @@ export class OrdersService {
       fillAmount: bigint;
       tradePrice: bigint;
       quoteAmount: bigint;
+      sellerFee: bigint;
+      sellerFeeRateBps: number;
+      adminFeeUserId: string;
       sellerSideIsIncoming: boolean;
     },
   ) {
-    const { market, trade, sellerUserId, fillAmount, tradePrice, quoteAmount } = input;
+    const {
+      market,
+      trade,
+      sellerUserId,
+      fillAmount,
+      tradePrice,
+      quoteAmount,
+      sellerFee,
+      sellerFeeRateBps,
+      adminFeeUserId,
+    } = input;
 
     const baseWallet = await this.ensureWalletForUpdate(tx, sellerUserId, market.baseAssetId);
     if (baseWallet.lockedBalance < fillAmount) {
@@ -696,10 +780,10 @@ export class OrdersService {
     });
 
     const quoteWallet = await this.ensureWalletForUpdate(tx, sellerUserId, market.quoteAssetId);
-    const quoteWalletAvailableAfter = quoteWallet.availableBalance + quoteAmount;
+    const quoteWalletAvailableAfterGross = quoteWallet.availableBalance + quoteAmount;
 
     await this.updateWallet(tx, quoteWallet, {
-      availableBalance: quoteWalletAvailableAfter,
+      availableBalance: quoteWalletAvailableAfterGross,
       lockedBalance: quoteWallet.lockedBalance,
       updatedAt: new Date(),
     });
@@ -709,20 +793,92 @@ export class OrdersService {
       assetId: market.quoteAssetId,
       type: "TRADE_SELL",
       amount: quoteAmount,
-      balanceAvailableAfter: quoteWalletAvailableAfter,
+      balanceAvailableAfter: quoteWalletAvailableAfterGross,
       balanceLockedAfter: quoteWallet.lockedBalance,
       refType: "TRADE",
       refId: trade.id,
       note: `Sell fill at maker price ${formatMinimalUnitsToHuman(tradePrice, market.priceDecimals)} on ${market.symbol}`,
     });
+
+    if (sellerFee > 0n) {
+      const quoteWalletAvailableAfterFee = quoteWalletAvailableAfterGross - sellerFee;
+
+      await this.updateWallet(tx, quoteWallet, {
+        availableBalance: quoteWalletAvailableAfterFee,
+        lockedBalance: quoteWallet.lockedBalance,
+        updatedAt: new Date(),
+      });
+
+      await tx.insert(ledgerEntries).values({
+        userId: sellerUserId,
+        assetId: market.quoteAssetId,
+        type: "FEE",
+        amount: -sellerFee,
+        balanceAvailableAfter: quoteWalletAvailableAfterFee,
+        balanceLockedAfter: quoteWallet.lockedBalance,
+        refType: "TRADE",
+        refId: trade.id,
+        note: `Seller fee ${this.feesService.formatBpsAsHuman(sellerFeeRateBps)} charged in ${market.quoteAssetSymbol} on ${market.symbol}`,
+      });
+
+      await this.creditAdminFeeWallet(tx, {
+        adminUserId: adminFeeUserId,
+        assetId: market.quoteAssetId,
+        amount: sellerFee,
+        tradeId: trade.id,
+        note: `Fee income: seller fee ${this.feesService.formatBpsAsHuman(sellerFeeRateBps)} in ${market.quoteAssetSymbol} on ${market.symbol}`,
+      });
+    }
   }
 
-  private async ensureWalletForUpdate(tx: Transaction, userId: string, assetId: string) {
+  private async creditAdminFeeWallet(
+    tx: Transaction,
+    input: {
+      adminUserId: string;
+      assetId: string;
+      amount: bigint;
+      tradeId: string;
+      note: string;
+    },
+  ) {
+    if (input.amount <= 0n) {
+      return;
+    }
+
+    const feeWallet = await this.ensureWalletForUpdate(tx, input.adminUserId, input.assetId, "FEE");
+    const availableAfter = feeWallet.availableBalance + input.amount;
+
+    await this.updateWallet(tx, feeWallet, {
+      availableBalance: availableAfter,
+      lockedBalance: feeWallet.lockedBalance,
+      updatedAt: new Date(),
+    });
+
+    await tx.insert(ledgerEntries).values({
+      userId: input.adminUserId,
+      assetId: input.assetId,
+      type: "FEE",
+      amount: input.amount,
+      balanceAvailableAfter: availableAfter,
+      balanceLockedAfter: feeWallet.lockedBalance,
+      refType: "TRADE",
+      refId: input.tradeId,
+      note: input.note,
+    });
+  }
+
+  private async ensureWalletForUpdate(
+    tx: Transaction,
+    userId: string,
+    assetId: string,
+    walletType: WalletType = "MAIN",
+  ) {
     await tx
       .insert(wallets)
       .values({
         userId,
         assetId,
+        walletType,
         availableBalance: 0n,
         lockedBalance: 0n,
       })
@@ -734,6 +890,7 @@ export class OrdersService {
         id: wallets.id,
         userId: wallets.userId,
         assetId: wallets.assetId,
+        walletType: wallets.walletType,
         availableBalance: wallets.availableBalance,
         lockedBalance: wallets.lockedBalance,
         assetSymbol: assetsAlias.symbol,
@@ -742,7 +899,7 @@ export class OrdersService {
       })
       .from(wallets)
       .innerJoin(assetsAlias, eq(wallets.assetId, assetsAlias.id))
-      .where(and(eq(wallets.userId, userId), eq(wallets.assetId, assetId)))
+      .where(and(eq(wallets.userId, userId), eq(wallets.assetId, assetId), eq(wallets.walletType, walletType)))
       .for("update")
       .limit(1);
 
@@ -844,7 +1001,7 @@ export class OrdersService {
     const symbol = input.trim().toUpperCase();
 
     if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported in v0.6.");
+      throw new BadRequestException("Only SWL/SWC is supported in v0.7.");
     }
 
     return symbol;

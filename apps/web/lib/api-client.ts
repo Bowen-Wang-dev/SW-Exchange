@@ -5,9 +5,11 @@ type ApiRequestOptions = {
   body?: unknown;
   token?: string | null;
   headers?: HeadersInit;
+  timeoutMs?: number;
 };
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:3001/api";
+const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
 const API_BASE_URL = resolveApiBaseUrl();
 let hasLoggedApiBaseUrl = false;
 
@@ -35,19 +37,30 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   }
 
   let response: Response;
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(
+    () => abortController.abort(),
+    options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+  );
 
   try {
     response = await fetch(requestUrl, {
       method: options.method ?? "GET",
       headers,
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      signal: abortController.signal,
     });
   } catch (error) {
+    const isAbortError = error instanceof Error && error.name === "AbortError";
     const message =
-      error instanceof Error && error.message === "Failed to fetch"
+      isAbortError
+        ? `Request to the SW Exchange API timed out at ${API_BASE_URL}. Check that the API server is running.`
+        : error instanceof Error && error.message === "Failed to fetch"
         ? `Unable to reach the SW Exchange API at ${API_BASE_URL}. Check NEXT_PUBLIC_API_URL, the API server, and browser CORS settings.`
         : "Unable to reach the SW Exchange API.";
     throw new ApiError(message, 0);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const text = await response.text();

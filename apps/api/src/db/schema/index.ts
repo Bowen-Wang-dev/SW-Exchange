@@ -15,6 +15,9 @@ import { sql } from "drizzle-orm";
 
 export const userRoleEnum = pgEnum("user_role", ["USER", "ADMIN"]);
 export const userStatusEnum = pgEnum("user_status", ["ACTIVE", "FROZEN", "BANNED"]);
+export const walletTypeValues = ["MAIN", "FEE", "TREASURY", "AIRDROP", "HOT"] as const;
+export type WalletType = (typeof walletTypeValues)[number];
+export const walletTypeEnum = pgEnum("wallet_type", walletTypeValues);
 export const ledgerEntryTypeEnum = pgEnum("ledger_entry_type", [
   "AIRDROP",
   "TRANSFER_IN",
@@ -24,6 +27,8 @@ export const ledgerEntryTypeEnum = pgEnum("ledger_entry_type", [
   "TRADE_BUY",
   "TRADE_SELL",
   "FEE",
+  "ADMIN_BUCKET_TRANSFER_OUT",
+  "ADMIN_BUCKET_TRANSFER_IN",
   "ADMIN_ADJUST",
 ]);
 export const transferStatusEnum = pgEnum("transfer_status", ["SUCCESS", "FAILED"]);
@@ -47,6 +52,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("USER"),
   status: userStatusEnum("status").notNull().default("ACTIVE"),
+  isSystem: boolean("is_system").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -71,6 +77,7 @@ export const wallets = pgTable(
     assetId: uuid("asset_id")
       .notNull()
       .references(() => assets.id, { onDelete: "cascade" }),
+    walletType: walletTypeEnum("wallet_type").notNull().default("MAIN"),
     availableBalance: numeric("available_balance", { precision: 78, scale: 0, mode: "bigint" })
       .notNull()
       .default(sql`0`),
@@ -81,7 +88,7 @@ export const wallets = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
-    walletUserAssetUnique: unique().on(table.userId, table.assetId),
+    walletUserAssetTypeUnique: unique().on(table.userId, table.assetId, table.walletType),
   }),
 );
 
@@ -154,6 +161,25 @@ export const markets = pgTable("markets", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const feeSettings = pgTable(
+  "fee_settings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    marketId: uuid("market_id")
+      .notNull()
+      .references(() => markets.id, { onDelete: "restrict" }),
+    marketSymbol: varchar("market_symbol", { length: 32 }).notNull(),
+    buyerFeeRateBps: integer("buyer_fee_rate_bps").notNull().default(10),
+    sellerFeeRateBps: integer("seller_fee_rate_bps").notNull().default(10),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    feeSettingsMarketSymbolUnique: unique().on(table.marketSymbol),
+  }),
+);
+
 export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id")
@@ -220,6 +246,14 @@ export const trades = pgTable("trades", {
   sellerFee: numeric("seller_fee", { precision: 78, scale: 0, mode: "bigint" })
     .notNull()
     .default(sql`0`),
+  buyerFeeAssetId: uuid("buyer_fee_asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "restrict" }),
+  sellerFeeAssetId: uuid("seller_fee_asset_id")
+    .notNull()
+    .references(() => assets.id, { onDelete: "restrict" }),
+  buyerFeeRateBps: integer("buyer_fee_rate_bps").notNull().default(0),
+  sellerFeeRateBps: integer("seller_fee_rate_bps").notNull().default(0),
   status: tradeStatusEnum("status").notNull().default("SETTLED"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

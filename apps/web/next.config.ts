@@ -11,8 +11,12 @@ if (!process.env.NEXT_PUBLIC_API_URL) {
 
 process.env.NEXT_PUBLIC_API_URL = normalizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL);
 
+const configuredDistDir = process.env.NEXT_DIST_DIR?.trim();
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ["127.0.0.1"],
+  ...(configuredDistDir ? { distDir: configuredDistDir } : {}),
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },

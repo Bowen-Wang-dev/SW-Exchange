@@ -28,6 +28,14 @@ type TradeRow = {
   quoteAmount: bigint;
   buyerFee: bigint;
   sellerFee: bigint;
+  buyerFeeAssetId: string;
+  buyerFeeAssetSymbol: string;
+  buyerFeeAssetDecimals: number;
+  sellerFeeAssetId: string;
+  sellerFeeAssetSymbol: string;
+  sellerFeeAssetDecimals: number;
+  buyerFeeRateBps: number;
+  sellerFeeRateBps: number;
   status: "SETTLED" | "REVERSED";
   createdAt: Date;
   baseAssetSymbol: string;
@@ -45,6 +53,12 @@ type TradeRecordInput = {
   price: bigint;
   amount: bigint;
   quoteAmount: bigint;
+  buyerFee: bigint;
+  sellerFee: bigint;
+  buyerFeeAssetId: string;
+  sellerFeeAssetId: string;
+  buyerFeeRateBps: number;
+  sellerFeeRateBps: number;
 };
 
 @Injectable()
@@ -63,8 +77,12 @@ export class TradesService {
         price: input.price,
         amount: input.amount,
         quoteAmount: input.quoteAmount,
-        buyerFee: 0n,
-        sellerFee: 0n,
+        buyerFee: input.buyerFee,
+        sellerFee: input.sellerFee,
+        buyerFeeAssetId: input.buyerFeeAssetId,
+        sellerFeeAssetId: input.sellerFeeAssetId,
+        buyerFeeRateBps: input.buyerFeeRateBps,
+        sellerFeeRateBps: input.sellerFeeRateBps,
         status: "SETTLED",
       })
       .returning();
@@ -108,6 +126,8 @@ export class TradesService {
   private selectTradeRows(db: Database | Transaction = this.db) {
     const baseAssets = aliasedTable(assets, "trade_base_assets");
     const quoteAssets = aliasedTable(assets, "trade_quote_assets");
+    const buyerFeeAssets = aliasedTable(assets, "trade_buyer_fee_assets");
+    const sellerFeeAssets = aliasedTable(assets, "trade_seller_fee_assets");
     const buyerUsers = aliasedTable(users, "trade_buyer_users");
     const sellerUsers = aliasedTable(users, "trade_seller_users");
 
@@ -130,6 +150,14 @@ export class TradesService {
         quoteAmount: trades.quoteAmount,
         buyerFee: trades.buyerFee,
         sellerFee: trades.sellerFee,
+        buyerFeeAssetId: trades.buyerFeeAssetId,
+        buyerFeeAssetSymbol: buyerFeeAssets.symbol,
+        buyerFeeAssetDecimals: buyerFeeAssets.decimals,
+        sellerFeeAssetId: trades.sellerFeeAssetId,
+        sellerFeeAssetSymbol: sellerFeeAssets.symbol,
+        sellerFeeAssetDecimals: sellerFeeAssets.decimals,
+        buyerFeeRateBps: trades.buyerFeeRateBps,
+        sellerFeeRateBps: trades.sellerFeeRateBps,
         status: trades.status,
         createdAt: trades.createdAt,
         baseAssetSymbol: baseAssets.symbol,
@@ -141,6 +169,8 @@ export class TradesService {
       .innerJoin(markets, eq(trades.marketId, markets.id))
       .innerJoin(baseAssets, eq(markets.baseAssetId, baseAssets.id))
       .innerJoin(quoteAssets, eq(markets.quoteAssetId, quoteAssets.id))
+      .innerJoin(buyerFeeAssets, eq(trades.buyerFeeAssetId, buyerFeeAssets.id))
+      .innerJoin(sellerFeeAssets, eq(trades.sellerFeeAssetId, sellerFeeAssets.id))
       .innerJoin(buyerUsers, eq(trades.buyerId, buyerUsers.id))
       .innerJoin(sellerUsers, eq(trades.sellerId, sellerUsers.id));
   }
@@ -149,7 +179,7 @@ export class TradesService {
     const symbol = input.trim().toUpperCase();
 
     if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported in v0.6.");
+      throw new BadRequestException("Only SWL/SWC is supported in v0.7.");
     }
 
     return symbol;
@@ -167,6 +197,16 @@ export class TradesService {
       amountRaw: row.amount.toString(),
       quoteAmount: formatMinimalUnitsToHuman(row.quoteAmount, row.quoteAssetDecimals),
       quoteAmountRaw: row.quoteAmount.toString(),
+      buyerFee: formatMinimalUnitsToHuman(row.buyerFee, row.buyerFeeAssetDecimals),
+      buyerFeeRaw: row.buyerFee.toString(),
+      buyerFeeAssetId: row.buyerFeeAssetId,
+      buyerFeeAssetSymbol: row.buyerFeeAssetSymbol,
+      buyerFeeRateBps: row.buyerFeeRateBps,
+      sellerFee: formatMinimalUnitsToHuman(row.sellerFee, row.sellerFeeAssetDecimals),
+      sellerFeeRaw: row.sellerFee.toString(),
+      sellerFeeAssetId: row.sellerFeeAssetId,
+      sellerFeeAssetSymbol: row.sellerFeeAssetSymbol,
+      sellerFeeRateBps: row.sellerFeeRateBps,
       createdAt: row.createdAt,
       created_at: row.createdAt,
     };
@@ -188,6 +228,13 @@ export class TradesService {
         email: row.sellerEmail,
         username: row.sellerUsername,
       },
+      fee:
+        side === "BUY"
+          ? formatMinimalUnitsToHuman(row.buyerFee, row.buyerFeeAssetDecimals)
+          : formatMinimalUnitsToHuman(row.sellerFee, row.sellerFeeAssetDecimals),
+      feeRaw: side === "BUY" ? row.buyerFee.toString() : row.sellerFee.toString(),
+      feeAssetSymbol: side === "BUY" ? row.buyerFeeAssetSymbol : row.sellerFeeAssetSymbol,
+      feeRateBps: side === "BUY" ? row.buyerFeeRateBps : row.sellerFeeRateBps,
     };
   }
 

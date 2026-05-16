@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
 
-Next milestone: `v0.7 Admin Fee System + Fee Settlement`
+Next milestone: `v0.8 Ledger / Audit / Reports polish`
 
 This version is intentionally limited:
 
@@ -14,7 +14,7 @@ This version is intentionally limited:
 - No KYC
 - No market orders
 - No candlestick / K-line chart
-- No trading fees yet
+- No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
 
@@ -36,6 +36,11 @@ Current scope:
 - User and admin trade history
 - ORDER_LOCK and ORDER_UNLOCK ledger entries
 - TRADE_BUY and TRADE_SELL ledger entries
+- Admin-configurable buyer and seller trading fees
+- Admin Fee Wallet bucket for collected SWL/SWC fees
+- Admin MAIN/FEE/TREASURY/AIRDROP/HOT wallet bucket model
+- Trade records with persisted fee amounts and fee rates
+- FEE ledger entries for fees charged and fee income
 
 ## Milestone status
 
@@ -45,17 +50,54 @@ Current scope:
 - `v0.4 Internal Transfer` completed
 - `v0.5 Limit Order + Order Book` completed
 - `v0.6 Matching Engine + Trades + WebSocket Sync` completed
+- `v0.7 Admin Fee System + Fee Settlement` completed
+- `v0.7.1 Admin Wallet Buckets / Wallet Model Polish` completed
 
-- Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
-- Next milestone: `v0.7 Admin Fee System + Fee Settlement`
+- Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
+- Next milestone: `v0.8 Ledger / Audit / Reports polish`
 
 ## Planned milestones
 
-- `v0.7 Admin Fee System + Fee Settlement`
 - `v0.8 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md) for milestone planning and released history.
+See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), and [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md) for milestone planning, released history, and the current wallet bucket model.
+
+## v0.7.1 Admin Wallet Buckets / Wallet Model Polish
+
+v0.7.1 represents platform balances as wallet buckets owned by the configured admin user. No separate active `FEE_ACCOUNT`, `TREASURY_ACCOUNT`, `AIRDROP_ACCOUNT`, or `HOT_WALLET_ACCOUNT` users are required.
+
+- Normal users have `MAIN` wallets only
+- The admin user has `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` buckets for `SWC` and `SWL`
+- `/admin/wallets` separates the admin `MAIN` wallet from platform system wallet buckets
+- Normal transfers are always `MAIN` to `MAIN`
+- Admin bucket transfers are internal, free, admin-only moves between the admin user's own buckets
+- To send system funds to a user, move funds from a system bucket to admin `MAIN`, then use a normal transfer from admin `MAIN` to user `MAIN`
+- The `AIRDROP` bucket is a placeholder; current airdrops remain unlimited and do not debit it
+- The `HOT` bucket is a future v1.x chain wallet placeholder; no blockchain, deposit, or withdraw logic is implemented
+
+## v0.7 Admin Fee System + Fee Settlement
+
+### API
+
+- `GET /api/admin/fee-settings`
+- `PATCH /api/admin/fee-settings`
+- `POST /api/admin/fee-settings`
+
+Only the `SWL/SWC` market is enabled. Fee rates are stored as integer basis points: `10 bps = 0.1%`, `100 bps = 1%`, and `10000 bps = 100%`. v0.7 enforces a 5% safety cap and rejects negative values, scientific notation, invalid decimal strings, and percent values with more than two decimal places.
+
+Fees are calculated with bigint minimal-unit math and floor-rounded toward zero: `fee = amount * fee_bps / 10000`. Buyer fees are charged from received `SWL`; seller fees are charged from received `SWC`. Collected fees credit the admin user's `FEE` wallet bucket, not the admin `MAIN` wallet and not a separate system user.
+
+Trade rows persist the actual buyer/seller fee amounts, fee asset IDs, and fee rates used at execution time. Historical trades keep those values even if admin fee settings change later.
+
+### Web
+
+- `/admin/fees` shows current fee settings, admin Fee Wallet balances, and an update form
+- `/admin/wallets` shows the admin MAIN wallet separately from platform wallet buckets
+- `/admin/audit-logs` includes `UPDATE_FEE_SETTINGS`
+- `/trades` shows the current user's fee per fill
+- `/admin/trades` shows buyer and seller fees
+- `/ledger` and `/admin/ledger` render `FEE` entries as trading fees or fee income
 
 ## v0.6 Matching Engine + Trades + WebSocket Sync
 
@@ -70,7 +112,7 @@ Only the `SWL/SWC` market is enabled. Matching uses price priority first and tim
 
 Order creation, matching, wallet settlement, order state updates, trade creation, and ledger entries run in one database transaction. Partial fills keep the remaining amount open; filled and cancelled orders are excluded from the order book. Crossed orders from different users execute automatically. Crossed orders from the same user are skipped to prevent self-trading.
 
-v0.6 does not charge trading fees. Buyer and seller trade fee columns remain zero, no fee ledger entries are created, and fee settlement is planned for v0.7.
+v0.6 did not charge trading fees. Fee settlement is live starting in v0.7.
 
 ### Web
 
@@ -78,7 +120,7 @@ v0.6 does not charge trading fees. Buyer and seller trade fee columns remain zer
 - `/trade` refreshes data after order placement/cancellation and uses lightweight 5-second polling while open
 - `/trades` shows the current user's settled fills
 - `/admin/trades` shows all settled fills for admin review
-- Trade and ledger copy explicitly states that fees arrive in v0.7
+- Trade and ledger pages are extended in v0.7 to show persisted fees
 
 ## Stack
 
@@ -421,15 +463,11 @@ If the warning disappears in that clean browser session, the remaining mismatch 
 
 This scaffold does not yet implement:
 
-- Order matching engine
-- Automatic trade execution
-- Real-time order, trade, or book sync
-- Trading fees
 - Market order flow
 - Deposit / withdraw
 - Blockchain integration
 - K-line chart
 - Complex RBAC
-- Trade settlement logic
+- Maker/taker tiers, VIP discounts, or withdrawal fee logic
 
 The schema and module boundaries are prepared so those features can be added incrementally.

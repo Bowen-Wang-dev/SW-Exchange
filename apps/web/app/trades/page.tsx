@@ -53,7 +53,7 @@ export default function TradesPage() {
             eyebrow="Trades"
             title="Executed trade history"
             description={TRADE_HISTORY_COPY}
-            action={<StatusBadge label="v0.6 Live" tone="success" />}
+            action={<StatusBadge label="v0.7 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -62,7 +62,7 @@ export default function TradesPage() {
           {!isLoading && !error ? (
             trades.length > 0 ? (
               <DataTable
-                columns={["Time", "Trade ID", "Market", "Side", "Price", "Amount", "Total"]}
+                columns={["Time", "Trade ID", "Market", "Side", "Price", "Amount", "Total", "Fee"]}
                 rows={trades.map((trade) => [
                   formatDateTime(trade.createdAt),
                   shortId(trade.id),
@@ -71,6 +71,7 @@ export default function TradesPage() {
                   trade.price,
                   trade.amount,
                   trade.quoteAmount,
+                  trade.feeAssetSymbol ? `${trade.fee ?? "0"} ${trade.feeAssetSymbol}` : "-",
                 ])}
               />
             ) : (
@@ -78,8 +79,8 @@ export default function TradesPage() {
             )
           ) : null}
 
-          <div className="rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
-            Fees arrive in v0.7. v0.6 trade settlement credits buyers and sellers at gross fill amounts.
+          <div className="rounded-2xl border border-emerald-300/16 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100">
+            Fees are live in v0.7. Buyer fees are charged in SWL and seller fees are charged in SWC at execution time.
           </div>
         </div>
       </AppShell>

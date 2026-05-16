@@ -55,7 +55,7 @@ export default function LedgerPage() {
           <PageHeader
             eyebrow="Ledger"
             title="Balance change ledger"
-            description="Review your accounting trail for wallet balance changes, including order locks, trade settlement, and better-price unlocks."
+            description="Review your accounting trail for wallet balance changes, including order locks, trade settlement, trading fees, and better-price unlocks."
             action={<StatusBadge label="Accounting" tone="info" />}
           />
 
@@ -131,6 +131,10 @@ function ledgerTypeTone(type: string): "neutral" | "success" | "warning" | "dang
     return "info";
   }
 
+  if (type === "FEE") {
+    return "warning";
+  }
+
   if (type === "AIRDROP" || type === "TRADE_BUY" || type === "TRADE_SELL") {
     return "success";
   }
@@ -145,6 +149,10 @@ function ledgerNote(entry: LedgerEntry) {
 
   if (entry.type === "TRADE_SELL") {
     return "Sold SWL and received SWC.";
+  }
+
+  if (entry.type === "FEE") {
+    return entry.amount.startsWith("+") ? "Fee income credited." : "Trading fee charged.";
   }
 
   if (entry.type === "ORDER_UNLOCK") {

@@ -12,7 +12,9 @@ export class AppController {
         blockchain: false,
         deposit: false,
         withdraw: false,
-        orderMatching: false,
+        orderMatching: true,
+        tradingFees: true,
+        adminWalletBuckets: true,
       },
     };
   }

@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   nickname?: string | null;
   role: "USER" | "ADMIN";
   status: "ACTIVE" | "FROZEN" | "BANNED";
+  isSystem?: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

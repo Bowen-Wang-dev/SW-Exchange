@@ -36,6 +36,20 @@
       "when": 1778857257253,
       "tag": "0004_fantastic_mad_thinker",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778899000000,
+      "tag": "0005_admin_fee_system",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778919600000,
+      "tag": "0006_admin_wallet_buckets",
+      "breakpoints": true
     }
   ]
 }

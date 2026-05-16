@@ -140,7 +140,7 @@ export default function TradePage() {
             eyebrow="Trade"
             title="SWL/SWC spot terminal"
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.6 Live" tone="success" />}
+            action={<StatusBadge label="v0.7 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

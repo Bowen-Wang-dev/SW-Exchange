@@ -51,7 +51,7 @@ export default function AdminLedgerPage() {
           <PageHeader
             eyebrow="Admin Ledger"
             title="Ledger review"
-            description="Inspect the accounting trail behind wallet balance changes, including order locks, trade settlement, and better-price unlocks."
+            description="Inspect the accounting trail behind wallet balance changes, including order locks, trade settlement, trading fees, fee income, and better-price unlocks."
             action={<StatusBadge label="Source of Truth" tone="info" />}
           />
 
@@ -123,12 +123,16 @@ function Notice({ tone, message }: { tone: "info" | "danger"; message: string })
 }
 
 function ledgerTypeTone(type: string): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (type === "ORDER_LOCK" || type === "TRANSFER_OUT") {
+  if (type === "ORDER_LOCK" || type === "TRANSFER_OUT" || type === "ADMIN_BUCKET_TRANSFER_OUT") {
     return "warning";
   }
 
-  if (type === "ORDER_UNLOCK" || type === "TRANSFER_IN") {
+  if (type === "ORDER_UNLOCK" || type === "TRANSFER_IN" || type === "ADMIN_BUCKET_TRANSFER_IN") {
     return "info";
+  }
+
+  if (type === "FEE") {
+    return "warning";
   }
 
   if (type === "AIRDROP" || type === "TRADE_BUY" || type === "TRADE_SELL") {
@@ -145,6 +149,14 @@ function ledgerNote(entry: AdminLedgerEntry) {
 
   if (entry.type === "TRADE_SELL") {
     return "Sold SWL and received SWC.";
+  }
+
+  if (entry.type === "FEE") {
+    return entry.amount.startsWith("+") ? "Fee income credited to admin Fee Wallet." : "Trading fee charged.";
+  }
+
+  if (entry.type === "ADMIN_BUCKET_TRANSFER_IN" || entry.type === "ADMIN_BUCKET_TRANSFER_OUT") {
+    return "Admin wallet bucket transfer.";
   }
 
   if (entry.type === "ORDER_UNLOCK") {

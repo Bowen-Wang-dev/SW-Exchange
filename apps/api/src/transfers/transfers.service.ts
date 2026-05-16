@@ -65,6 +65,7 @@ export class TransfersService {
           nickname: users.nickname,
           role: users.role,
           status: users.status,
+          isSystem: users.isSystem,
         })
         .from(users)
         .where(eq(users.id, senderUserId))
@@ -78,6 +79,10 @@ export class TransfersService {
         throw new ForbiddenException("Sender must be ACTIVE to transfer.");
       }
 
+      if (sender.isSystem) {
+        throw new ForbiddenException("System accounts cannot send transfers.");
+      }
+
       const [recipient] = await tx
         .select({
           id: users.id,
@@ -86,6 +91,7 @@ export class TransfersService {
           nickname: users.nickname,
           role: users.role,
           status: users.status,
+          isSystem: users.isSystem,
         })
         .from(users)
         .where(or(eq(users.username, recipientIdentifier), eq(users.email, recipientIdentifier)))
@@ -101,6 +107,10 @@ export class TransfersService {
 
       if (recipient.status !== "ACTIVE") {
         throw new ForbiddenException("Recipient must be ACTIVE to receive transfers.");
+      }
+
+      if (recipient.isSystem) {
+        throw new ForbiddenException("System accounts cannot receive transfers.");
       }
 
       const [asset] = await tx
@@ -120,6 +130,7 @@ export class TransfersService {
         .values({
           userId: recipient.id,
           assetId: asset.id,
+          walletType: "MAIN",
           availableBalance: 0n,
           lockedBalance: 0n,
         })
@@ -128,7 +139,13 @@ export class TransfersService {
       const walletRows = await tx
         .select()
         .from(wallets)
-        .where(and(eq(wallets.assetId, asset.id), inArray(wallets.userId, [sender.id, recipient.id])))
+        .where(
+          and(
+            eq(wallets.assetId, asset.id),
+            eq(wallets.walletType, "MAIN"),
+            inArray(wallets.userId, [sender.id, recipient.id]),
+          ),
+        )
         .orderBy(asc(wallets.userId))
         .for("update");
 
@@ -336,6 +353,7 @@ export class TransfersService {
     nickname: string | null;
     role: "USER" | "ADMIN";
     status: "ACTIVE" | "FROZEN" | "BANNED";
+    isSystem?: boolean;
   }) {
     return {
       id: user.id,

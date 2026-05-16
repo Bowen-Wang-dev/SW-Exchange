@@ -53,7 +53,7 @@ export default function AdminTradesPage() {
             eyebrow="Admin Trades"
             title="Trade review"
             description={ADMIN_TRADE_REVIEW_COPY}
-            action={<StatusBadge label="v0.6 Live" tone="success" />}
+            action={<StatusBadge label="v0.7 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -62,7 +62,18 @@ export default function AdminTradesPage() {
           {!isLoading && !error ? (
             trades.length > 0 ? (
               <DataTable
-                columns={["Time", "Trade ID", "Market", "Buyer", "Seller", "Price", "Amount", "Total"]}
+                columns={[
+                  "Time",
+                  "Trade ID",
+                  "Market",
+                  "Buyer",
+                  "Seller",
+                  "Price",
+                  "Amount",
+                  "Total",
+                  "Buyer Fee",
+                  "Seller Fee",
+                ]}
                 rows={trades.map((trade) => [
                   formatDateTime(trade.createdAt),
                   shortId(trade.id),
@@ -72,6 +83,8 @@ export default function AdminTradesPage() {
                   trade.price,
                   trade.amount,
                   trade.quoteAmount,
+                  `${trade.buyerFee} ${trade.buyerFeeAssetSymbol}`,
+                  `${trade.sellerFee} ${trade.sellerFeeAssetSymbol}`,
                 ])}
               />
             ) : (

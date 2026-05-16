@@ -48,7 +48,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.6 console shows live balances, internal transfers, limit orders, matching, trades, and the order book. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.7.1 console shows live balances, internal transfers, limit orders, matching, trades, fee settlement, and the order book. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label={user?.status ?? "ACTIVE"} tone="success" />}
       />
 
@@ -123,7 +123,7 @@ export function DashboardContent() {
               <StatusBadge key="market-status" label="Live" tone="success" />,
               "—",
               "—",
-              "Limit orders, maker-price matching, trades, and polling sync are live. Fees arrive in v0.7.",
+              "Limit orders, maker-price matching, trades, configurable fees, and polling sync are live.",
             ],
           ]}
         />

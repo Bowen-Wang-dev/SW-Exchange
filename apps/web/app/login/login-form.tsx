@@ -20,10 +20,7 @@ export function LoginForm() {
 
     try {
       const user = await login(identifier, password);
-      const next =
-        typeof window !== "undefined"
-          ? new URLSearchParams(window.location.search).get("next")
-          : null;
+      const next = getSafeNextPath();
 
       if (next) {
         router.push(next);
@@ -94,6 +91,28 @@ export function LoginForm() {
       </div>
     </div>
   );
+}
+
+function getSafeNextPath() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const next = new URLSearchParams(window.location.search).get("next");
+  if (!next?.startsWith("/") || next.startsWith("//")) {
+    return null;
+  }
+
+  try {
+    const nextUrl = new URL(next, window.location.origin);
+    if (nextUrl.origin !== window.location.origin) {
+      return null;
+    }
+
+    return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
+  } catch {
+    return null;
+  }
 }
 
 function Field({

@@ -56,7 +56,7 @@ export class UsersService {
   }
 
   async findAll() {
-    return this.db.select().from(users);
+    return this.db.select().from(users).where(eq(users.isSystem, false));
   }
 
   toPublicUser(user: User) {
@@ -67,6 +67,7 @@ export class UsersService {
       nickname: user.nickname,
       role: user.role,
       status: user.status,
+      isSystem: user.isSystem,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

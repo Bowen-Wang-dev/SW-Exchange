@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { apiRequest, logResolvedApiBaseUrl } from "@/lib/api-client";
 import {
   clearStoredAccessToken,
@@ -38,12 +38,14 @@ type SessionResponseUser = AuthUserType | {
   nickname?: string | null;
   role: AuthUserType["role"];
   status: AuthUserType["status"];
+  isSystem?: boolean;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const sessionRequestIdRef = useRef(0);
 
   useEffect(() => {
     logResolvedApiBaseUrl();
@@ -59,63 +61,88 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function loadMeWithToken(accessToken: string) {
+    const requestId = ++sessionRequestIdRef.current;
+
     try {
       const response = await apiRequest<{ user: SessionResponseUser }>("/auth/me", {
         token: accessToken,
       });
       const normalized = normalizeAuthUser(response.user);
+      if (sessionRequestIdRef.current !== requestId) {
+        return null;
+      }
       setUser(normalized);
       return normalized;
     } catch {
+      if (sessionRequestIdRef.current !== requestId) {
+        return null;
+      }
       clearStoredAccessToken();
       setToken(null);
       setUser(null);
       return null;
     } finally {
-      setIsLoading(false);
+      if (sessionRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }
 
   async function login(identifier: string, password: string) {
-    const response = await apiRequest<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: { identifier: identifier.trim(), password },
-    });
+    sessionRequestIdRef.current += 1;
 
-    const normalized = normalizeAuthUser(response.user);
-    setStoredAccessToken(response.accessToken);
-    setToken(response.accessToken);
-    setUser(normalized);
-    return normalized;
+    try {
+      const response = await apiRequest<AuthResponse>("/auth/login", {
+        method: "POST",
+        body: { identifier: identifier.trim(), password },
+      });
+
+      const normalized = normalizeAuthUser(response.user);
+      setStoredAccessToken(response.accessToken);
+      setToken(response.accessToken);
+      setUser(normalized);
+      return normalized;
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function register(email: string, username: string, password: string, nickname?: string) {
-    const response = await apiRequest<AuthResponse>("/auth/register", {
-      method: "POST",
-      body: {
-        email,
-        username,
-        password,
-        ...(nickname?.trim() ? { nickname: nickname.trim() } : {}),
-      },
-    });
+    sessionRequestIdRef.current += 1;
 
-    const normalized = normalizeAuthUser(response.user);
-    setStoredAccessToken(response.accessToken);
-    setToken(response.accessToken);
-    setUser(normalized);
-    return normalized;
+    try {
+      const response = await apiRequest<AuthResponse>("/auth/register", {
+        method: "POST",
+        body: {
+          email,
+          username,
+          password,
+          ...(nickname?.trim() ? { nickname: nickname.trim() } : {}),
+        },
+      });
+
+      const normalized = normalizeAuthUser(response.user);
+      setStoredAccessToken(response.accessToken);
+      setToken(response.accessToken);
+      setUser(normalized);
+      return normalized;
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function logout() {
+    sessionRequestIdRef.current += 1;
     clearStoredAccessToken();
     setToken(null);
     setUser(null);
+    setIsLoading(false);
   }
 
   async function loadMe() {
     const storedToken = getStoredAccessToken();
     if (!storedToken) {
+      sessionRequestIdRef.current += 1;
       setIsLoading(false);
       setUser(null);
       setToken(null);

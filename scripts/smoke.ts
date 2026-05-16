@@ -1,5 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import { execFile } from "node:child_process";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { Client } from "pg";
 
@@ -8,6 +9,10 @@ loadEnv({ path: ".env" });
 const execFileAsync = promisify(execFile);
 const apiBaseUrl = "http://127.0.0.1:3001/api";
 const webBaseUrl = "http://127.0.0.1:3000";
+const smokeNextDistDir = ".next-smoke";
+const smokeNextDistPath = `apps/web/${smokeNextDistDir}`;
+const webNextEnvPath = "apps/web/next-env.d.ts";
+const webTsconfigPath = "apps/web/tsconfig.json";
 const databaseUrl = process.env.DATABASE_URL;
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminUsername = process.env.ADMIN_USERNAME;
@@ -22,9 +27,6 @@ const testEmail = `${testUsername}@example.com`;
 const receiverUsername = `${testUsername}_receiver`;
 const receiverEmail = `${receiverUsername}@example.com`;
 const testPassword = "SmokeTest123!";
-const adminSmokeUsername = `${testUsername}_admin`;
-const adminSmokeEmail = `${adminSmokeUsername}@example.com`;
-
 const publicWebRoutes = ["/", "/login", "/register", "/markets"];
 const protectedWebRoutes = [
   "/dashboard",
@@ -42,6 +44,7 @@ const protectedWebRoutes = [
   "/admin/assets",
   "/admin/orders",
   "/admin/trades",
+  "/admin/fees",
   "/admin/ledger",
   "/admin/audit-logs",
 ];
@@ -54,7 +57,9 @@ async function main() {
   const auth = await testAuthFlows();
   await testV03AirdropFlow(auth);
   await testV04TransferFlow(auth);
+  await testV07FeeFlow(auth);
   await testV06OrderFlow(auth);
+  await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
   await testWebRoutes();
   await testWebBuild();
 
@@ -101,11 +106,40 @@ async function testSeedData() {
     if (admins.rows.length !== 1) {
       throw new Error("Expected exactly one seeded ADMIN user matching env vars.");
     }
+
+    const adminBuckets = await client.query<{ wallet_type: string; symbol: string }>(
+      `
+        select wallets.wallet_type, assets.symbol
+        from wallets
+        join users on users.id = wallets.user_id
+        join assets on assets.id = wallets.asset_id
+        where users.role = 'ADMIN'
+          and users.email = $1
+          and users.username = $2
+          and wallets.wallet_type in ('MAIN', 'FEE', 'TREASURY', 'AIRDROP', 'HOT')
+          and assets.symbol in ('SWC', 'SWL')
+        order by wallets.wallet_type, assets.symbol
+      `,
+      [adminEmail, adminUsername],
+    );
+    if (adminBuckets.rows.length !== 10) {
+      throw new Error("Expected seeded admin MAIN/FEE/TREASURY/AIRDROP/HOT wallets for SWC and SWL.");
+    }
+
+    const feeSettings = await client.query<{
+      market_symbol: string;
+      buyer_fee_rate_bps: number;
+      seller_fee_rate_bps: number;
+      is_active: boolean;
+    }>("select market_symbol, buyer_fee_rate_bps, seller_fee_rate_bps, is_active from fee_settings where market_symbol = 'SWL/SWC'");
+    if (feeSettings.rows.length !== 1 || feeSettings.rows[0]?.is_active !== true) {
+      throw new Error("Expected one active SWL/SWC fee setting.");
+    }
   } finally {
     await client.end();
   }
 
-  console.log("PASS seeded data");
+  console.log("PASS seeded data and admin wallet buckets");
 }
 
 async function testAuthFlows() {
@@ -262,6 +296,121 @@ async function testV04TransferFlow(auth: {
   console.log("PASS v0.4 internal transfer, balances, and ledger");
 }
 
+async function testV07FeeFlow(auth: {
+  userAccessToken: string;
+  receiverAccessToken: string;
+  adminAccessToken: string;
+  user: { email: string; username: string };
+  receiver: { email: string; username: string };
+}) {
+  const marketSymbol = "SWL/SWC";
+
+  const defaultSettings = await setFeeSettings(
+    auth.adminAccessToken,
+    "0.1",
+    "0.1",
+    "Smoke v0.7 default fee setup",
+  );
+  if (
+    defaultSettings.buyerFeeRateHuman !== "0.1%" ||
+    defaultSettings.sellerFeeRateHuman !== "0.1%"
+  ) {
+    throw new Error("Default v0.7 fee settings should be 0.1% for buyer and seller.");
+  }
+
+  await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "1000", "Smoke v0.7 fee buyer funding");
+  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "400", "Smoke v0.7 fee seller funding");
+
+  const buyerBeforeA = await walletSnapshot(auth.userAccessToken);
+  const sellerBeforeA = await walletSnapshot(auth.receiverAccessToken);
+  const feeBeforeA = await feeSettings(auth.adminAccessToken);
+
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "100");
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "100");
+
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWC",
+    BigInt(findWallet(buyerBeforeA, "SWC").availableRaw) - quoteUnits("2", "100"),
+  );
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWL",
+    BigInt(findWallet(buyerBeforeA, "SWL").availableRaw) + units("99.9"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWL",
+    BigInt(findWallet(sellerBeforeA, "SWL").availableRaw) - units("100"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWC",
+    BigInt(findWallet(sellerBeforeA, "SWC").availableRaw) + units("199.8"),
+  );
+
+  const feeAfterA = await feeSettings(auth.adminAccessToken);
+  expectFeeWalletBalanceDelta(feeBeforeA, feeAfterA, "SWL", units("0.1"));
+  expectFeeWalletBalanceDelta(feeBeforeA, feeAfterA, "SWC", units("0.2"));
+
+  const tradesAfterA = await adminTrades(auth.adminAccessToken);
+  const tradeA = tradesAfterA.find(
+    (trade) =>
+      trade.price === "2" &&
+      trade.amount === "100" &&
+      trade.buyer.username === auth.user.username &&
+      trade.seller.username === auth.receiver.username,
+  );
+  if (!tradeA || tradeA.buyerFee !== "0.1" || tradeA.sellerFee !== "0.2") {
+    throw new Error("Expected default fee trade to persist 0.1 SWL buyer fee and 0.2 SWC seller fee.");
+  }
+
+  await setFeeSettings(auth.adminAccessToken, "0.2", "0.3", "Smoke v0.7 fee change");
+  const auditLogs = await getJson<Array<{ action: string }>>(
+    `${apiBaseUrl}/admin/audit-logs`,
+    auth.adminAccessToken,
+    "load audit logs after fee update",
+  );
+  if (!auditLogs.some((entry) => entry.action === "UPDATE_FEE_SETTINGS")) {
+    throw new Error("Fee settings update should create UPDATE_FEE_SETTINGS audit log.");
+  }
+
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "100");
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "100");
+  const tradesAfterB = await adminTrades(auth.adminAccessToken);
+  const tradeB = tradesAfterB[0];
+  if (!tradeB || tradeB.buyerFee !== "0.2" || tradeB.sellerFee !== "0.6") {
+    throw new Error("Updated fee trade should persist 0.2 SWL buyer fee and 0.6 SWC seller fee.");
+  }
+  const historicalTradeA = tradesAfterB.find((trade) => trade.id === tradeA.id);
+  if (!historicalTradeA || historicalTradeA.buyerFee !== "0.1" || historicalTradeA.sellerFee !== "0.2") {
+    throw new Error("Historical trades should keep original persisted fee amounts after fee changes.");
+  }
+
+  await expectFeeSettingsRejected(auth.adminAccessToken, "-0.1", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, "50", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, "abc", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, "1e-3", "0.1");
+
+  const zeroSettingsBefore = await setFeeSettings(
+    auth.adminAccessToken,
+    "0",
+    "0",
+    "Smoke v0.7 zero fee validation",
+  );
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "10");
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "10");
+  const zeroSettingsAfter = await feeSettings(auth.adminAccessToken);
+  expectFeeWalletBalanceDelta(zeroSettingsBefore, zeroSettingsAfter, "SWL", 0n);
+  expectFeeWalletBalanceDelta(zeroSettingsBefore, zeroSettingsAfter, "SWC", 0n);
+  const zeroFeeTrade = (await adminTrades(auth.adminAccessToken))[0];
+  if (!zeroFeeTrade || zeroFeeTrade.buyerFee !== "0" || zeroFeeTrade.sellerFee !== "0") {
+    throw new Error("Zero fee trades should persist zero buyer and seller fees.");
+  }
+
+  console.log("PASS v0.7 admin fee settings, fee settlement, audit, and validation");
+}
+
 async function testV06OrderFlow(auth: {
   userAccessToken: string;
   receiverAccessToken: string;
@@ -409,8 +558,6 @@ async function testV06OrderFlow(auth: {
   if (!adminTradesList.length) {
     throw new Error("Admin trades endpoint should return settled trades.");
   }
-  await assertNoFeeLedgerEntries(auth.adminAccessToken);
-  await assertNoTradeFeesPersisted();
 
   const adminOrdersFinal = await adminOrders(auth.adminAccessToken);
   if (adminOrdersFinal.some((order) => order.status === "OPEN" || order.status === "PARTIAL_FILLED")) {
@@ -425,14 +572,29 @@ async function testV06OrderFlow(auth: {
     throw new Error("Order book should be empty after cleanup of all smoke orders.");
   }
 
-  console.log("PASS v0.6 matching, partial fills, maker pricing, refunds, trades, and cancel flow");
+  console.log("PASS v0.6 matching regression, partial fills, maker pricing, refunds, trades, and cancel flow");
 }
 
 async function testWebBuild() {
-  await execFileAsync("pnpm", ["--filter", "@sw-exchange/web", "build"], {
-    cwd: process.cwd(),
-    maxBuffer: 1024 * 1024 * 10,
-  });
+  const previousWebNextEnv = await readFile(webNextEnvPath, "utf8");
+  const previousWebTsconfig = await readFile(webTsconfigPath, "utf8");
+
+  await rm(smokeNextDistPath, { recursive: true, force: true });
+
+  try {
+    await execFileAsync("pnpm", ["--filter", "@sw-exchange/web", "build"], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        NEXT_DIST_DIR: smokeNextDistDir,
+      },
+      maxBuffer: 1024 * 1024 * 10,
+    });
+  } finally {
+    await rm(smokeNextDistPath, { recursive: true, force: true });
+    await writeFile(webNextEnvPath, previousWebNextEnv);
+    await writeFile(webTsconfigPath, previousWebTsconfig);
+  }
 
   console.log("PASS web build");
 }
@@ -522,6 +684,99 @@ async function airdrop(
   return (await response.json()) as { ledgerEntryId?: string };
 }
 
+async function feeSettings(accessToken: string) {
+  return getJson<{
+    buyerFeeRateHuman: string;
+    sellerFeeRateHuman: string;
+    feeWallet: {
+      balances: Array<{ asset: string; availableRaw: string }>;
+    };
+  }>(`${apiBaseUrl}/admin/fee-settings`, accessToken, "load fee settings");
+}
+
+async function setFeeSettings(
+  accessToken: string,
+  buyerFeeRatePercent: string,
+  sellerFeeRatePercent: string,
+  note: string,
+) {
+  const response = await fetch(`${apiBaseUrl}/admin/fee-settings`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      marketSymbol: "SWL/SWC",
+      buyerFeeRatePercent,
+      sellerFeeRatePercent,
+      note,
+    }),
+  });
+  assertOk(response, "update fee settings");
+  return (await response.json()) as {
+    buyerFeeRateHuman: string;
+    sellerFeeRateHuman: string;
+    feeWallet: {
+      balances: Array<{ asset: string; availableRaw: string }>;
+    };
+  };
+}
+
+async function expectFeeSettingsRejected(
+  accessToken: string,
+  buyerFeeRatePercent: string,
+  sellerFeeRatePercent: string,
+) {
+  const response = await fetch(`${apiBaseUrl}/admin/fee-settings`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      marketSymbol: "SWL/SWC",
+      buyerFeeRatePercent,
+      sellerFeeRatePercent,
+      note: "Smoke invalid fee settings",
+    }),
+  });
+  if (response.status < 400) {
+    throw new Error(`Expected invalid fee settings to be rejected: ${buyerFeeRatePercent}/${sellerFeeRatePercent}.`);
+  }
+}
+
+function expectFeeWalletBalanceDelta(
+  before: FeeWalletSettings,
+  after: FeeWalletSettings,
+  asset: string,
+  expectedDelta: bigint,
+) {
+  const beforeBalance = findFeeWalletBalance(before, asset);
+  const afterBalance = findFeeWalletBalance(after, asset);
+  const delta = BigInt(afterBalance.availableRaw) - BigInt(beforeBalance.availableRaw);
+  if (delta !== expectedDelta) {
+    throw new Error(
+      `Admin Fee Wallet ${asset} expected delta ${expectedDelta.toString()}, got ${delta.toString()}.`,
+    );
+  }
+}
+
+type FeeWalletSettings = {
+  feeWallet: {
+    balances: Array<{ asset: string; availableRaw: string }>;
+  };
+};
+
+function findFeeWalletBalance(settings: FeeWalletSettings, asset: string) {
+  const balances = settings.feeWallet.balances;
+  const balance = balances.find((entry) => entry.asset === asset);
+  if (!balance) {
+    throw new Error(`Expected admin Fee Wallet ${asset} balance.`);
+  }
+  return balance;
+}
+
 async function createOrder(
   accessToken: string,
   marketSymbol: string,
@@ -573,7 +828,18 @@ async function expectCreateOrderRejected(
 }
 
 async function adminTrades(accessToken: string) {
-  return getJson<Array<{ id: string; price: string; amount: string; quoteAmount: string; seller: { username: string }; buyer: { username: string } }>>(
+  return getJson<
+    Array<{
+      id: string;
+      price: string;
+      amount: string;
+      quoteAmount: string;
+      buyerFee: string;
+      sellerFee: string;
+      seller: { username: string };
+      buyer: { username: string };
+    }>
+  >(
     `${apiBaseUrl}/admin/trades`,
     accessToken,
     "load admin trades",
@@ -586,33 +852,6 @@ async function adminOrders(accessToken: string) {
     accessToken,
     "load admin orders",
   );
-}
-
-async function assertNoFeeLedgerEntries(accessToken: string) {
-  const ledger = await getJson<Array<{ type: string }>>(
-    `${apiBaseUrl}/admin/ledger`,
-    accessToken,
-    "load admin ledger for fee audit",
-  );
-  if (ledger.some((entry) => entry.type === "FEE")) {
-    throw new Error("v0.6 smoke should not create FEE ledger entries.");
-  }
-}
-
-async function assertNoTradeFeesPersisted() {
-  const client = new Client({ connectionString: databaseUrl });
-  await client.connect();
-
-  try {
-    const result = await client.query<{ count: string }>(
-      "select count(*) from trades where buyer_fee <> 0 or seller_fee <> 0",
-    );
-    if (result.rows[0]?.count !== "0") {
-      throw new Error("v0.6 trades should persist zero buyer and seller fees.");
-    }
-  } finally {
-    await client.end();
-  }
 }
 
 function expectOrderStatus(order: { status: string }, expectedStatus: string) {
@@ -665,10 +904,6 @@ async function assertExactWallet(accessToken: string, asset: string, expectedAva
 }
 
 function units(value: string) {
-  return parseDecimalToUnits(value);
-}
-
-function amountUnits(value: string) {
   return parseDecimalToUnits(value);
 }
 

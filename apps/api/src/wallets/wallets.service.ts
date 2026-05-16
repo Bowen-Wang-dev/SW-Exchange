@@ -4,25 +4,30 @@ import { DEFAULT_ASSETS } from "@sw-exchange/shared";
 import { formatMinimalUnitsToHuman } from "../common/money.js";
 import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
-import { assets, users, wallets } from "../db/schema/index.js";
+import { assets, users, wallets, walletTypeValues } from "../db/schema/index.js";
+import type { WalletType } from "../db/schema/index.js";
+
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+type DbLike = Database | Transaction;
 
 @Injectable()
 export class WalletsService {
   constructor(@Inject(DRIZZLE_DB) private readonly db: Database) {}
 
-  async ensureWalletsForUser(userId: string) {
+  async ensureWalletsForUser(userId: string, db: DbLike = this.db) {
     const activeSymbols = DEFAULT_ASSETS.map((asset) => asset.symbol);
-    const assetRows = await this.db
+    const assetRows = await db
       .select()
       .from(assets)
       .where(and(eq(assets.isActive, true), inArray(assets.symbol, activeSymbols)));
 
     for (const asset of assetRows) {
-      await this.db
+      await db
         .insert(wallets)
         .values({
           userId,
           assetId: asset.id,
+          walletType: "MAIN",
           availableBalance: 0n,
           lockedBalance: 0n,
         })
@@ -30,8 +35,34 @@ export class WalletsService {
     }
   }
 
+  async ensureAdminBucketWallets(userId: string, db: DbLike = this.db) {
+    const activeSymbols = DEFAULT_ASSETS.map((asset) => asset.symbol);
+    const assetRows = await db
+      .select()
+      .from(assets)
+      .where(and(eq(assets.isActive, true), inArray(assets.symbol, activeSymbols)));
+
+    for (const asset of assetRows) {
+      for (const walletType of walletTypeValues) {
+        await db
+          .insert(wallets)
+          .values({
+            userId,
+            assetId: asset.id,
+            walletType,
+            availableBalance: 0n,
+            lockedBalance: 0n,
+          })
+          .onConflictDoNothing();
+      }
+    }
+  }
+
   async ensureWalletsForAllUsers() {
-    const userRows = await this.db.select({ id: users.id }).from(users);
+    const userRows = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.isSystem, false));
 
     for (const user of userRows) {
       await this.ensureWalletsForUser(user.id);
@@ -46,6 +77,7 @@ export class WalletsService {
         id: wallets.id,
         userId: wallets.userId,
         assetId: wallets.assetId,
+        walletType: wallets.walletType,
         availableBalance: wallets.availableBalance,
         lockedBalance: wallets.lockedBalance,
         symbol: assets.symbol,
@@ -54,7 +86,7 @@ export class WalletsService {
       })
       .from(wallets)
       .innerJoin(assets, eq(wallets.assetId, assets.id))
-      .where(eq(wallets.userId, userId))
+      .where(and(eq(wallets.userId, userId), eq(wallets.walletType, "MAIN")))
       .orderBy(asc(assets.symbol));
 
     return rows.map((wallet) => this.formatWalletRow(wallet));
@@ -64,6 +96,7 @@ export class WalletsService {
     id?: string;
     userId?: string;
     assetId?: string;
+    walletType?: WalletType;
     availableBalance: bigint;
     lockedBalance: bigint;
     symbol: string;
@@ -76,6 +109,7 @@ export class WalletsService {
       id: wallet.id,
       userId: wallet.userId,
       assetId: wallet.assetId,
+      walletType: wallet.walletType ?? "MAIN",
       asset: wallet.symbol,
       symbol: wallet.symbol,
       name: wallet.name,

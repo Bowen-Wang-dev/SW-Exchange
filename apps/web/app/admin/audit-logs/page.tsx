@@ -53,7 +53,7 @@ export default function AdminAuditLogsPage() {
           <PageHeader
             eyebrow="Admin Audit"
             title="Audit log review"
-            description="Review admin actions newest first. Airdrops record before and after wallet state here."
+            description="Review admin actions newest first. Airdrops and fee setting changes record before and after state here."
             action={<StatusBadge label="Ops Trail" tone="warning" />}
           />
 

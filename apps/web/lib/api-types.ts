@@ -4,6 +4,7 @@ export type WalletBalance = {
   id?: string;
   userId?: string;
   assetId?: string;
+  walletType?: WalletType;
   asset: string;
   symbol: string;
   name: string;
@@ -16,14 +17,49 @@ export type WalletBalance = {
   totalRaw: string;
 };
 
+export type WalletType = "MAIN" | "FEE" | "TREASURY" | "AIRDROP" | "HOT";
+
 export type AdminWalletBalance = WalletBalance & {
   user: {
     id: string;
     email: string;
     username: string;
+    isSystem?: boolean;
   };
   email: string;
   username: string;
+  isSystem?: boolean;
+};
+
+export type AdminWalletBucketBalance = WalletBalance & {
+  walletType: WalletType;
+  displayName: string;
+  status: "ACTIVE" | "PLACEHOLDER" | "FUTURE_V1";
+};
+
+export type AdminWalletBucketTransferResponse = {
+  id: string;
+  assetSymbol: string;
+  asset: string;
+  amount: string;
+  amountRaw: string;
+  fromWalletType: WalletType;
+  toWalletType: WalletType;
+  source: {
+    walletType: WalletType;
+    available: string;
+    availableRaw: string;
+    locked: string;
+    lockedRaw: string;
+  };
+  destination: {
+    walletType: WalletType;
+    available: string;
+    availableRaw: string;
+    locked: string;
+    lockedRaw: string;
+  };
+  auditLogId: string;
 };
 
 export type AdminUser = {
@@ -33,6 +69,7 @@ export type AdminUser = {
   nickname: string | null;
   role: UserRole;
   status: UserStatus;
+  isSystem?: boolean;
   createdAt: string;
   updatedAt: string;
   created_at?: string;
@@ -244,6 +281,20 @@ export type TradeEntry = {
   amountRaw: string;
   quoteAmount: string;
   quoteAmountRaw: string;
+  buyerFee: string;
+  buyerFeeRaw: string;
+  buyerFeeAssetId: string;
+  buyerFeeAssetSymbol: string;
+  buyerFeeRateBps: number;
+  sellerFee: string;
+  sellerFeeRaw: string;
+  sellerFeeAssetId: string;
+  sellerFeeAssetSymbol: string;
+  sellerFeeRateBps: number;
+  fee?: string;
+  feeRaw?: string;
+  feeAssetSymbol?: string;
+  feeRateBps?: number;
   createdAt: string;
 };
 
@@ -258,4 +309,35 @@ export type AdminTradeEntry = TradeEntry & {
     email: string;
     username: string;
   };
+};
+
+export type FeeSettingsResponse = {
+  id: string;
+  marketId: string;
+  marketSymbol: string;
+  market: string;
+  buyerFeeRateBps: number;
+  sellerFeeRateBps: number;
+  buyerFeeRatePercent: string;
+  sellerFeeRatePercent: string;
+  buyerFeeRateHuman: string;
+  sellerFeeRateHuman: string;
+  rateUnit: "basis_points";
+  rateDenominator: number;
+  maxFeeRateBps: number;
+  maxFeeRateHuman: string;
+  isActive: boolean;
+  feeWallet: {
+    userId: string;
+    email: string;
+    username: string;
+    walletType: "FEE";
+    displayName: "Fee Wallet";
+    status: "ACTIVE";
+    balances: WalletBalance[];
+  };
+  createdAt: string;
+  updatedAt: string;
+  created_at?: string;
+  updated_at?: string;
 };

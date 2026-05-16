@@ -19,7 +19,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Matching Engine + Trades are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Fee settlement and admin wallet bucket polish are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -102,7 +102,7 @@ export default function HomePage() {
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin SWC/SWL funding is enabled"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
-              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, `Limit orders, maker-price matching, trade history, and the order book are live. Fees arrive in v0.7.`],
+              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, fee settlement, trade history, and the order book are live."],
             ]}
           />
         </div>

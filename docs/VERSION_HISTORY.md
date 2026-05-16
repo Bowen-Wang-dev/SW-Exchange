@@ -1,14 +1,77 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
 
-Next milestone: `v0.7 Admin Fee System + Fee Settlement`
+Next milestone: `v0.8 Ledger / Audit / Reports polish`
 
 ## Upcoming plan
 
-- `v0.7 Admin Fee System + Fee Settlement`
 - `v0.8 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
+
+## v0.7.1 Admin Wallet Buckets / Wallet Model Polish
+
+This milestone makes platform balances explicit admin wallet buckets while keeping normal users on simple `MAIN` wallets.
+
+### Highlights
+
+- No separate active `FEE_ACCOUNT`, `TREASURY_ACCOUNT`, `AIRDROP_ACCOUNT`, or `HOT_WALLET_ACCOUNT` users are required
+- Admin bucket types are `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT`
+- Normal users only have `MAIN` wallets
+- Admin has `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets for `SWC` and `SWL`
+- Fee settlement credits the admin `FEE` wallet, not admin `MAIN`
+- `/admin/wallets` separates Admin Wallet from System Wallets
+- Admin bucket transfers are internal, free, and only move funds between the admin user's own buckets
+- Normal transfers remain `MAIN` to `MAIN` only
+- To send system funds to a user, move bucket funds to admin `MAIN`, then use normal transfer to user `MAIN`
+
+### Developer and operational notes
+
+- Migration `drizzle/0006_admin_wallet_buckets.sql` adds `wallet_type` and admin wallet bucket ledger types.
+- Seed is idempotent and creates the admin buckets without resetting existing balances.
+- The seed step migrates legacy `FEE_ACCOUNT` SWC/SWL balances into the configured admin `FEE` bucket when present.
+- The `AIRDROP` bucket is a placeholder; current airdrops remain unlimited and do not debit it.
+- The `HOT` bucket is a future v1.x chain wallet placeholder; no blockchain, deposit, or withdraw logic is implemented.
+
+## v0.7 Admin Fee System + Fee Settlement
+
+This milestone adds admin-controlled fee settings and settles buyer/seller trading fees when SWL/SWC limit orders match.
+
+### Highlights
+
+- Admin fee settings endpoint at `GET /api/admin/fee-settings`
+- Admin fee update endpoint at `PATCH /api/admin/fee-settings` and `POST /api/admin/fee-settings`
+- `/admin/fees` page shows buyer fee rate, seller fee rate, admin Fee Wallet balances, and an update form
+- Default buyer fee and seller fee are `0.1%`
+- Fee setting changes create `UPDATE_FEE_SETTINGS` admin audit logs
+- Buyer fees are charged from received base asset `SWL`
+- Seller fees are charged from received quote asset `SWC`
+- The admin `FEE` wallet bucket receives collected fees
+- Trade records persist fee amounts, fee asset IDs, and execution-time fee rates
+- `/trades` shows the user's fee per fill
+- `/admin/trades` shows buyer and seller fees
+- `/ledger` and `/admin/ledger` render `FEE` entries clearly
+
+### Developer and operational notes
+
+- Fee rates use integer basis points: `10 bps = 0.1%`, `100 bps = 1%`, and `10000 bps = 100%`.
+- v0.7 caps configured fees at `5%` for safety.
+- Fee calculations use bigint minimal-unit math: `fee = amount * fee_bps / 10000`.
+- Fee rounding truncates toward zero. Very tiny trades may produce a zero minimal-unit fee.
+- Historical trades are not recalculated when fee settings change; the trade row stores execution-time fee amounts and rates.
+- Migration `drizzle/0005_admin_fee_system.sql` adds `fee_settings`, `users.is_system`, and trade fee asset/rate columns.
+
+### Constraints kept in place
+
+This release remains within the v0.7/v0.7.1 boundary:
+
+- No market orders
+- No maker/taker tier system
+- No user VIP levels
+- No fee discounts
+- No blockchain deposit or withdraw
+- No futures, contracts, or leverage
+- No K-line chart
 
 ## v0.6 Matching Engine + Trades + WebSocket Sync
 

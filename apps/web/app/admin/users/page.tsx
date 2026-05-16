@@ -66,11 +66,11 @@ export default function AdminUsersPage() {
                   shortId(user.id),
                   user.email,
                   user.username,
-                  user.nickname ?? "-",
+                  user.isSystem ? "System account" : user.nickname ?? "-",
                   <StatusBadge
                     key={`${user.id}-role`}
-                    label={user.role}
-                    tone={user.role === "ADMIN" ? "warning" : "info"}
+                    label={user.isSystem ? "SYSTEM" : user.role}
+                    tone={user.isSystem || user.role === "ADMIN" ? "warning" : "info"}
                   />,
                   <StatusBadge
                     key={`${user.id}-status`}

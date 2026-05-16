@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.6 Matching Engine + Trades + WebSocket Sync`
+Current completed milestone: `v0.7.1 Admin Wallet Buckets / Wallet Model Polish`
 
-Next milestone: `v0.7 Admin Fee System + Fee Settlement`
+Next milestone: `v0.8 Ledger / Audit / Reports polish`
 
 ### v0.1 Foundation - Completed
 
@@ -72,17 +72,36 @@ Next milestone: `v0.7 Admin Fee System + Fee Settlement`
 - Transaction rollback safety around matching and settlement
 - Lightweight polling sync for order book, trades, orders, and displayed balances
 - Self-trade prevention for crossed orders from the same user
-- No fee system in this milestone; fees move to v0.7
+- No fee system in this milestone; fees are completed in v0.7
 
-### v0.7 Admin Fee System + Fee Settlement
+### v0.7 Admin Fee System + Fee Settlement - Completed
 
-- Admin configurable fee settings
-- Fee rate management in the admin dashboard
-- Buyer fee rate and seller fee rate controls
-- Fee settlement
-- Fee account handling
-- Fee ledger entries
-- Admin audit logs for fee setting changes
+- Admin configurable fee settings for `SWL/SWC`
+- Default buyer and seller fee rates of `0.1%`
+- Fee rates stored as integer basis points
+- Buyer fee charged from received `SWL`
+- Seller fee charged from received `SWC`
+- Admin `FEE` wallet bucket for collected fees
+- Trade records persist fee amounts, fee asset IDs, and execution-time fee rates
+- Fee settlement uses bigint minimal-unit math and floor rounding
+- `FEE` ledger entries for user fees charged and admin Fee Wallet income
+- Admin audit logs for `UPDATE_FEE_SETTINGS`
+- `/admin/fees` dashboard page with admin Fee Wallet balances
+- User and admin trade tables show fees
+
+### v0.7.1 Admin Wallet Buckets / Wallet Model Polish - Completed
+
+- No separate active `FEE_ACCOUNT`, `TREASURY_ACCOUNT`, `AIRDROP_ACCOUNT`, or `HOT_WALLET_ACCOUNT` users are required
+- Platform balances are represented as admin wallet buckets
+- Admin wallet buckets are `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT`
+- Normal users only have `MAIN` wallets
+- Admin has `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets for `SWC` and `SWL`
+- Fee settlement credits admin `FEE`, not admin `MAIN`
+- `/admin/wallets` page has Admin Wallet and System Wallets tabs
+- Normal transfers are `MAIN` to `MAIN` only
+- Admin bucket transfers are internal, free, admin-only moves between the admin user's own buckets
+- Airdrops remain unlimited in v0.x and do not debit the `AIRDROP` bucket
+- `HOT` is a future v1.x chain wallet placeholder; no blockchain, deposit, or withdraw logic is implemented
 
 ### v0.8 Ledger / Audit / Reports polish
 
@@ -92,7 +111,12 @@ Next milestone: `v0.7 Admin Fee System + Fee Settlement`
 
 ### v1.x BSC deposit/withdraw, market orders, K-line
 
-- BSC deposit
-- BSC withdraw
+- BSC deposit address assignment may give every user/admin account an independent chain deposit address
+- Deposits will credit internal `MAIN` wallets after chain confirmation
+- Withdrawals will debit or freeze `MAIN` wallets and may broadcast from a shared `HOT` wallet
+- Deposit has no platform fee in the current plan
+- Withdraw may have network or platform fees later
+- Internal transfers remain free
+- The `HOT` wallet bucket is only a placeholder now; no chain integration exists yet
 - Market orders
 - K-line / candlestick charting
