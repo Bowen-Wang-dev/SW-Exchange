@@ -29,6 +29,7 @@ import {
 import type { WalletType } from "../db/schema/index.js";
 import { FeesService } from "../fees/fees.service.js";
 import { LedgerService } from "../ledger/ledger.service.js";
+import { MarketsService } from "../markets/markets.service.js";
 import { OrdersService } from "../orders/orders.service.js";
 import { TradesService } from "../trades/trades.service.js";
 import { TransfersService } from "../transfers/transfers.service.js";
@@ -69,6 +70,7 @@ export class AdminService {
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(FeesService) private readonly feesService: FeesService,
     @Inject(LedgerService) private readonly ledgerService: LedgerService,
+    @Inject(MarketsService) private readonly marketsService: MarketsService,
     @Inject(OrdersService) private readonly ordersService: OrdersService,
     @Inject(TradesService) private readonly tradesService: TradesService,
     @Inject(TransfersService) private readonly transfersService: TransfersService,
@@ -110,6 +112,7 @@ export class AdminService {
       [pausedAssetCount],
       [pausedMarketCount],
       feeSettings,
+      marketTicker,
       recentTrades,
       recentTransfers,
       recentAuditLogs,
@@ -135,6 +138,7 @@ export class AdminService {
       this.db.select({ value: count() }).from(assets).where(eq(assets.isActive, false)),
       this.db.select({ value: count() }).from(markets).where(eq(markets.status, "PAUSED")),
       this.feesService.getAdminFeeSettings(),
+      this.marketsService.getTicker("SWL/SWC"),
       this.tradesService.listAllForAdmin(),
       this.transfersService.listAllForAdmin(),
       this.listAuditLogs(),
@@ -153,6 +157,14 @@ export class AdminService {
       pausedAssetCount: pausedAssetCount?.value ?? 0,
       pausedMarketCount: pausedMarketCount?.value ?? 0,
       feeWalletBalances: feeSettings.feeWallet.balances,
+      marketSummary: {
+        marketSymbol: marketTicker.marketSymbol,
+        lastPrice: marketTicker.lastPrice,
+        volume24h: marketTicker.volume24h,
+        openOrderCount: marketTicker.openOrderCount,
+        totalTradeCount: marketTicker.totalTradeCount,
+        status: marketTicker.status,
+      },
       recentTrades: recentTrades.slice(0, 5),
       recentTransfers: recentTransfers.slice(0, 5),
       recentAuditLogs: recentAuditLogs.slice(0, 5),

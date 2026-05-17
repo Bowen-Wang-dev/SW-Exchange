@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
+Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
 
 ## Account Status
 
@@ -28,7 +28,17 @@ Fees go to the admin `FEE` wallet. Buyer fees are collected in `SWL`; seller fee
 
 Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP` wallet.
 
-v0.9 improves ledger and reporting labels for these buckets, but does not change the wallet bucket model or balance movement rules.
+v0.10 adds read-only SWC portfolio valuation for normal `MAIN` wallets, but does not change the wallet bucket model or balance movement rules.
+
+## Portfolio Valuation
+
+Portfolio valuation is informational only and does not move wallet balances.
+
+- `SWC` is valued at `1 SWC`
+- `SWL` is valued from the latest real `SWL/SWC` last price
+- Available and locked balances are both included in each asset total
+- If no SWL/SWC trade exists, SWL valuation remains pending and total equity is clearly SWC-only
+- No fake prices are generated
 
 ## Transfers
 

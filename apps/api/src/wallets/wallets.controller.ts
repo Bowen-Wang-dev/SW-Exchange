@@ -12,4 +12,9 @@ export class WalletsController {
   findMine(@Req() request: AuthenticatedRequest) {
     return this.walletsService.findByUserId(request.user.sub);
   }
+
+  @Get("me/valuation")
+  getMyValuation(@Req() request: AuthenticatedRequest) {
+    return this.walletsService.getValuationByUserId(request.user.sub);
+  }
 }

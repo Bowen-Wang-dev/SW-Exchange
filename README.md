@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
+Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
 
-Next milestone: `v1.x future scope`
+Next milestone: `v0.11 Asset Metadata + Icon System`
 
 This version is intentionally limited:
 
@@ -14,6 +14,7 @@ This version is intentionally limited:
 - No KYC
 - No market orders
 - No candlestick / K-line chart
+- No multi-market creation
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
@@ -48,6 +49,12 @@ Current scope:
 - Polished user and admin ledger tables with filters
 - Polished admin audit log table with readable before/after details
 - Admin reports summary cards and recent activity
+- SWL/SWC market ticker from real trades and open orders
+- Best bid and best ask from the open order book
+- Last price, 24h high/low/volume/quote volume/change from settled trades
+- User portfolio valuation in `SWC` using real balances and latest SWL/SWC last price
+- Wallet estimated value column for priced assets
+- Admin market summary card for last price, 24h volume, open orders, and total trades
 
 ## Milestone status
 
@@ -61,15 +68,37 @@ Current scope:
 - `v0.7.1 Admin Wallet Buckets / Wallet Model Polish` completed
 - `v0.8 Admin Controls + User Status Management` completed
 - `v0.9 Ledger / Audit / Reports Polish` completed
+- `v0.10 Market Data + Portfolio Valuation` completed
 
-- Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
-- Next milestone: `v1.x future scope`
+- Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
+- Next milestone: `v0.11 Asset Metadata + Icon System`
 
 ## Planned milestones
 
-- `v1.x BSC deposit/withdraw, market orders, K-line`
+- `v0.11 Asset Metadata + Icon System`
+- `v0.12 Multi-Market Foundation`
+- `v0.13 Admin Asset / Market Creation`
+- `v0.14 K-line / Candlestick Chart`
+- `v0.15 Market Orders / Taker Flow`
+- `v1.x Chain Gateway`
 
-See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), and [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md) for milestone planning, released history, and the current wallet bucket model.
+See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md), and [docs/FUTURE_ROADMAP.md](docs/FUTURE_ROADMAP.md) for milestone planning, released history, the current wallet bucket model, and future product direction.
+
+## v0.10 Market Data + Portfolio Valuation
+
+v0.10 adds market ticker data and SWC-denominated portfolio valuation without changing matching, fees, transfer rules, wallet buckets, or status controls.
+
+- `GET /api/markets/ticker?marketSymbol=SWL/SWC` returns last price, best bid, best ask, 24h high/low/volume/quote volume/change, 24h trade count, and updated time
+- `GET /api/markets/summary` returns a market-summary array shaped for future multi-market support
+- `GET /api/wallets/me/valuation` returns total equity in `SWC` and per-asset available, locked, total, price, and value
+- `SWC` is valued at `1 SWC`; `SWL` uses the latest real `SWL/SWC` trade price
+- If no SWL/SWC trade exists, SWL valuation remains pending and no fake SWL price is shown
+- `/trade` shows the ticker strip with last price, 24h change, 24h high/low/volume, best bid, and best ask
+- `/markets` shows the SWL/SWC market table with ticker values and status
+- `/dashboard` shows total equity, SWC balance/value, SWL balance/value, and pending valuation copy when no last price exists
+- `/wallet` includes estimated SWC value where pricing is available
+- `/admin` includes a market summary for last price, 24h volume, open orders, and total trades
+- No K-line, market orders, multi-market creation, deposit, withdraw, blockchain integration, chain addresses, admin asset creation, or admin market creation is implemented
 
 ## v0.9 Ledger / Audit / Reports Polish
 

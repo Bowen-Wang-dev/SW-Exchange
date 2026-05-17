@@ -97,10 +97,71 @@ export type MarketRow = {
   status: MarketStatus;
   baseAssetId: string;
   quoteAssetId: string;
+  baseAssetSymbol?: string;
+  quoteAssetSymbol?: string;
   priceDecimals: number;
   amountDecimals: number;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type MarketTicker = {
+  marketSymbol: string;
+  baseAssetSymbol: string;
+  quoteAssetSymbol: string;
+  lastPrice: string | null;
+  bestBid: string | null;
+  bestAsk: string | null;
+  high24h: string | null;
+  low24h: string | null;
+  volume24h: string;
+  quoteVolume24h: string;
+  change24h: string | null;
+  change24hPercent: string | null;
+  tradeCount24h: number;
+  totalTradeCount?: number;
+  openOrderCount?: number;
+  status?: MarketStatus;
+  updatedAt: string;
+};
+
+export type MarketSummary = {
+  marketSymbol: string;
+  baseAssetSymbol: string;
+  quoteAssetSymbol: string;
+  lastPrice: string | null;
+  bestBid: string | null;
+  bestAsk: string | null;
+  volume24h: string;
+  quoteVolume24h: string;
+  change24hPercent: string | null;
+  status: MarketStatus;
+};
+
+export type PortfolioValuationAsset = {
+  assetSymbol: string;
+  asset?: string;
+  assetName: string;
+  name?: string;
+  available: string;
+  locked: string;
+  total: string;
+  availableRaw: string;
+  lockedRaw: string;
+  totalRaw: string;
+  priceInSWC: string | null;
+  priceInSWCRaw: string | null;
+  valueInSWC: string | null;
+  valueInSWCRaw: string | null;
+};
+
+export type PortfolioValuation = {
+  quoteAssetSymbol: "SWC" | string;
+  totalEquity: string;
+  totalEquityRaw: string;
+  hasUnpricedAssets: boolean;
+  assets: PortfolioValuationAsset[];
+  updatedAt: string;
 };
 
 export type LedgerEntry = {
@@ -174,6 +235,14 @@ export type AdminReportsSummary = {
   pausedAssetCount: number;
   pausedMarketCount: number;
   feeWalletBalances: WalletBalance[];
+  marketSummary?: {
+    marketSymbol: string;
+    lastPrice: string | null;
+    volume24h: string;
+    openOrderCount: number;
+    totalTradeCount: number;
+    status: MarketStatus;
+  };
   recentTrades: AdminTradeEntry[];
   recentTransfers: AdminTransferEntry[];
   recentAuditLogs: AdminAuditLog[];

@@ -46,7 +46,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.9 Ledger / Audit / Reports Polish. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.10 Market Data + Portfolio Valuation. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -91,6 +91,20 @@ export function AdminDashboardContent() {
           badgeLabel="Live"
           value={formatCount(summary?.openOrderCount)}
           hint="OPEN and PARTIAL_FILLED limit orders."
+          tone="success"
+        />
+        <StatCard
+          label="Last Price"
+          badgeLabel="SWL/SWC"
+          value={formatMarketValue(summary?.marketSummary?.lastPrice, "SWC")}
+          hint="Latest settled trade price; empty until trades exist."
+          tone="info"
+        />
+        <StatCard
+          label="24h Volume"
+          badgeLabel="SWL/SWC"
+          value={formatMarketValue(summary?.marketSummary?.volume24h, "SWL")}
+          hint="Settled SWL amount traded in the last 24 hours."
           tone="success"
         />
         <StatCard
@@ -189,11 +203,30 @@ export function AdminDashboardContent() {
             ["Orders", <StatusBadge key="orders" label="Live" tone="success" />, "Limit order matching, fills, and cancel review"],
             ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled SWL/SWC trade review"],
             ["Fees", <StatusBadge key="fees" label="Live" tone="warning" />, "Admin fee settings and Fee Wallet balances"],
-            ["Reports", <StatusBadge key="reports" label="v0.9" tone="info" />, "Summary cards and recent activity"],
+            ["Market Data", <StatusBadge key="market-data" label="v0.10" tone="info" />, "Ticker, 24h volume, open orders, and total trades"],
+            ["Reports", <StatusBadge key="reports" label="v0.10" tone="info" />, "Summary cards and recent activity"],
             ["Audit", <StatusBadge key="audit" label="Live" tone="info" />, "Airdrop, fee, bucket, and status control audit trail"],
           ]}
         />
       </div>
+
+      <DataTable
+        columns={["Market", "Last Price", "24h Volume", "Open Orders", "Total Trades", "Status"]}
+        rows={[
+          [
+            summary?.marketSummary?.marketSymbol ?? "SWL/SWC",
+            formatMarketValue(summary?.marketSummary?.lastPrice, "SWC"),
+            formatMarketValue(summary?.marketSummary?.volume24h, "SWL"),
+            formatCount(summary?.marketSummary?.openOrderCount),
+            formatCount(summary?.marketSummary?.totalTradeCount),
+            <StatusBadge
+              key="admin-market-status"
+              label={summary?.marketSummary?.status ?? "ACTIVE"}
+              tone={summary?.marketSummary?.status === "PAUSED" ? "warning" : "success"}
+            />,
+          ],
+        ]}
+      />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <RecentTrades trades={summary?.recentTrades ?? []} />
@@ -285,4 +318,12 @@ function Notice({ message }: { message: string }) {
 
 function formatCount(value?: number) {
   return typeof value === "number" ? String(value) : "-";
+}
+
+function formatMarketValue(value?: string | null, suffix?: string) {
+  if (!value) {
+    return "—";
+  }
+
+  return suffix ? `${value} ${suffix}` : value;
 }

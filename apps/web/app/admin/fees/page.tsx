@@ -83,7 +83,7 @@ export default function AdminFeesPage() {
             eyebrow="Admin Fees"
             title="Trading fee control"
             description="Configure SWL/SWC buyer and seller fee rates. Fee changes apply only to future trades."
-            action={<StatusBadge label="v0.9 Live" tone="success" />}
+            action={<StatusBadge label="v0.10 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

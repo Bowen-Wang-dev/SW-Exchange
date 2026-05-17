@@ -8,10 +8,13 @@ import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { WalletBalance } from "@/lib/api-types";
+import type { PortfolioValuation, WalletBalance } from "@/lib/api-types";
+
+const POLL_INTERVAL_MS = 5000;
 
 export default function WalletPage() {
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
+  const [valuation, setValuation] = useState<PortfolioValuation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,9 +24,13 @@ export default function WalletPage() {
     async function loadWallets() {
       try {
         setIsLoading(true);
-        const response = await apiRequest<WalletBalance[]>("/wallets/me");
+        const [walletResponse, valuationResponse] = await Promise.all([
+          apiRequest<WalletBalance[]>("/wallets/me"),
+          apiRequest<PortfolioValuation>("/wallets/me/valuation"),
+        ]);
         if (active) {
-          setWallets(response);
+          setWallets(walletResponse);
+          setValuation(valuationResponse);
           setError(null);
         }
       } catch (loadError) {
@@ -42,9 +49,13 @@ export default function WalletPage() {
     }
 
     void loadWallets();
+    const intervalId = window.setInterval(() => {
+      void loadWallets();
+    }, POLL_INTERVAL_MS);
 
     return () => {
       active = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 
@@ -65,7 +76,7 @@ export default function WalletPage() {
           {!isLoading && !error ? (
             wallets.length > 0 ? (
               <DataTable
-                columns={["Asset", "Name", "Available", "Locked", "Total", "Actions"]}
+                columns={["Asset", "Name", "Available", "Locked", "Total", "Est. Value SWC", "Actions"]}
                 rows={wallets.map((wallet) => [
                   <span key={`${wallet.asset}-asset`} className="font-medium text-white">
                     {wallet.asset}
@@ -74,6 +85,7 @@ export default function WalletPage() {
                   wallet.available,
                   wallet.locked,
                   wallet.total,
+                  formatWalletValue(valuation, wallet.asset),
                   <div key={`${wallet.asset}-actions`} className="flex flex-wrap gap-2">
                     <DisabledActionButton label="Deposit" />
                     <DisabledActionButton label="Withdraw" />
@@ -108,6 +120,16 @@ function Notice({ tone, message }: { tone: "info" | "danger"; message: string })
       : "border-blue-300/20 bg-blue-300/10 text-blue-100";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+}
+
+function formatWalletValue(valuation: PortfolioValuation | null, assetSymbol: string) {
+  const asset = valuation?.assets.find((entry) => entry.assetSymbol === assetSymbol);
+
+  if (!asset || asset.valueInSWC === null) {
+    return "—";
+  }
+
+  return `${asset.valueInSWC} SWC`;
 }
 
 function DisabledActionButton({ label }: { label: string }) {

@@ -19,7 +19,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Fee settlement and admin wallet bucket polish are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and the single SWL/SWC market. Market data, portfolio valuation, fee settlement, and admin wallet bucket polish are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -99,10 +99,10 @@ export default function HomePage() {
             columns={["Module", "Status", "Summary"]}
             rows={[
               ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
-              ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances"],
+              ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances and SWC valuation"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin SWC/SWL funding is enabled"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
-              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, fee settlement, trade history, and the order book are live."],
+              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, ticker data, fee settlement, trade history, and the order book are live."],
             ]}
           />
         </div>

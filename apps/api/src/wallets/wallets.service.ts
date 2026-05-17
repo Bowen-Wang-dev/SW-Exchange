@@ -6,13 +6,17 @@ import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
 import { assets, users, wallets, walletTypeValues } from "../db/schema/index.js";
 import type { WalletType } from "../db/schema/index.js";
+import { MarketsService } from "../markets/markets.service.js";
 
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type DbLike = Database | Transaction;
 
 @Injectable()
 export class WalletsService {
-  constructor(@Inject(DRIZZLE_DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE_DB) private readonly db: Database,
+    @Inject(MarketsService) private readonly marketsService: MarketsService,
+  ) {}
 
   async ensureWalletsForUser(userId: string, db: DbLike = this.db) {
     const activeSymbols = DEFAULT_ASSETS.map((asset) => asset.symbol);
@@ -92,6 +96,94 @@ export class WalletsService {
     return rows.map((wallet) => this.formatWalletRow(wallet));
   }
 
+  async getValuationByUserId(userId: string) {
+    await this.ensureWalletsForUser(userId);
+
+    const [walletRows, latestPrice] = await Promise.all([
+      this.db
+        .select({
+          id: wallets.id,
+          userId: wallets.userId,
+          assetId: wallets.assetId,
+          walletType: wallets.walletType,
+          availableBalance: wallets.availableBalance,
+          lockedBalance: wallets.lockedBalance,
+          symbol: assets.symbol,
+          name: assets.name,
+          decimals: assets.decimals,
+        })
+        .from(wallets)
+        .innerJoin(assets, eq(wallets.assetId, assets.id))
+        .where(and(eq(wallets.userId, userId), eq(wallets.walletType, "MAIN")))
+        .orderBy(asc(assets.symbol)),
+      this.marketsService.getLatestPrice("SWL/SWC"),
+    ]);
+
+    const quoteAssetDecimals = latestPrice.market.quoteAssetDecimals;
+    let totalEquity = 0n;
+    let hasUnpricedBalance = false;
+
+    const valuationAssets = walletRows.map((wallet) => {
+      const total = wallet.availableBalance + wallet.lockedBalance;
+      const priceInSwc = this.getAssetPriceInSwc(
+        wallet.symbol,
+        latestPrice.price,
+        quoteAssetDecimals,
+      );
+      const valueInSwc =
+        priceInSwc === null
+          ? null
+          : this.calculateValueInQuoteUnits({
+              amount: total,
+              price: priceInSwc,
+              amountDecimals: wallet.decimals,
+              priceDecimals: wallet.symbol === "SWC" ? quoteAssetDecimals : latestPrice.priceDecimals,
+              quoteDecimals: quoteAssetDecimals,
+            });
+
+      if (valueInSwc === null && total > 0n) {
+        hasUnpricedBalance = true;
+      } else if (valueInSwc !== null) {
+        totalEquity += valueInSwc;
+      }
+
+      return {
+        assetSymbol: wallet.symbol,
+        asset: wallet.symbol,
+        assetName: wallet.name,
+        name: wallet.name,
+        available: formatMinimalUnitsToHuman(wallet.availableBalance, wallet.decimals),
+        locked: formatMinimalUnitsToHuman(wallet.lockedBalance, wallet.decimals),
+        total: formatMinimalUnitsToHuman(total, wallet.decimals),
+        availableRaw: wallet.availableBalance.toString(),
+        lockedRaw: wallet.lockedBalance.toString(),
+        totalRaw: total.toString(),
+        priceInSWC:
+          priceInSwc === null
+            ? null
+            : formatMinimalUnitsToHuman(
+                priceInSwc,
+                wallet.symbol === "SWC" ? quoteAssetDecimals : latestPrice.priceDecimals,
+              ),
+        priceInSWCRaw: priceInSwc?.toString() ?? null,
+        valueInSWC:
+          valueInSwc === null
+            ? null
+            : formatMinimalUnitsToHuman(valueInSwc, quoteAssetDecimals),
+        valueInSWCRaw: valueInSwc?.toString() ?? null,
+      };
+    });
+
+    return {
+      quoteAssetSymbol: latestPrice.market.quoteAssetSymbol,
+      totalEquity: formatMinimalUnitsToHuman(totalEquity, quoteAssetDecimals),
+      totalEquityRaw: totalEquity.toString(),
+      hasUnpricedAssets: hasUnpricedBalance,
+      assets: valuationAssets,
+      updatedAt: new Date(),
+    };
+  }
+
   formatWalletRow(wallet: {
     id?: string;
     userId?: string;
@@ -121,5 +213,38 @@ export class WalletsService {
       lockedRaw: wallet.lockedBalance.toString(),
       totalRaw: total.toString(),
     };
+  }
+
+  private getAssetPriceInSwc(
+    symbol: string,
+    latestSwlPrice: bigint | null,
+    quoteAssetDecimals: number,
+  ) {
+    if (symbol === "SWC") {
+      return 10n ** BigInt(quoteAssetDecimals);
+    }
+
+    if (symbol === "SWL") {
+      return latestSwlPrice;
+    }
+
+    return null;
+  }
+
+  private calculateValueInQuoteUnits(input: {
+    amount: bigint;
+    price: bigint;
+    amountDecimals: number;
+    priceDecimals: number;
+    quoteDecimals: number;
+  }) {
+    if (input.amount <= 0n) {
+      return 0n;
+    }
+
+    return (
+      (input.amount * input.price * 10n ** BigInt(input.quoteDecimals)) /
+      10n ** BigInt(input.amountDecimals + input.priceDecimals)
+    );
   }
 }

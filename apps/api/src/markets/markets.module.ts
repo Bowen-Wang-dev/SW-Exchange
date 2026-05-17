@@ -5,5 +5,6 @@ import { MarketsService } from "./markets.service.js";
 @Module({
   controllers: [MarketsController],
   providers: [MarketsService],
+  exports: [MarketsService],
 })
 export class MarketsModule {}

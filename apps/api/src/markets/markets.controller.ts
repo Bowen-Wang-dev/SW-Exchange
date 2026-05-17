@@ -1,4 +1,4 @@
-import { Controller, Get, Inject } from "@nestjs/common";
+import { Controller, Get, Inject, Query } from "@nestjs/common";
 import { Public } from "../common/decorators/public.decorator.js";
 import { MarketsService } from "./markets.service.js";
 
@@ -10,5 +10,17 @@ export class MarketsController {
   @Get()
   findAll() {
     return this.marketsService.findAll();
+  }
+
+  @Public()
+  @Get("ticker")
+  getTicker(@Query("marketSymbol") marketSymbol?: string) {
+    return this.marketsService.getTicker(marketSymbol);
+  }
+
+  @Public()
+  @Get("summary")
+  getSummary() {
+    return this.marketsService.getSummary();
   }
 }

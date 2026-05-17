@@ -11,6 +11,7 @@ import type {
   OrderBook,
   OrderBookLevel,
   MarketRow,
+  MarketTicker,
   OrderEntry,
   OrderSide,
   OrderStatus,
@@ -30,6 +31,7 @@ export default function TradePage() {
   const [amount, setAmount] = useState("");
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [marketStatus, setMarketStatus] = useState<MarketRow["status"]>("ACTIVE");
+  const [ticker, setTicker] = useState<MarketTicker | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBook | null>(null);
   const [myOrders, setMyOrders] = useState<OrderEntry[]>([]);
   const [recentTrades, setRecentTrades] = useState<TradeEntry[]>([]);
@@ -58,18 +60,20 @@ export default function TradePage() {
         setIsLoading(true);
       }
 
-      const [bookResponse, ordersResponse, walletResponse, tradesResponse, marketsResponse] =
+      const [bookResponse, ordersResponse, walletResponse, tradesResponse, marketsResponse, tickerResponse] =
         await Promise.all([
           apiRequest<OrderBook>(`/order-book?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
           apiRequest<OrderEntry[]>(`/orders/me?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
           apiRequest<WalletBalance[]>("/wallets/me"),
           apiRequest<TradeEntry[]>(`/trades/recent?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
           apiRequest<MarketRow[]>("/markets"),
+          apiRequest<MarketTicker>(`/markets/ticker?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
         ]);
       const currentMarket = marketsResponse.find((market) => market.symbol === MARKET_SYMBOL);
 
       setOrderBook(bookResponse);
       setMarketStatus(currentMarket?.status ?? "ACTIVE");
+      setTicker(tickerResponse);
       setMyOrders(
         ordersResponse.filter(
           (order) => isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n,
@@ -146,7 +150,7 @@ export default function TradePage() {
             eyebrow="Trade"
             title="SWL/SWC spot terminal"
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.9 Live" tone="success" />}
+            action={<StatusBadge label="v0.10 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -155,6 +159,23 @@ export default function TradePage() {
             <Notice tone="info" message="Market paused by admin." />
           ) : null}
           {isLoading ? <Notice tone="info" message="Loading trade data..." /> : null}
+
+          <section className="panel rounded-3xl p-5">
+            <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
+              <TickerMetric label="Market" value={ticker?.marketSymbol ?? MARKET_SYMBOL} />
+              <TickerMetric label="Last Price" value={formatTickerValue(ticker?.lastPrice, "SWC")} />
+              <TickerMetric
+                label="24h Change"
+                value={formatPercent(ticker?.change24hPercent)}
+                tone={changeTone(ticker?.change24hPercent)}
+              />
+              <TickerMetric label="24h High" value={formatTickerValue(ticker?.high24h, "SWC")} />
+              <TickerMetric label="24h Low" value={formatTickerValue(ticker?.low24h, "SWC")} />
+              <TickerMetric label="24h Volume" value={formatTickerValue(ticker?.volume24h, "SWL")} />
+              <TickerMetric label="Best Bid" value={formatTickerValue(ticker?.bestBid, "SWC")} />
+              <TickerMetric label="Best Ask" value={formatTickerValue(ticker?.bestAsk, "SWC")} />
+            </div>
+          </section>
 
           <div className="grid gap-4 xl:grid-cols-[0.9fr_1fr_0.85fr]">
             <section className="panel rounded-3xl p-5">
@@ -354,6 +375,32 @@ function BalanceTile({ label, value }: { label: string; value: string }) {
   );
 }
 
+function TickerMetric({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "positive" | "negative";
+}) {
+  const toneClass =
+    tone === "positive"
+      ? "text-emerald-300"
+      : tone === "negative"
+        ? "text-rose-300"
+        : "text-white";
+
+  return (
+    <div className="min-w-0">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+        {label}
+      </p>
+      <p className={`mt-1 break-words text-sm font-semibold ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
 function SideText({ side }: { side: OrderSide }) {
   return (
     <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
@@ -392,6 +439,30 @@ function RecentTradesTable({ trades }: { trades: TradeEntry[] }) {
 
 function isOpenOrder(status: OrderStatus) {
   return status === "OPEN" || status === "PARTIAL_FILLED";
+}
+
+function formatTickerValue(value?: string | null, suffix?: string) {
+  if (!value) {
+    return "—";
+  }
+
+  return suffix ? `${value} ${suffix}` : value;
+}
+
+function formatPercent(value?: string | null) {
+  if (!value) {
+    return "—";
+  }
+
+  return `${value}%`;
+}
+
+function changeTone(value?: string | null): "neutral" | "positive" | "negative" {
+  if (!value || value === "0") {
+    return "neutral";
+  }
+
+  return value.startsWith("-") ? "negative" : "positive";
 }
 
 function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning" | "danger" | "info" {

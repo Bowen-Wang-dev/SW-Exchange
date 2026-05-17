@@ -1,12 +1,55 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
+Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
 
-Next milestone: `v1.x future scope`
+Next milestone: `v0.11 Asset Metadata + Icon System`
 
 ## Upcoming plan
 
-- `v1.x BSC deposit/withdraw, market orders, K-line`
+- `v0.11 Asset Metadata + Icon System`
+- `v0.12 Multi-Market Foundation`
+- `v0.13 Admin Asset / Market Creation`
+- `v0.14 K-line / Candlestick Chart`
+- `v0.15 Market Orders / Taker Flow`
+- `v1.x Chain Gateway`
+
+## v0.10 Market Data + Portfolio Valuation
+
+This milestone adds real market ticker data and SWC-denominated portfolio valuation while keeping exchange execution behavior unchanged.
+
+### Highlights
+
+- Market ticker endpoint at `GET /api/markets/ticker?marketSymbol=SWL/SWC`
+- Market summary endpoint at `GET /api/markets/summary`
+- Portfolio valuation endpoint at `GET /api/wallets/me/valuation`
+- Best bid and best ask are derived from open limit orders
+- Last price, 24h high, 24h low, 24h volume, 24h quote volume, 24h change, and 24h trade count are derived from settled trades
+- `/trade` shows market, last price, 24h change, 24h high/low/volume, best bid, and best ask
+- `/markets` shows SWL/SWC ticker values and market status
+- `/dashboard` shows total equity in `SWC`, SWC balance/value, and SWL balance/value
+- `/wallet` shows estimated value in `SWC` where pricing is available
+- `/admin` shows last price, 24h volume, open orders, and total trades for SWL/SWC
+
+### Developer and operational notes
+
+- No schema migration was required.
+- Financial calculations use bigint minimal-unit math; API responses expose human-readable decimal strings.
+- `SWC` is valued at `1 SWC`.
+- `SWL` uses the latest real `SWL/SWC` trade price.
+- If no SWL/SWC trade exists, SWL valuation is pending and no fake price is emitted.
+- 24h change compares last price to the closest trade at or before the 24h window, or the earliest trade inside the window when no earlier reference exists.
+- Matching price-time behavior, fee calculation, transfer rules, wallet bucket behavior, and user/asset/market status behavior were not changed.
+
+### Constraints kept in place
+
+- No K-line chart
+- No market orders
+- No multi-market creation
+- No admin asset creation
+- No admin market creation
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
 
 ## v0.9 Ledger / Audit / Reports Polish
 

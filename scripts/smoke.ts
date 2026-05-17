@@ -77,6 +77,7 @@ async function main() {
   await testV04TransferFlow(auth);
   await testV07FeeFlow(auth);
   await testV06OrderFlow(auth);
+  await testV10MarketDataAndValuation(auth);
   await testV08AdminControlsFlow(auth);
   await resetV08OperationalControls(auth.adminAccessToken);
   await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
@@ -725,6 +726,99 @@ async function testV08AdminControlsFlow(auth: {
   }
 
   console.log("PASS v0.8 admin user, asset, and market controls");
+}
+
+async function testV10MarketDataAndValuation(auth: {
+  userAccessToken: string;
+  adminAccessToken: string;
+}) {
+  const marketQuery = encodeURIComponent("SWL/SWC");
+  const ticker = await getJson<{
+    marketSymbol: string;
+    baseAssetSymbol: string;
+    quoteAssetSymbol: string;
+    lastPrice: string | null;
+    bestBid: string | null;
+    bestAsk: string | null;
+    high24h: string | null;
+    low24h: string | null;
+    volume24h: string;
+    quoteVolume24h: string;
+    change24h: string | null;
+    change24hPercent: string | null;
+    tradeCount24h: number;
+  }>(
+    `${apiBaseUrl}/markets/ticker?marketSymbol=${marketQuery}`,
+    auth.userAccessToken,
+    "load v0.10 market ticker",
+  );
+
+  if (
+    ticker.marketSymbol !== "SWL/SWC" ||
+    ticker.baseAssetSymbol !== "SWL" ||
+    ticker.quoteAssetSymbol !== "SWC"
+  ) {
+    throw new Error(`Unexpected ticker market metadata: ${JSON.stringify(ticker)}`);
+  }
+
+  if (ticker.lastPrice === null || ticker.high24h === null || ticker.low24h === null) {
+    throw new Error(`Ticker should use real settled trades, got ${JSON.stringify(ticker)}`);
+  }
+
+  if (BigInt(parseDecimalToUnits(ticker.volume24h)) <= 0n) {
+    throw new Error(`Ticker 24h volume should be positive after smoke trades, got ${ticker.volume24h}.`);
+  }
+
+  const summary = await getJson<Array<{ marketSymbol: string; lastPrice: string | null; status: string }>>(
+    `${apiBaseUrl}/markets/summary`,
+    auth.userAccessToken,
+    "load v0.10 market summary",
+  );
+  const swlSwcSummary = summary.find((entry) => entry.marketSymbol === "SWL/SWC");
+  if (!swlSwcSummary || swlSwcSummary.lastPrice !== ticker.lastPrice) {
+    throw new Error("Market summary should include SWL/SWC with the same last price as ticker.");
+  }
+
+  const valuation = await getJson<{
+    quoteAssetSymbol: string;
+    totalEquity: string;
+    hasUnpricedAssets: boolean;
+    assets: Array<{
+      assetSymbol: string;
+      total: string;
+      priceInSWC: string | null;
+      valueInSWC: string | null;
+    }>;
+  }>(`${apiBaseUrl}/wallets/me/valuation`, auth.userAccessToken, "load v0.10 wallet valuation");
+  const swcValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWC");
+  const swlValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWL");
+
+  if (valuation.quoteAssetSymbol !== "SWC" || !swcValuation || !swlValuation) {
+    throw new Error(`Unexpected valuation payload: ${JSON.stringify(valuation)}`);
+  }
+
+  if (swcValuation.priceInSWC !== "1") {
+    throw new Error(`SWC valuation should be fixed at 1 SWC, got ${swcValuation.priceInSWC}.`);
+  }
+
+  if (swlValuation.priceInSWC !== ticker.lastPrice || swlValuation.valueInSWC === null) {
+    throw new Error("SWL valuation should use the latest SWL/SWC last price after trades exist.");
+  }
+
+  const adminSummary = await getJson<{ marketSummary?: { marketSymbol: string; totalTradeCount: number } }>(
+    `${apiBaseUrl}/admin/reports/summary`,
+    auth.adminAccessToken,
+    "load v0.10 admin market summary",
+  );
+  if (
+    !adminSummary.marketSummary ||
+    adminSummary.marketSummary.marketSymbol !== "SWL/SWC" ||
+    adminSummary.marketSummary.totalTradeCount <= 0
+  ) {
+    throw new Error("Admin report summary should include SWL/SWC market data.");
+  }
+
+  console.log("PASS v0.10 market ticker, summary, wallet valuation, and admin market data");
 }
 
 async function testWebBuild() {

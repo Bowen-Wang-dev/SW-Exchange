@@ -6,49 +6,57 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
-import type { WalletBalance } from "@/lib/api-types";
+import type { PortfolioValuation } from "@/lib/api-types";
 import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardContent() {
   const { user } = useAuth();
-  const [wallets, setWallets] = useState<WalletBalance[]>([]);
+  const [valuation, setValuation] = useState<PortfolioValuation | null>(null);
 
   useEffect(() => {
     let active = true;
 
-    async function loadWallets() {
+    async function loadValuation() {
       try {
-        const response = await apiRequest<WalletBalance[]>("/wallets/me");
+        const response = await apiRequest<PortfolioValuation>("/wallets/me/valuation");
         if (active) {
-          setWallets(response);
+          setValuation(response);
         }
       } catch {
         if (active) {
-          setWallets([]);
+          setValuation(null);
         }
       }
     }
 
-    void loadWallets();
+    void loadValuation();
+
+    const intervalId = window.setInterval(() => {
+      void loadValuation();
+    }, 5000);
 
     return () => {
       active = false;
+      window.clearInterval(intervalId);
     };
   }, []);
 
-  const swcWallet = wallets.find((wallet) => wallet.asset === "SWC");
-  const swlWallet = wallets.find((wallet) => wallet.asset === "SWL");
-  const swcBalance = swcWallet?.available ?? "0";
-  const swlBalance = swlWallet?.available ?? "0";
-  const swcTotalEquity = `${swcWallet?.total ?? "0"} SWC`;
+  const swcAsset = valuation?.assets.find((asset) => asset.assetSymbol === "SWC");
+  const swlAsset = valuation?.assets.find((asset) => asset.assetSymbol === "SWL");
+  const swcBalance = swcAsset?.total ?? "0";
+  const swcValue = swcAsset?.valueInSWC ?? "0";
+  const swlBalance = swlAsset?.total ?? "0";
+  const swlValue = swlAsset?.valueInSWC;
+  const totalEquity = `${valuation?.totalEquity ?? "0"} SWC`;
+  const swlValuationPending = Boolean(swlAsset && swlAsset.priceInSWC === null);
 
   return (
     <div className="space-y-4">
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.9 console shows live balances, internal transfers, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.10 console shows live balances, market ticker data, SWC portfolio valuation, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
         action={
           <StatusBadge
             label={user?.status ?? "ACTIVE"}
@@ -61,22 +69,30 @@ export function DashboardContent() {
         <StatCard
           label="Total Equity"
           badgeLabel="Live"
-          value={swcTotalEquity}
-          hint="SWC-denominated wallet total. SWL valuation remains a manual estimate in v0.x."
+          value={totalEquity}
+          hint={
+            swlValuationPending
+              ? "SWC-only total until SWL has a last traded price."
+              : "SWC-denominated value including available and locked balances."
+          }
           tone="info"
         />
         <StatCard
-          label="SWC Balance"
+          label="SWC Balance/Value"
           badgeLabel="Live"
-          value={swcBalance}
-          hint="Live available SWC wallet balance."
+          value={`${swcBalance} SWC`}
+          hint={`Estimated value: ${swcValue} SWC.`}
           tone="success"
         />
         <StatCard
-          label="SWL Balance"
-          badgeLabel="Live"
-          value={swlBalance}
-          hint="Live available SWL wallet balance."
+          label="SWL Balance/Value"
+          badgeLabel={swlValuationPending ? "Pending" : "Live"}
+          value={`${swlBalance} SWL`}
+          hint={
+            swlValuationPending
+              ? "SWL valuation pending until trades exist."
+              : `Estimated value: ${swlValue ?? "0"} SWC at last price ${swlAsset?.priceInSWC ?? "—"}.`
+          }
           tone="warning"
         />
         <StatCard
@@ -121,14 +137,23 @@ export function DashboardContent() {
         </section>
 
         <DataTable
-          columns={["Market", "Status", "Bid", "Ask", "Note"]}
+          columns={["Asset", "Total", "Price in SWC", "Value in SWC", "Note"]}
           rows={[
             [
-              "SWL/SWC",
-              <StatusBadge key="market-status" label="Live" tone="success" />,
-              "—",
-              "—",
-              "Limit orders, maker-price matching, trades, configurable fees, and polling sync are live.",
+              "SWC",
+              `${swcAsset?.total ?? "0"} SWC`,
+              "1",
+              `${swcAsset?.valueInSWC ?? "0"} SWC`,
+              "Quote asset; valued at 1 SWC.",
+            ],
+            [
+              "SWL",
+              `${swlAsset?.total ?? "0"} SWL`,
+              swlAsset?.priceInSWC ?? "—",
+              swlAsset?.valueInSWC ? `${swlAsset.valueInSWC} SWC` : "—",
+              swlValuationPending
+                ? "SWL valuation pending until trades exist."
+                : "Valued from the latest SWL/SWC trade.",
             ],
           ]}
         />
