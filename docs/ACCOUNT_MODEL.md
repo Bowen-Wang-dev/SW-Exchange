@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.8 Admin Controls + User Status Management`
+Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
 
 ## Account Status
 
@@ -10,7 +10,7 @@ User statuses are:
 - `FROZEN`: can login and view dashboard, wallets, ledger, orders, and trades, but cannot transfer, place orders, cancel orders, or trade through matching
 - `BANNED`: cannot login; existing banned sessions are rejected by authenticated API requests
 
-Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the safer/simple v0.8 rule.
+Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the safer/simple v0.x rule.
 
 ## Wallet Buckets
 
@@ -27,6 +27,8 @@ The admin user has:
 Fees go to the admin `FEE` wallet. Buyer fees are collected in `SWL`; seller fees are collected in `SWC`.
 
 Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP` wallet.
+
+v0.9 improves ledger and reporting labels for these buckets, but does not change the wallet bucket model or balance movement rules.
 
 ## Transfers
 

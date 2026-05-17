@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { formatMinimalUnitsToHuman, formatSignedMinimalUnitsToHuman } from "../common/money.js";
 import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
-import { assets, ledgerEntries, users } from "../db/schema/index.js";
+import { adminAuditLogs, assets, ledgerEntries, users } from "../db/schema/index.js";
 
 @Injectable()
 export class LedgerService {
@@ -43,6 +43,9 @@ export class LedgerService {
         userId: ledgerEntries.userId,
         userEmail: users.email,
         username: users.username,
+        userRole: users.role,
+        userStatus: users.status,
+        isSystem: users.isSystem,
         assetId: ledgerEntries.assetId,
         type: ledgerEntries.type,
         amount: ledgerEntries.amount,
@@ -52,6 +55,7 @@ export class LedgerService {
         refId: ledgerEntries.refId,
         note: ledgerEntries.note,
         createdAt: ledgerEntries.createdAt,
+        auditAfterValue: adminAuditLogs.afterValue,
         assetSymbol: assets.symbol,
         assetName: assets.name,
         decimals: assets.decimals,
@@ -59,19 +63,39 @@ export class LedgerService {
       .from(ledgerEntries)
       .innerJoin(users, eq(ledgerEntries.userId, users.id))
       .innerJoin(assets, eq(ledgerEntries.assetId, assets.id))
+      .leftJoin(
+        adminAuditLogs,
+        and(
+          eq(ledgerEntries.refType, "ADMIN_WALLET_BUCKET_TRANSFER"),
+          eq(ledgerEntries.refId, adminAuditLogs.id),
+        ),
+      )
       .orderBy(desc(ledgerEntries.createdAt))
       .limit(300);
 
-    return rows.map((entry) => ({
-      ...this.formatLedgerEntry(entry),
-      user: {
-        id: entry.userId,
-        email: entry.userEmail,
+    return rows.map((entry) => {
+      const walletType = this.inferLedgerWalletType(entry);
+
+      return {
+        ...this.formatLedgerEntry(entry),
+        user: {
+          id: entry.userId,
+          email: entry.userEmail,
+          username: entry.username,
+          role: entry.userRole,
+          status: entry.userStatus,
+          isSystem: entry.isSystem,
+        },
+        userEmail: entry.userEmail,
         username: entry.username,
-      },
-      userEmail: entry.userEmail,
-      username: entry.username,
-    }));
+        userRole: entry.userRole,
+        role: entry.userRole,
+        walletType,
+        ownerType: entry.userRole === "ADMIN" && walletType !== "MAIN"
+          ? "ADMIN_BUCKET"
+          : "USER_WALLET",
+      };
+    });
   }
 
   formatLedgerEntry(entry: {
@@ -112,5 +136,77 @@ export class LedgerService {
       createdAt: entry.createdAt,
       created_at: entry.createdAt,
     };
+  }
+
+  private inferLedgerWalletType(entry: {
+    type: string;
+    amount: bigint;
+    note: string | null;
+    auditAfterValue?: unknown;
+  }) {
+    if (entry.type === "FEE" && entry.amount > 0n) {
+      return "FEE";
+    }
+
+    if (entry.type === "ADMIN_BUCKET_TRANSFER_OUT") {
+      const auditWalletType = this.findAuditWalletType(entry.auditAfterValue, "source");
+      const walletType = auditWalletType ?? this.findWalletTypeInNote(entry.note);
+      return walletType ?? "ADMIN_BUCKET";
+    }
+
+    if (entry.type === "ADMIN_BUCKET_TRANSFER_IN") {
+      const auditWalletType = this.findAuditWalletType(entry.auditAfterValue, "destination");
+      const walletType = auditWalletType ?? this.findWalletTypeInNote(entry.note);
+      return walletType ?? "ADMIN_BUCKET";
+    }
+
+    return "MAIN";
+  }
+
+  private findAuditWalletType(value: unknown, side: "source" | "destination") {
+    if (!value || typeof value !== "object") {
+      return null;
+    }
+
+    const walletType = (value as Record<string, unknown>)[side];
+    if (!walletType || typeof walletType !== "object") {
+      return null;
+    }
+
+    const candidate = (walletType as Record<string, unknown>).walletType;
+    if (typeof candidate !== "string") {
+      return null;
+    }
+
+    return this.normalizeDisplayWalletType(candidate);
+  }
+
+  private findWalletTypeInNote(note: string | null) {
+    if (!note) {
+      return null;
+    }
+
+    for (const walletType of ["TREASURY", "AIRDROP", "FEE", "HOT", "MAIN"] as const) {
+      if (note.toUpperCase().includes(walletType)) {
+        return walletType;
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeDisplayWalletType(value: string) {
+    const walletType = value.toUpperCase();
+    if (
+      walletType === "MAIN" ||
+      walletType === "FEE" ||
+      walletType === "TREASURY" ||
+      walletType === "AIRDROP" ||
+      walletType === "HOT"
+    ) {
+      return walletType;
+    }
+
+    return null;
   }
 }

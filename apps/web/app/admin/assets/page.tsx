@@ -133,7 +133,7 @@ export default function AdminAssetsPage() {
             eyebrow="Admin Assets"
             title="Asset registry"
             description="The seeded asset universe remains small in v0.x. Admins can pause assets and the SWL/SWC market from this existing operations page."
-            action={<StatusBadge label="v0.8 Controls" tone="warning" />}
+            action={<StatusBadge label="v0.9 Controls" tone="warning" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

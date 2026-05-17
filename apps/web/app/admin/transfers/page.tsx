@@ -8,6 +8,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AdminTransferEntry } from "@/lib/api-types";
+import { downloadCsv } from "@/lib/csv";
 import { formatDateTime } from "@/lib/format";
 
 export default function AdminTransfersPage() {
@@ -48,6 +49,23 @@ export default function AdminTransfersPage() {
     };
   }, []);
 
+  function exportTransfers() {
+    downloadCsv(
+      "admin-transfers.csv",
+      transfers.map((transfer) => ({
+        time: formatDateTime(transfer.createdAt),
+        from: transfer.from.username,
+        fromEmail: transfer.from.email,
+        to: transfer.to.username,
+        toEmail: transfer.to.email,
+        asset: transfer.assetSymbol,
+        amount: transfer.amount,
+        status: transfer.status,
+        note: transfer.note ?? "",
+      })),
+    );
+  }
+
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -55,8 +73,16 @@ export default function AdminTransfersPage() {
           <PageHeader
             eyebrow="Admin Transfers"
             title="Internal transfer review"
-            description="Review all free SWC/SWL user-to-user internal transfers, newest first."
-            action={<StatusBadge label="Transfers Live" tone="success" />}
+            description="Review all free SWC/SWL MAIN-to-MAIN user internal transfers, newest first. Admin bucket movements appear in the ledger and audit log instead."
+            action={
+              <button
+                type="button"
+                onClick={exportTransfers}
+                className="rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
+              >
+                Export CSV
+              </button>
+            }
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

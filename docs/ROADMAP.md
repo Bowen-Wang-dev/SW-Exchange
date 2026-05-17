@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.8 Admin Controls + User Status Management`
+Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
 
-Next milestone: `v0.9 Ledger / Audit / Reports polish`
+Next milestone: `v1.x future scope`
 
 ### v0.1 Foundation - Completed
 
@@ -116,11 +116,16 @@ Next milestone: `v0.9 Ledger / Audit / Reports polish`
 - Admin audit logs include `UPDATE_USER_STATUS`, `UPDATE_ASSET_STATUS`, and `UPDATE_MARKET_STATUS`
 - No deposit, withdraw, blockchain, chain address, market order, K-line, futures, contract, or leverage behavior is implemented
 
-### v0.9 Ledger / Audit / Reports polish
+### v0.9 Ledger / Audit / Reports Polish
 
-- Ledger, audit, and reporting polish if needed
-- Reporting views or operational summaries if needed
-- Stronger operational traceability and review ergonomics
+- Completed
+- User ledger readability polish with consistent table columns, amount styling, filters, and empty states
+- Admin ledger readability polish with owner, role, wallet type, asset/type/user filters, and clear admin bucket entries
+- Admin audit log readability polish with action badges, filters, summaries, and expandable before/after JSON details
+- Admin dashboard report cards for users, wallets, orders, trades, transfers, fee wallet balances, paused assets, and paused markets
+- `GET /api/admin/reports/summary` provides simple admin-only reporting data and recent activity
+- Lightweight client-side CSV exports for admin ledger, audit logs, trades, and transfers
+- No trading, matching, fee calculation, transfer rule, wallet bucket model, user/asset/market status, deposit, withdraw, or chain behavior changed
 
 ### v1.x BSC deposit/withdraw, market orders, K-line
 

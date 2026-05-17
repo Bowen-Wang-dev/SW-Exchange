@@ -8,6 +8,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AdminTradeEntry } from "@/lib/api-types";
+import { downloadCsv } from "@/lib/csv";
 import { formatDateTime, shortId } from "@/lib/format";
 import { ADMIN_TRADE_REVIEW_COPY } from "@/lib/milestone-copy";
 
@@ -45,6 +46,26 @@ export default function AdminTradesPage() {
     };
   }, []);
 
+  function exportTrades() {
+    downloadCsv(
+      "admin-trades.csv",
+      trades.map((trade) => ({
+        time: formatDateTime(trade.createdAt),
+        tradeId: trade.id,
+        market: trade.marketSymbol,
+        buyer: trade.buyer.username,
+        buyerEmail: trade.buyer.email,
+        seller: trade.seller.username,
+        sellerEmail: trade.seller.email,
+        price: trade.price,
+        amount: trade.amount,
+        total: trade.quoteAmount,
+        buyerFee: `${trade.buyerFee} ${trade.buyerFeeAssetSymbol}`,
+        sellerFee: `${trade.sellerFee} ${trade.sellerFeeAssetSymbol}`,
+      })),
+    );
+  }
+
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -53,7 +74,15 @@ export default function AdminTradesPage() {
             eyebrow="Admin Trades"
             title="Trade review"
             description={ADMIN_TRADE_REVIEW_COPY}
-            action={<StatusBadge label="v0.8 Live" tone="success" />}
+            action={
+              <button
+                type="button"
+                onClick={exportTrades}
+                className="rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
+              >
+                Export CSV
+              </button>
+            }
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

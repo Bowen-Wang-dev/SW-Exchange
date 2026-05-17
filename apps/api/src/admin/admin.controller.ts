@@ -34,6 +34,11 @@ export class AdminController {
     return this.adminService.dashboard();
   }
 
+  @Get("reports/summary")
+  reportsSummary() {
+    return this.adminService.reportsSummary();
+  }
+
   @Get("users")
   listUsers() {
     return this.adminService.listUsers();

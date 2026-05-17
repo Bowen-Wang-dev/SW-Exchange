@@ -12,6 +12,8 @@ import { formatDateTime, shortId } from "@/lib/format";
 
 export default function LedgerPage() {
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
+  const [assetFilter, setAssetFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +50,20 @@ export default function LedgerPage() {
     };
   }, []);
 
+  const assetOptions = uniqueOptions(entries.map((entry) => entry.asset));
+  const typeOptions = uniqueOptions(entries.map((entry) => entry.type));
+  const filteredEntries = entries.filter((entry) => {
+    if (assetFilter !== "ALL" && entry.asset !== assetFilter) {
+      return false;
+    }
+
+    if (typeFilter !== "ALL" && entry.type !== typeFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
   return (
     <ProtectedRoute>
       <AppShell>
@@ -64,47 +80,53 @@ export default function LedgerPage() {
 
           {!isLoading && !error ? (
             entries.length > 0 ? (
-              <DataTable
-                columns={[
-                  "Entry ID",
-                  "Type",
-                  "Asset",
-                  "Amount",
-                  "Available After",
-                  "Locked After",
-                  "Reference",
-                  "Note",
-                  "Created",
-                ]}
-                rows={entries.map((entry) => [
-                  shortId(entry.id),
-                  <StatusBadge
-                    key={`${entry.id}-type`}
-                    label={entry.type}
-                    tone={ledgerTypeTone(entry.type)}
-                  />,
-                  entry.asset,
-                  <span
-                    key={`${entry.id}-amount`}
-                    className={
-                      entry.amount.startsWith("+")
-                        ? "text-emerald-300"
-                        : entry.amount.startsWith("-")
-                          ? "text-rose-300"
-                          : "text-white"
-                    }
-                  >
-                    {entry.amount}
-                  </span>,
-                  entry.availableAfter,
-                  entry.lockedAfter,
-                  `${entry.refType}: ${shortId(entry.refId)}`,
-                  ledgerNote(entry),
-                  formatDateTime(entry.createdAt),
-                ])}
-              />
+              <div className="space-y-4">
+                <FilterBar
+                  assetFilter={assetFilter}
+                  typeFilter={typeFilter}
+                  assetOptions={assetOptions}
+                  typeOptions={typeOptions}
+                  onAssetFilterChange={setAssetFilter}
+                  onTypeFilterChange={setTypeFilter}
+                />
+                {filteredEntries.length > 0 ? (
+                  <DataTable
+                    columns={[
+                      "Time",
+                      "Type",
+                      "Asset",
+                      "Amount",
+                      "Available After",
+                      "Locked After",
+                      "Reference",
+                      "Note",
+                    ]}
+                    rows={filteredEntries.map((entry) => [
+                      formatDateTime(entry.createdAt),
+                      <StatusBadge
+                        key={`${entry.id}-type`}
+                        label={entry.type}
+                        tone={ledgerTypeTone(entry.type)}
+                      />,
+                      <span key={`${entry.id}-asset`} className="font-medium text-white">
+                        {entry.asset}
+                      </span>,
+                      <AmountText key={`${entry.id}-amount`} value={entry.amount} />,
+                      entry.availableAfter,
+                      entry.lockedAfter,
+                      formatReference(entry),
+                      ledgerNote(entry),
+                    ])}
+                  />
+                ) : (
+                  <Notice tone="info" message="No ledger entries match the selected filters." />
+                )}
+              </div>
             ) : (
-              <Notice tone="info" message="No ledger entries yet. Airdrops will appear here." />
+              <Notice
+                tone="info"
+                message="No ledger entries yet. Airdrops, internal transfers, order locks, trades, and fees will appear here."
+              />
             )
           ) : null}
         </div>
@@ -123,19 +145,25 @@ function Notice({ tone, message }: { tone: "info" | "danger"; message: string })
 }
 
 function ledgerTypeTone(type: string): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (type === "ORDER_LOCK" || type === "TRANSFER_OUT") {
+  if (
+    type === "ORDER_LOCK" ||
+    type === "TRANSFER_OUT" ||
+    type === "FEE" ||
+    type === "ADMIN_BUCKET_TRANSFER_OUT"
+  ) {
     return "warning";
   }
 
-  if (type === "ORDER_UNLOCK" || type === "TRANSFER_IN") {
+  if (
+    type === "ORDER_UNLOCK" ||
+    type === "ORDER_REFUND" ||
+    type === "TRANSFER_IN" ||
+    type === "ADMIN_BUCKET_TRANSFER_IN"
+  ) {
     return "info";
   }
 
-  if (type === "FEE") {
-    return "warning";
-  }
-
-  if (type === "AIRDROP" || type === "TRADE_BUY" || type === "TRADE_SELL") {
+  if (type === "AIRDROP" || type === "TRADE_BUY" || type === "TRADE_SELL" || type === "FEE_INCOME") {
     return "success";
   }
 
@@ -162,4 +190,77 @@ function ledgerNote(entry: LedgerEntry) {
   }
 
   return entry.note ?? "-";
+}
+
+function AmountText({ value }: { value: string }) {
+  const classes = value.startsWith("+")
+    ? "text-emerald-300"
+    : value.startsWith("-")
+      ? "text-rose-300"
+      : "text-white";
+
+  return <span className={`font-semibold tabular-nums ${classes}`}>{value}</span>;
+}
+
+function FilterBar({
+  assetFilter,
+  typeFilter,
+  assetOptions,
+  typeOptions,
+  onAssetFilterChange,
+  onTypeFilterChange,
+}: {
+  assetFilter: string;
+  typeFilter: string;
+  assetOptions: string[];
+  typeOptions: string[];
+  onAssetFilterChange: (value: string) => void;
+  onTypeFilterChange: (value: string) => void;
+}) {
+  return (
+    <div className="panel rounded-3xl p-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <FilterSelect label="Asset" value={assetFilter} options={assetOptions} onChange={onAssetFilterChange} />
+        <FilterSelect label="Type" value={typeFilter} options={typeOptions} onChange={onTypeFilterChange} />
+      </div>
+    </div>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+      >
+        <option value="ALL">All {label.toLowerCase()}s</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function uniqueOptions(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean))).sort((left, right) => left.localeCompare(right));
+}
+
+function formatReference(entry: LedgerEntry) {
+  return `${entry.refType}: ${shortId(entry.refId)}`;
 }

@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.8 Admin Controls + User Status Management`
+Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
 
-Next milestone: `v0.9 Ledger / Audit / Reports polish`
+Next milestone: `v1.x future scope`
 
 This version is intentionally limited:
 
@@ -45,6 +45,9 @@ Current scope:
 - Admin asset pause/resume controls
 - Admin SWL/SWC market pause/resume controls
 - Admin audit logs for user, asset, and market status changes
+- Polished user and admin ledger tables with filters
+- Polished admin audit log table with readable before/after details
+- Admin reports summary cards and recent activity
 
 ## Milestone status
 
@@ -57,16 +60,29 @@ Current scope:
 - `v0.7 Admin Fee System + Fee Settlement` completed
 - `v0.7.1 Admin Wallet Buckets / Wallet Model Polish` completed
 - `v0.8 Admin Controls + User Status Management` completed
+- `v0.9 Ledger / Audit / Reports Polish` completed
 
-- Current completed milestone: `v0.8 Admin Controls + User Status Management`
-- Next milestone: `v0.9 Ledger / Audit / Reports polish`
+- Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
+- Next milestone: `v1.x future scope`
 
 ## Planned milestones
 
-- `v0.9 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), and [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md) for milestone planning, released history, and the current wallet bucket model.
+
+## v0.9 Ledger / Audit / Reports Polish
+
+v0.9 improves data inspection without changing core exchange behavior.
+
+- `/ledger` now shows a cleaner ledger table with time, type, asset, amount, after-balances, reference, note, positive/negative amount styling, and asset/type filters
+- `/admin/ledger` now shows owner, role, wallet type, asset, type, after-balances, reference, note, and filters for user/email, asset, type, and wallet type
+- Admin wallet bucket ledger entries are labeled as admin bucket activity instead of normal user-to-user transfers
+- `/admin/audit-logs` now includes action/target filters, action badges, summaries, and expandable formatted before/after JSON
+- `/admin` now uses `GET /api/admin/reports/summary` for report cards and recent trades, transfers, and audit logs
+- Client-side CSV export is available for admin ledger, audit logs, trades, and transfers
+- This milestone does not change matching, fee calculation, transfer rules, wallet bucket behavior, user/asset/market status rules, or chain behavior
+- Deposit, withdraw, blockchain integration, chain addresses, market orders, futures/leverage, and K-line charts remain future work
 
 ## v0.8 Admin Controls + User Status Management
 

@@ -19,6 +19,8 @@ import {
   assets,
   ledgerEntries,
   markets,
+  orders,
+  trades,
   transfers,
   users,
   wallets,
@@ -91,6 +93,69 @@ export class AdminService {
       totalTransfers: transferCount?.value ?? 0,
       totalAuditLogs: auditLogCount?.value ?? 0,
       totalOpenOrders: openOrdersCount,
+    };
+  }
+
+  async reportsSummary() {
+    const [
+      [userCount],
+      [activeUserCount],
+      [frozenUserCount],
+      [bannedUserCount],
+      [walletCount],
+      [orderCount],
+      openOrderCount,
+      [tradeCount],
+      [transferCount],
+      [pausedAssetCount],
+      [pausedMarketCount],
+      feeSettings,
+      recentTrades,
+      recentTransfers,
+      recentAuditLogs,
+    ] = await Promise.all([
+      this.db.select({ value: count() }).from(users).where(eq(users.isSystem, false)),
+      this.db
+        .select({ value: count() })
+        .from(users)
+        .where(and(eq(users.isSystem, false), eq(users.status, "ACTIVE"))),
+      this.db
+        .select({ value: count() })
+        .from(users)
+        .where(and(eq(users.isSystem, false), eq(users.status, "FROZEN"))),
+      this.db
+        .select({ value: count() })
+        .from(users)
+        .where(and(eq(users.isSystem, false), eq(users.status, "BANNED"))),
+      this.db.select({ value: count() }).from(wallets),
+      this.db.select({ value: count() }).from(orders),
+      this.ordersService.countOpenOrders(),
+      this.db.select({ value: count() }).from(trades),
+      this.db.select({ value: count() }).from(transfers),
+      this.db.select({ value: count() }).from(assets).where(eq(assets.isActive, false)),
+      this.db.select({ value: count() }).from(markets).where(eq(markets.status, "PAUSED")),
+      this.feesService.getAdminFeeSettings(),
+      this.tradesService.listAllForAdmin(),
+      this.transfersService.listAllForAdmin(),
+      this.listAuditLogs(),
+    ]);
+
+    return {
+      userCount: userCount?.value ?? 0,
+      activeUserCount: activeUserCount?.value ?? 0,
+      frozenUserCount: frozenUserCount?.value ?? 0,
+      bannedUserCount: bannedUserCount?.value ?? 0,
+      walletCount: walletCount?.value ?? 0,
+      orderCount: orderCount?.value ?? 0,
+      openOrderCount,
+      tradeCount: tradeCount?.value ?? 0,
+      transferCount: transferCount?.value ?? 0,
+      pausedAssetCount: pausedAssetCount?.value ?? 0,
+      pausedMarketCount: pausedMarketCount?.value ?? 0,
+      feeWalletBalances: feeSettings.feeWallet.balances,
+      recentTrades: recentTrades.slice(0, 5),
+      recentTransfers: recentTransfers.slice(0, 5),
+      recentAuditLogs: recentAuditLogs.slice(0, 5),
     };
   }
 

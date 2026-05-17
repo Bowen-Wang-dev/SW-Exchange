@@ -48,7 +48,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.8 console shows live balances, internal transfers, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.9 console shows live balances, internal transfers, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
         action={
           <StatusBadge
             label={user?.status ?? "ACTIVE"}

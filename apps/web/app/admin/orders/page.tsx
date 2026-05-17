@@ -52,7 +52,7 @@ export default function AdminOrdersPage() {
             eyebrow="Admin Orders"
             title="Order review"
             description="Inspect all SWL/SWC limit orders, fills, remaining amounts, and cancellation states newest first."
-            action={<StatusBadge label="v0.8 Live" tone="success" />}
+            action={<StatusBadge label="v0.9 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

@@ -1,13 +1,42 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.8 Admin Controls + User Status Management`
+Current completed milestone: `v0.9 Ledger / Audit / Reports Polish`
 
-Next milestone: `v0.9 Ledger / Audit / Reports polish`
+Next milestone: `v1.x future scope`
 
 ## Upcoming plan
 
-- `v0.9 Ledger / Audit / Reports polish`
 - `v1.x BSC deposit/withdraw, market orders, K-line`
+
+## v0.9 Ledger / Audit / Reports Polish
+
+This milestone improves inspection and reporting ergonomics while keeping the existing exchange behavior unchanged.
+
+### Highlights
+
+- `/ledger` has a cleaner user ledger table with time, type, asset, amount, after-balances, reference, note, filters, and empty states
+- `/admin/ledger` shows all recent ledger entries with owner, role, wallet type, asset, type, amount, after-balances, reference, note, and filters
+- Admin wallet bucket entries are labeled as admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, or `HOT` wallet activity where available
+- Fee income is easier to identify as admin `FEE` wallet activity
+- `/admin/audit-logs` has action/target filters, action badges, summaries, and expandable formatted before/after JSON
+- `/admin` has real report cards and recent trades, transfers, and audit logs
+- `GET /api/admin/reports/summary` returns simple admin-only summary counts, fee wallet balances, and recent activity
+- Client-side CSV export is available for `/admin/ledger`, `/admin/audit-logs`, `/admin/trades`, and `/admin/transfers`
+
+### Developer and operational notes
+
+- No schema migration was required.
+- The reports endpoint uses straightforward counts and existing formatted recent-list data.
+- Ledger creation, audit creation, matching, transfer execution, fee calculation, wallet bucket movement, and status-control write paths were not changed.
+
+### Constraints kept in place
+
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
+- No market orders
+- No futures, contracts, or leverage
+- No K-line chart
 
 ## v0.8 Admin Controls + User Status Management
 

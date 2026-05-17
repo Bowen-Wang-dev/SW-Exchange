@@ -34,3 +34,15 @@ export function stringifyAuditValue(value: unknown) {
 
   return JSON.stringify(value);
 }
+
+export function stringifyAuditValuePretty(value: unknown) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return JSON.stringify(value, null, 2);
+}

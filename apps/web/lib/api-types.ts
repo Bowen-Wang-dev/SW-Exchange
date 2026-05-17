@@ -125,9 +125,16 @@ export type AdminLedgerEntry = LedgerEntry & {
     id: string;
     email: string;
     username: string;
+    role?: UserRole;
+    status?: UserStatus;
+    isSystem?: boolean;
   };
   userEmail: string;
   username: string;
+  userRole?: UserRole;
+  role?: UserRole;
+  walletType?: WalletType | "ADMIN_BUCKET";
+  ownerType?: "USER_WALLET" | "ADMIN_BUCKET";
 };
 
 export type AdminAuditLog = {
@@ -152,6 +159,24 @@ export type AdminSummary = {
   totalTransfers: number;
   totalAuditLogs: number;
   totalOpenOrders?: number;
+};
+
+export type AdminReportsSummary = {
+  userCount: number;
+  activeUserCount: number;
+  frozenUserCount: number;
+  bannedUserCount: number;
+  walletCount: number;
+  orderCount: number;
+  openOrderCount: number;
+  tradeCount: number;
+  transferCount: number;
+  pausedAssetCount: number;
+  pausedMarketCount: number;
+  feeWalletBalances: WalletBalance[];
+  recentTrades: AdminTradeEntry[];
+  recentTransfers: AdminTransferEntry[];
+  recentAuditLogs: AdminAuditLog[];
 };
 
 export type AirdropResponse = {
