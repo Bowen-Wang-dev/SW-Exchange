@@ -27,7 +27,7 @@ const testEmail = `${testUsername}@example.com`;
 const receiverUsername = `${testUsername}_receiver`;
 const receiverEmail = `${receiverUsername}@example.com`;
 const testPassword = "SmokeTest123!";
-const publicWebRoutes = ["/", "/login", "/register", "/markets"];
+const publicWebRoutes = ["/", "/login", "/register", "/assets", "/markets"];
 const protectedWebRoutes = [
   "/dashboard",
   "/wallet",
@@ -42,6 +42,7 @@ const protectedWebRoutes = [
   "/admin/airdrop",
   "/admin/transfers",
   "/admin/assets",
+  "/admin/markets",
   "/admin/orders",
   "/admin/trades",
   "/admin/fees",
@@ -79,6 +80,7 @@ async function main() {
   await testV06OrderFlow(auth);
   await testV10MarketDataAndValuation(auth);
   await testV08AdminControlsFlow(auth);
+  await testV13AdminAssetAndMarketCreation(auth);
   await resetV08OperationalControls(auth.adminAccessToken);
   await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
   await testWebRoutes();
@@ -443,6 +445,7 @@ async function testV06OrderFlow(auth: {
 }) {
   const marketSymbol = "SWL/SWC";
   const marketQuery = encodeURIComponent(marketSymbol);
+  const trackedOrderIds: string[] = [];
 
   await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "1000", "Smoke v0.6 buyer funding");
   await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "200", "Smoke v0.6 seller funding");
@@ -459,7 +462,9 @@ async function testV06OrderFlow(auth: {
   const adminSwlFunded = findWallet(fundedAdmin, "SWL");
 
   const sellA = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.15", "50");
+  trackedOrderIds.push(sellA.id);
   const buyA = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.30", "50");
+  trackedOrderIds.push(buyA.id);
   expectTradeResponse(buyA, "FILLED", "50", "0");
   await assertExactWallet(auth.userAccessToken, "SWC", BigInt(buyerSwcFunded.availableRaw) - quoteUnits("1.15", "50"));
   await assertExactWallet(auth.userAccessToken, "SWL", BigInt(buyerSwlFunded.availableRaw) + units("50"));
@@ -480,7 +485,9 @@ async function testV06OrderFlow(auth: {
   const buyerBeforeB = await walletSnapshot(auth.userAccessToken);
   const sellerBeforeB = await walletSnapshot(auth.receiverAccessToken);
   const buyerB = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "50");
+  trackedOrderIds.push(buyerB.id);
   const sellB = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.00", "50");
+  trackedOrderIds.push(sellB.id);
   expectOrderStatus(sellB, "FILLED");
   await assertExactWallet(
     auth.userAccessToken,
@@ -501,17 +508,24 @@ async function testV06OrderFlow(auth: {
   await expectAdminOrderStatus(auth.adminAccessToken, sellB.id, "FILLED", "0");
 
   const sellerC1 = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.10", "20");
+  trackedOrderIds.push(sellerC1.id);
   const sellerC2 = await createOrder(auth.adminAccessToken, marketSymbol, "SELL", "1.10", "30");
+  trackedOrderIds.push(sellerC2.id);
   const buyC = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.10", "25");
+  trackedOrderIds.push(buyC.id);
   expectTradeResponse(buyC, "FILLED", "25", "0");
   await expectAdminOrderStatus(auth.adminAccessToken, sellerC1.id, "FILLED", "0");
   await expectAdminOrderStatus(auth.adminAccessToken, sellerC2.id, "PARTIAL_FILLED", "25");
   await cancelOrder(auth.adminAccessToken, sellerC2.id);
 
   const sellerD1 = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.10", "10");
+  trackedOrderIds.push(sellerD1.id);
   const sellerD2 = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.15", "10");
+  trackedOrderIds.push(sellerD2.id);
   const sellerD3 = await createOrder(auth.adminAccessToken, marketSymbol, "SELL", "1.20", "10");
+  trackedOrderIds.push(sellerD3.id);
   const buyD = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "25");
+  trackedOrderIds.push(buyD.id);
   expectTradeResponse(buyD, "FILLED", "25", "0");
   await expectAdminOrderStatus(auth.adminAccessToken, sellerD1.id, "FILLED", "0");
   await expectAdminOrderStatus(auth.adminAccessToken, sellerD2.id, "FILLED", "0");
@@ -528,7 +542,9 @@ async function testV06OrderFlow(auth: {
 
   const buyerBeforeE = await walletSnapshot(auth.userAccessToken);
   const sellerE = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.10", "10");
+  trackedOrderIds.push(sellerE.id);
   const buyE = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.10", "25");
+  trackedOrderIds.push(buyE.id);
   expectTradeResponse(buyE, "PARTIAL_FILLED", "10", "15");
   if (buyE.lockedAmount !== "16.5") {
     throw new Error(`Scenario E should keep 16.5 SWC locked, got ${buyE.lockedAmount}.`);
@@ -556,7 +572,9 @@ async function testV06OrderFlow(auth: {
 
   const tradesBeforeSelfCross = await adminTrades(auth.adminAccessToken);
   const selfSell = await createOrder(auth.userAccessToken, marketSymbol, "SELL", "1.00", "1");
+  trackedOrderIds.push(selfSell.id);
   const selfBuy = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "1");
+  trackedOrderIds.push(selfBuy.id);
   expectOrderStatus(selfSell, "OPEN");
   expectOrderStatus(selfBuy, "OPEN");
   await expectAdminOrderStatus(auth.adminAccessToken, selfSell.id, "OPEN", "1");
@@ -583,8 +601,9 @@ async function testV06OrderFlow(auth: {
   }
 
   const adminOrdersFinal = await adminOrders(auth.adminAccessToken);
-  if (adminOrdersFinal.some((order) => order.status === "OPEN" || order.status === "PARTIAL_FILLED")) {
-    throw new Error("All scenario orders should be settled or cancelled before ending smoke.");
+  const trackedOrdersFinal = adminOrdersFinal.filter((order) => trackedOrderIds.includes(order.id));
+  if (trackedOrdersFinal.some((order) => order.status === "OPEN" || order.status === "PARTIAL_FILLED")) {
+    throw new Error("All smoke-created v0.6 scenario orders should be settled or cancelled before ending smoke.");
   }
 
   const orderBook = await getJson<{
@@ -800,10 +819,13 @@ async function testV10MarketDataAndValuation(auth: {
   if (
     swdTicker.marketSymbol !== "SWD/SWC" ||
     swdTicker.baseAssetSymbol !== "SWD" ||
-    swdTicker.quoteAssetSymbol !== "SWC" ||
-    swdTicker.lastPrice !== null
+    swdTicker.quoteAssetSymbol !== "SWC"
   ) {
     throw new Error(`Unexpected SWD/SWC ticker payload: ${JSON.stringify(swdTicker)}`);
+  }
+
+  if (swdSwcSummary.lastPrice !== swdTicker.lastPrice) {
+    throw new Error("SWD/SWC market summary should stay aligned with its ticker last price.");
   }
 
   const swdOrderBook = await getJson<{ marketSymbol: string; bids: unknown[]; asks: unknown[] }>(
@@ -858,6 +880,452 @@ async function testV10MarketDataAndValuation(auth: {
   console.log("PASS v0.10 market ticker, summary, wallet valuation, and admin market data");
 }
 
+async function testV13AdminAssetAndMarketCreation(auth: {
+  userAccessToken: string;
+  adminAccessToken: string;
+  user: { email: string; username: string };
+  receiver: { email: string; username: string };
+}) {
+  const assetSymbol = `Q${Date.now().toString().slice(-5)}`;
+  const marketSymbol = `${assetSymbol}/SWC`;
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/assets`,
+    auth.userAccessToken,
+    {
+      symbol: assetSymbol,
+      name: "Blocked Asset",
+      decimals: 18,
+    },
+    403,
+    "Forbidden resource",
+    "non-admin create asset",
+  );
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/assets`,
+    auth.adminAccessToken,
+    {
+      symbol: `${assetSymbol}BAD`,
+      name: "Broken Asset",
+      decimals: 19,
+    },
+    400,
+    "decimals must be an integer between 0 and 18.",
+    "invalid asset decimals",
+  );
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/assets`,
+    auth.adminAccessToken,
+    {
+      symbol: `${assetSymbol}I`,
+      name: "Broken Icon",
+      decimals: 18,
+      iconUrl: "ftp://invalid.example/icon.png",
+    },
+    400,
+    "iconUrl must use http or https.",
+    "invalid asset icon url",
+  );
+
+  const createdAsset = await postJson<{
+    symbol: string;
+    name: string;
+    displayName: string;
+    decimals: number;
+    iconUrl: string | null;
+    status: string;
+  }>(`${apiBaseUrl}/admin/assets`, auth.adminAccessToken, {
+    symbol: assetSymbol.toLowerCase(),
+    name: "Smoke QA Asset",
+    displayName: "Smoke QA Asset",
+    decimals: 18,
+    iconUrl: "   ",
+    status: "ACTIVE",
+    description: "Smoke v0.13 asset",
+  }, "create v0.13 asset");
+
+  if (
+    createdAsset.symbol !== assetSymbol ||
+    createdAsset.name !== "Smoke QA Asset" ||
+    createdAsset.iconUrl !== null ||
+    createdAsset.status !== "ACTIVE"
+  ) {
+    throw new Error(`Unexpected created asset payload: ${JSON.stringify(createdAsset)}`);
+  }
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/assets`,
+    auth.adminAccessToken,
+    {
+      symbol: assetSymbol,
+      name: "Duplicate Asset",
+      decimals: 18,
+    },
+    400,
+    `Asset ${assetSymbol} already exists.`,
+    "duplicate asset symbol",
+  );
+
+  const publicAssets = await fetchJson<Array<{ symbol: string; status?: string }>>(
+    `${apiBaseUrl}/assets`,
+    "load public assets after v0.13 create asset",
+  );
+  if (!publicAssets.some((asset) => asset.symbol === assetSymbol)) {
+    throw new Error(`Expected public assets to include ${assetSymbol}.`);
+  }
+
+  const adminAssetWallets = await getJson<Array<{ asset: string; walletType?: string }>>(
+    `${apiBaseUrl}/admin/wallets?assetSymbol=${assetSymbol}`,
+    auth.adminAccessToken,
+    "load v0.13 asset wallets",
+  );
+  if (
+    !adminAssetWallets.some((wallet) => wallet.asset === assetSymbol && wallet.walletType === "MAIN")
+  ) {
+    throw new Error(`Expected admin/user MAIN wallets for ${assetSymbol}.`);
+  }
+
+  const systemWallets = await getJson<Array<{ asset: string; walletType: string; availableRaw: string; lockedRaw: string }>>(
+    `${apiBaseUrl}/admin/system-wallets`,
+    auth.adminAccessToken,
+    "load v0.13 system wallets",
+  );
+  for (const walletType of ["FEE", "TREASURY", "AIRDROP", "HOT"]) {
+    const wallet = systemWallets.find(
+      (entry) => entry.asset === assetSymbol && entry.walletType === walletType,
+    );
+    if (!wallet || wallet.availableRaw !== "0" || wallet.lockedRaw !== "0") {
+      throw new Error(`Expected zero-balance ${walletType} wallet for ${assetSymbol}.`);
+    }
+  }
+
+  const auditLogsAfterAsset = await getJson<Array<{ action: string; afterValue?: { symbol?: string } }>>(
+    `${apiBaseUrl}/admin/audit-logs`,
+    auth.adminAccessToken,
+    "load audit logs after v0.13 create asset",
+  );
+  if (!auditLogsAfterAsset.some((entry) => entry.action === "CREATE_ASSET" && entry.afterValue?.symbol === assetSymbol)) {
+    throw new Error(`Expected CREATE_ASSET audit log for ${assetSymbol}.`);
+  }
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/markets`,
+    auth.userAccessToken,
+    {
+      baseAssetSymbol: assetSymbol,
+      quoteAssetSymbol: "SWC",
+    },
+    403,
+    "Forbidden resource",
+    "non-admin create market",
+  );
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: assetSymbol,
+      quoteAssetSymbol: assetSymbol,
+    },
+    400,
+    "baseAssetSymbol and quoteAssetSymbol must be different.",
+    "same-asset market rejection",
+  );
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: assetSymbol,
+      quoteAssetSymbol: "SWC",
+      symbol: `${assetSymbol}-SWC`,
+    },
+    400,
+    "symbol must look like BASE/QUOTE.",
+    "market symbol format rejection",
+  );
+
+  const pausedAssetSymbol = `P${Date.now().toString().slice(-5)}`;
+  await postJson(
+    `${apiBaseUrl}/admin/assets`,
+    auth.adminAccessToken,
+    {
+      symbol: pausedAssetSymbol,
+      name: "Smoke Paused Asset",
+      decimals: 18,
+      status: "PAUSED",
+    },
+    "create paused asset for v0.13",
+  );
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: pausedAssetSymbol,
+      quoteAssetSymbol: "SWC",
+      status: "ACTIVE",
+    },
+    400,
+    "Active markets require both base and quote assets to be ACTIVE. Create the market as PAUSED or resume the assets first.",
+    "active market with paused asset rejection",
+  );
+
+  const pausedMarket = await postJson<{ symbol: string; status: string }>(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: pausedAssetSymbol,
+      quoteAssetSymbol: "SWC",
+      status: "PAUSED",
+    },
+    "create paused market for paused asset",
+  );
+  if (pausedMarket.symbol !== `${pausedAssetSymbol}/SWC` || pausedMarket.status !== "PAUSED") {
+    throw new Error(`Unexpected paused market payload: ${JSON.stringify(pausedMarket)}`);
+  }
+
+  const createdMarket = await postJson<{
+    symbol: string;
+    status: string;
+    minOrderAmount: string;
+    minNotional: string;
+    feeSetting?: { marketSymbol: string; buyerFeeRateBps: number; sellerFeeRateBps: number };
+  }>(`${apiBaseUrl}/admin/markets`, auth.adminAccessToken, {
+    baseAssetSymbol: assetSymbol.toLowerCase(),
+    quoteAssetSymbol: "swc",
+    status: "ACTIVE",
+    pricePrecision: 18,
+    amountPrecision: 18,
+    minOrderAmount: "0.1",
+    minNotional: "1",
+  }, "create v0.13 market");
+
+  if (
+    createdMarket.symbol !== marketSymbol ||
+    createdMarket.status !== "ACTIVE" ||
+    createdMarket.minOrderAmount !== "0.1" ||
+    createdMarket.minNotional !== "1" ||
+    createdMarket.feeSetting?.marketSymbol !== marketSymbol ||
+    createdMarket.feeSetting?.buyerFeeRateBps !== 10 ||
+    createdMarket.feeSetting?.sellerFeeRateBps !== 10
+  ) {
+    throw new Error(`Unexpected created market payload: ${JSON.stringify(createdMarket)}`);
+  }
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: assetSymbol,
+      quoteAssetSymbol: "SWC",
+    },
+    400,
+    `Market ${marketSymbol} already exists.`,
+    "duplicate market symbol",
+  );
+
+  const emptyTicker = await fetchJson<{
+    marketSymbol: string;
+    lastPrice: string | null;
+    bestBid: string | null;
+    bestAsk: string | null;
+    tradeCount24h: number;
+  }>(
+    `${apiBaseUrl}/markets/ticker?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    "load empty v0.13 market ticker",
+  );
+  if (
+    emptyTicker.marketSymbol !== marketSymbol ||
+    emptyTicker.lastPrice !== null ||
+    emptyTicker.bestBid !== null ||
+    emptyTicker.bestAsk !== null ||
+    emptyTicker.tradeCount24h !== 0
+  ) {
+    throw new Error(`New market should start with empty ticker values, got ${JSON.stringify(emptyTicker)}`);
+  }
+
+  const emptyRecentTrades = await getJson<Array<{ marketSymbol: string }>>(
+    `${apiBaseUrl}/trades/recent?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    auth.userAccessToken,
+    "load empty v0.13 recent trades",
+  );
+  if (emptyRecentTrades.length !== 0) {
+    throw new Error("New market should not have seeded recent trades.");
+  }
+
+  const emptyOrderBook = await getJson<{ marketSymbol: string; bids: unknown[]; asks: unknown[] }>(
+    `${apiBaseUrl}/order-book?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    auth.userAccessToken,
+    "load empty v0.13 order book",
+  );
+  if (
+    emptyOrderBook.marketSymbol !== marketSymbol ||
+    emptyOrderBook.bids.length !== 0 ||
+    emptyOrderBook.asks.length !== 0
+  ) {
+    throw new Error("New market should start with an empty order book.");
+  }
+
+  const marketSummary = await fetchJson<Array<{ marketSymbol: string; status: string }>>(
+    `${apiBaseUrl}/markets/summary`,
+    "load v0.13 market summary",
+  );
+  if (!marketSummary.some((market) => market.marketSymbol === marketSymbol && market.status === "ACTIVE")) {
+    throw new Error(`Expected market summary to include ${marketSymbol}.`);
+  }
+  if (!marketSummary.some((market) => market.marketSymbol === `${pausedAssetSymbol}/SWC` && market.status === "PAUSED")) {
+    throw new Error(`Expected market summary to include paused market ${pausedAssetSymbol}/SWC.`);
+  }
+
+  const feeBeforeTrade = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+  if (
+    feeBeforeTrade.marketSymbol !== marketSymbol ||
+    feeBeforeTrade.buyerFeeRatePercent !== "0.1" ||
+    feeBeforeTrade.sellerFeeRatePercent !== "0.1"
+  ) {
+    throw new Error(`Unexpected v0.13 fee settings: ${JSON.stringify(feeBeforeTrade)}`);
+  }
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/orders`,
+    auth.receiverAccessToken,
+    {
+      marketSymbol,
+      side: "SELL",
+      price: "2",
+      amount: "0.01",
+    },
+    400,
+    "Amount must be at least 0.1.",
+    "min order amount enforcement",
+  );
+
+  await expectPostJsonRejected(
+    `${apiBaseUrl}/orders`,
+    auth.receiverAccessToken,
+    {
+      marketSymbol,
+      side: "SELL",
+      price: "2",
+      amount: "0.2",
+    },
+    400,
+    "Order notional must be at least 1.",
+    "min notional enforcement",
+  );
+
+  await airdrop(auth.adminAccessToken, auth.receiver.username, assetSymbol, "100", "Smoke v0.13 seller funding");
+  await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "1000", "Smoke v0.13 buyer funding");
+
+  const sellerBefore = await walletSnapshot(auth.receiverAccessToken);
+  const buyerBefore = await walletSnapshot(auth.userAccessToken);
+  const feeWalletBefore = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+
+  const sellOrder = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "10");
+  const buyOrder = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "10");
+  expectTradeResponse(sellOrder, "OPEN", "0", "10");
+  expectTradeResponse(buyOrder, "FILLED", "10", "0");
+
+  await assertExactWallet(
+    auth.userAccessToken,
+    assetSymbol,
+    BigInt(findWallet(buyerBefore, assetSymbol).availableRaw) + units("9.99"),
+  );
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWC",
+    BigInt(findWallet(buyerBefore, "SWC").availableRaw) - quoteUnits("2", "10"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    assetSymbol,
+    BigInt(findWallet(sellerBefore, assetSymbol).availableRaw) - units("10"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWC",
+    BigInt(findWallet(sellerBefore, "SWC").availableRaw) + units("19.98"),
+  );
+
+  const feeWalletAfter = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+  expectFeeWalletBalanceDelta(feeWalletBefore, feeWalletAfter, assetSymbol, units("0.01"));
+  expectFeeWalletBalanceDelta(feeWalletBefore, feeWalletAfter, "SWC", units("0.02"));
+
+  const v13Trades = await adminTradesByMarket(auth.adminAccessToken, marketSymbol);
+  const v13Trade = v13Trades.find(
+    (trade) =>
+      trade.marketSymbol === marketSymbol &&
+      trade.price === "2" &&
+      trade.amount === "10" &&
+      trade.buyer.username === auth.user.username &&
+      trade.seller.username === auth.receiver.username,
+  );
+  if (!v13Trade || v13Trade.buyerFee !== "0.01" || v13Trade.sellerFee !== "0.02") {
+    throw new Error(`Expected settled v0.13 trade with fees on ${marketSymbol}.`);
+  }
+
+  const swlTrades = await adminTradesByMarket(auth.adminAccessToken, "SWL/SWC");
+  if (swlTrades.some((trade) => trade.id === v13Trade.id)) {
+    throw new Error("SWL/SWC trades should not include the admin-created market trade.");
+  }
+
+  const swdTrades = await adminTradesByMarket(auth.adminAccessToken, "SWD/SWC");
+  if (swdTrades.some((trade) => trade.id === v13Trade.id)) {
+    throw new Error("SWD/SWC trades should not include the admin-created market trade.");
+  }
+
+  const orderBookAfterFill = await getJson<{ bids: unknown[]; asks: unknown[] }>(
+    `${apiBaseUrl}/order-book?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    auth.userAccessToken,
+    "load v0.13 order book after fill",
+  );
+  if (orderBookAfterFill.bids.length !== 0 || orderBookAfterFill.asks.length !== 0) {
+    throw new Error("Filled v0.13 market should have an empty order book.");
+  }
+
+  const postTradeTicker = await fetchJson<{
+    marketSymbol: string;
+    lastPrice: string | null;
+    tradeCount24h: number;
+  }>(
+    `${apiBaseUrl}/markets/ticker?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    "load filled v0.13 ticker",
+  );
+  if (
+    postTradeTicker.marketSymbol !== marketSymbol ||
+    postTradeTicker.lastPrice !== "2" ||
+    postTradeTicker.tradeCount24h <= 0
+  ) {
+    throw new Error(`Unexpected post-trade ticker for ${marketSymbol}: ${JSON.stringify(postTradeTicker)}`);
+  }
+
+  const valuation = await getJson<{
+    assets: Array<{ assetSymbol: string; total: string; priceInSWC: string | null; valueInSWC: string | null }>;
+  }>(`${apiBaseUrl}/wallets/me/valuation`, auth.userAccessToken, "load v0.13 wallet valuation");
+  const createdAssetValuation = valuation.assets.find((asset) => asset.assetSymbol === assetSymbol);
+  if (
+    !createdAssetValuation ||
+    createdAssetValuation.priceInSWC !== "2" ||
+    createdAssetValuation.valueInSWC === null
+  ) {
+    throw new Error(`Expected valuation for ${assetSymbol} after trade, got ${JSON.stringify(createdAssetValuation)}`);
+  }
+
+  const auditLogsAfterMarket = await getJson<Array<{ action: string; afterValue?: { symbol?: string } }>>(
+    `${apiBaseUrl}/admin/audit-logs`,
+    auth.adminAccessToken,
+    "load audit logs after v0.13 create market",
+  );
+  if (!auditLogsAfterMarket.some((entry) => entry.action === "CREATE_MARKET" && entry.afterValue?.symbol === marketSymbol)) {
+    throw new Error(`Expected CREATE_MARKET audit log for ${marketSymbol}.`);
+  }
+
+  console.log("PASS v0.13 admin asset creation, market creation, wallet coverage, and created-market trading flow");
+}
+
 async function testWebBuild() {
   const previousWebNextEnv = await readFile(webNextEnvPath, "utf8");
   const previousWebTsconfig = await readFile(webTsconfigPath, "utf8");
@@ -907,6 +1375,25 @@ function assertOk(response: Response, label: string) {
 async function getJson<T>(url: string, accessToken: string, label: string) {
   const response = await fetch(url, {
     headers: { authorization: `Bearer ${accessToken}` },
+  });
+  assertOk(response, label);
+  return (await response.json()) as T;
+}
+
+async function fetchJson<T>(url: string, label: string) {
+  const response = await fetch(url);
+  assertOk(response, label);
+  return (await response.json()) as T;
+}
+
+async function postJson<T>(url: string, accessToken: string, body: unknown, label: string) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
   });
   assertOk(response, label);
   return (await response.json()) as T;
@@ -1201,6 +1688,21 @@ async function feeSettings(accessToken: string) {
   }>(`${apiBaseUrl}/admin/fee-settings`, accessToken, "load fee settings");
 }
 
+async function feeSettingsForMarket(accessToken: string, marketSymbol: string) {
+  return getJson<{
+    marketSymbol: string;
+    buyerFeeRatePercent: string;
+    sellerFeeRatePercent: string;
+    feeWallet: {
+      balances: Array<{ asset: string; availableRaw: string }>;
+    };
+  }>(
+    `${apiBaseUrl}/admin/fee-settings?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    accessToken,
+    `load fee settings for ${marketSymbol}`,
+  );
+}
+
 async function setFeeSettings(
   accessToken: string,
   buyerFeeRatePercent: string,
@@ -1350,6 +1852,25 @@ async function adminTrades(accessToken: string) {
     `${apiBaseUrl}/admin/trades`,
     accessToken,
     "load admin trades",
+  );
+}
+
+async function adminTradesByMarket(accessToken: string, marketSymbol: string) {
+  return getJson<
+    Array<{
+      id: string;
+      marketSymbol: string;
+      price: string;
+      amount: string;
+      buyerFee: string;
+      sellerFee: string;
+      seller: { username: string };
+      buyer: { username: string };
+    }>
+  >(
+    `${apiBaseUrl}/admin/trades?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+    accessToken,
+    `load admin trades for ${marketSymbol}`,
   );
 }
 

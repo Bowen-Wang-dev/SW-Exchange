@@ -9,13 +9,15 @@ import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { FeeSettingsResponse, WalletBalance } from "@/lib/api-types";
+import type { FeeSettingsResponse, MarketSummary, WalletBalance } from "@/lib/api-types";
 import { formatDateTime } from "@/lib/format";
 
-const MARKET_SYMBOL = "SWL/SWC";
+const DEFAULT_MARKET_SYMBOL = "SWL/SWC";
 
 export default function AdminFeesPage() {
   const [settings, setSettings] = useState<FeeSettingsResponse | null>(null);
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
+  const [selectedMarketSymbol, setSelectedMarketSymbol] = useState(DEFAULT_MARKET_SYMBOL);
   const [buyerFeeRatePercent, setBuyerFeeRatePercent] = useState("0.1");
   const [sellerFeeRatePercent, setSellerFeeRatePercent] = useState("0.1");
   const [note, setNote] = useState("");
@@ -24,14 +26,51 @@ export default function AdminFeesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const selectedMarket =
+    markets.find((market) => market.marketSymbol === selectedMarketSymbol) ?? null;
+  const baseSymbol = selectedMarket?.baseAssetSymbol ?? "BASE";
+  const quoteSymbol = selectedMarket?.quoteAssetSymbol ?? "QUOTE";
+
   useEffect(() => {
-    void loadSettings();
+    let active = true;
+
+    async function loadMarkets() {
+      try {
+        const marketResponse = await apiRequest<MarketSummary[]>("/markets/summary");
+        if (!active) {
+          return;
+        }
+
+        setMarkets(marketResponse);
+        setSelectedMarketSymbol((current) =>
+          marketResponse.some((market) => market.marketSymbol === current)
+            ? current
+            : marketResponse[0]?.marketSymbol ?? DEFAULT_MARKET_SYMBOL,
+        );
+      } catch {
+        if (active) {
+          setMarkets([]);
+        }
+      }
+    }
+
+    void loadMarkets();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  async function loadSettings() {
+  useEffect(() => {
+    void loadSettings(selectedMarketSymbol);
+  }, [selectedMarketSymbol]);
+
+  async function loadSettings(marketSymbol: string) {
     try {
       setIsLoading(true);
-      const response = await apiRequest<FeeSettingsResponse>("/admin/fee-settings");
+      const response = await apiRequest<FeeSettingsResponse>(
+        `/admin/fee-settings?marketSymbol=${encodeURIComponent(marketSymbol)}`,
+      );
       setSettings(response);
       setBuyerFeeRatePercent(response.buyerFeeRatePercent);
       setSellerFeeRatePercent(response.sellerFeeRatePercent);
@@ -53,7 +92,7 @@ export default function AdminFeesPage() {
       const response = await apiRequest<FeeSettingsResponse>("/admin/fee-settings", {
         method: "PATCH",
         body: {
-          marketSymbol: MARKET_SYMBOL,
+          marketSymbol: selectedMarketSymbol,
           buyerFeeRatePercent: buyerFeeRatePercent.trim(),
           sellerFeeRatePercent: sellerFeeRatePercent.trim(),
           ...(note.trim() ? { note: note.trim() } : {}),
@@ -73,8 +112,8 @@ export default function AdminFeesPage() {
   }
 
   const feeBalances = settings?.feeWallet.balances ?? [];
-  const swcBalance = findBalance(feeBalances, "SWC");
-  const swlBalance = findBalance(feeBalances, "SWL");
+  const quoteBalance = findBalance(feeBalances, quoteSymbol);
+  const baseBalance = findBalance(feeBalances, baseSymbol);
 
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
@@ -83,41 +122,63 @@ export default function AdminFeesPage() {
           <PageHeader
             eyebrow="Admin Fees"
             title="Trading fee control"
-            description="Configure default SWL/SWC buyer and seller fee rates. Fee changes apply only to future trades on that market."
-            action={<StatusBadge label="v0.12 Live" tone="success" />}
+            description="Configure buyer and seller fee rates per market. New admin-created markets start with the current default rates until you update them."
+            action={<StatusBadge label="v0.13 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
           {success ? <Notice tone="success" message={success} /> : null}
           {isLoading ? <Notice tone="info" message="Loading fee settings..." /> : null}
 
+          <section className="panel rounded-3xl p-5">
+            <div className="grid gap-4 md:grid-cols-[minmax(220px,1fr)_auto]">
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Market
+                <select
+                  value={selectedMarketSymbol}
+                  onChange={(event) => setSelectedMarketSymbol(event.target.value)}
+                  className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-[var(--accent)]"
+                >
+                  {markets.map((market) => (
+                    <option key={market.marketSymbol} value={market.marketSymbol}>
+                      {market.marketSymbol}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="flex items-end">
+                <StatusBadge label={settings?.marketSymbol ?? selectedMarketSymbol} tone="info" />
+              </div>
+            </div>
+          </section>
+
           <div className="grid gap-4 lg:grid-cols-4">
             <StatCard
               label="Buyer Fee"
-              badgeLabel="SWL"
+              badgeLabel={baseSymbol}
               value={settings?.buyerFeeRateHuman ?? "-"}
               hint="Charged from base asset received by buyers."
               tone="success"
             />
             <StatCard
               label="Seller Fee"
-              badgeLabel="SWC"
+              badgeLabel={quoteSymbol}
               value={settings?.sellerFeeRateHuman ?? "-"}
               hint="Charged from quote asset received by sellers."
               tone="warning"
             />
             <StatCard
-              label="Fee SWL"
+              label={`Fee ${baseSymbol}`}
               badgeLabel="FEE"
-              value={`${swlBalance?.available ?? "0"} SWL`}
-              hint="Collected buyer fees in base asset."
+              value={`${baseBalance?.available ?? "0"} ${baseSymbol}`}
+              hint="Collected buyer fees for the selected market's base asset."
               tone="info"
             />
             <StatCard
-              label="Fee SWC"
+              label={`Fee ${quoteSymbol}`}
               badgeLabel="FEE"
-              value={`${swcBalance?.available ?? "0"} SWC`}
-              hint="Collected seller fees in quote asset."
+              value={`${quoteBalance?.available ?? "0"} ${quoteSymbol}`}
+              hint="Collected seller fees for the selected market's quote asset."
               tone="info"
             />
           </div>
@@ -127,7 +188,7 @@ export default function AdminFeesPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
-                    {MARKET_SYMBOL}
+                    {selectedMarketSymbol}
                   </p>
                   <h2 className="mt-2 text-xl font-semibold text-white">Update fee rates</h2>
                 </div>
@@ -231,13 +292,7 @@ function findBalance(balances: WalletBalance[], asset: string) {
   return balances.find((balance) => balance.asset === asset);
 }
 
-function Notice({
-  tone,
-  message,
-}: {
-  tone: "success" | "danger" | "info";
-  message: string;
-}) {
+function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
   const classes =
     tone === "danger"
       ? "border-rose-300/20 bg-rose-300/10 text-rose-100"

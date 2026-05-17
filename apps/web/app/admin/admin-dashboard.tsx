@@ -47,7 +47,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.12 Multi-Market Foundation. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.13 Admin Asset / Market Creation. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -204,8 +204,8 @@ export function AdminDashboardContent() {
           columns={["Area", "Status", "Notes"]}
           rows={[
             ["Users", <StatusBadge key="users" label="Live" tone="success" />, "Admin user list endpoint"],
-            ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "Seeded asset balances"],
-            ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only seeded asset funding"],
+            ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "Asset balances and admin bucket coverage"],
+            ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only active-asset funding"],
             ["Transfers", <StatusBadge key="transfers" label="Live" tone="success" />, "Free user-to-user internal transfers"],
             ["Orders", <StatusBadge key="orders" label="Live" tone="success" />, "Limit order matching, fills, and cancel review"],
             ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled market trade review"],

@@ -1,15 +1,46 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.12 Multi-Market Foundation`
+Current completed milestone: `v0.13 Admin Asset / Market Creation`
 
-Next milestone: `v0.13 Admin Asset / Market Creation`
+Next milestone: `v0.14 K-line / Candlestick Chart`
 
 ## Upcoming plan
 
-- `v0.13 Admin Asset / Market Creation`
 - `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.13 Admin Asset / Market Creation
+
+This milestone lets admins create new simulation assets and spot markets manually while reusing the existing multi-market matching, fees, ticker, and valuation foundation.
+
+### Highlights
+
+- Admin asset creation endpoint at `POST /api/admin/assets`
+- Admin market creation endpoint at `POST /api/admin/markets`
+- `/admin/assets` adds a create form while keeping metadata editing and asset pause/resume controls
+- New `/admin/markets` page lists existing markets, shows last price when available, and supports market creation plus pause/resume
+- New `/assets` page lists internal simulation assets
+- `/admin/fees` can manage fee settings per market instead of only `SWL/SWC`
+- Airdrop asset choices load from active assets rather than a hardcoded list
+- New markets appear in `/markets`, `/trade`, ticker, order book, trades, matching, fees, and SWC valuation flows without fake trade data
+
+### Developer and operational notes
+
+- Migration `drizzle/0008_freezing_senator_kelly.sql` adds `markets.min_order_amount` and `markets.min_notional`
+- New assets eagerly create zero-balance `MAIN` wallets for existing non-system users
+- Admin users receive zero-balance `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets for new assets idempotently
+- New markets automatically receive default active fee settings
+- Active market creation is rejected when either base or quote asset is paused; admins can create the market as `PAUSED` instead
+- No chain metadata, fake prices, fake trades, or seeded order book entries are created for manual listings
+
+### Constraints kept in place
+
+- No K-line chart
+- No market orders
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
 
 ## v0.12 Multi-Market Foundation
 

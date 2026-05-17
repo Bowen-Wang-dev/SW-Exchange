@@ -113,7 +113,7 @@ export default function AdminWalletsPage() {
           <PageHeader
             eyebrow="Admin Wallets"
             title="Wallet buckets"
-            description="Review the admin MAIN wallet and platform wallet buckets for seeded assets."
+            description="Review the admin MAIN wallet and platform wallet buckets for all listed assets."
             action={<StatusBadge label="Wallet Buckets" tone="info" />}
           />
 

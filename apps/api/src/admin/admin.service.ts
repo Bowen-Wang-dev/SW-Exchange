@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { aliasedTable } from "drizzle-orm/alias";
 import { and, asc, count, desc, eq, inArray, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import {
@@ -36,6 +37,8 @@ import { TransfersService } from "../transfers/transfers.service.js";
 import { WalletsService } from "../wallets/wallets.service.js";
 import type { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import type { AirdropDto } from "./dto/airdrop.dto.js";
+import type { CreateAssetDto } from "./dto/create-asset.dto.js";
+import type { CreateMarketDto } from "./dto/create-market.dto.js";
 import type { UpdateAssetMetadataDto } from "./dto/update-asset-metadata.dto.js";
 import type { UpdateAssetStatusDto } from "./dto/update-asset-status.dto.js";
 import type { UpdateFeeSettingsDto } from "./dto/update-fee-settings.dto.js";
@@ -741,6 +744,184 @@ export class AdminService {
     });
   }
 
+  async createAsset(adminUserId: string, dto: CreateAssetDto) {
+    const symbol = this.normalizeAssetSymbol(dto.symbol);
+    const name = this.normalizeRequiredName(dto.name, "name", 128);
+    const displayName = this.trimToNull(dto.displayName);
+    const description = this.trimToNull(dto.description);
+    const iconUrl = this.normalizeIconUrl(dto.iconUrl);
+    const isActive = this.normalizeOptionalAssetStatus(dto.status, dto.isActive, true);
+    const decimals = this.normalizeDecimals(dto.decimals, "decimals");
+    const sortOrder = dto.sortOrder ?? null;
+
+    return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
+      const [existingAsset] = await tx
+        .select({ id: assets.id })
+        .from(assets)
+        .where(eq(assets.symbol, symbol))
+        .limit(1);
+
+      if (existingAsset) {
+        throw new BadRequestException(`Asset ${symbol} already exists.`);
+      }
+
+      const [createdAsset] = await tx
+        .insert(assets)
+        .values({
+          symbol,
+          name,
+          displayName,
+          decimals,
+          iconUrl,
+          iconSource: iconUrl ? "MANUAL" : "FALLBACK",
+          sortOrder,
+          description,
+          isActive,
+        })
+        .returning();
+
+      if (!createdAsset) {
+        throw new Error("Failed to create asset.");
+      }
+
+      await this.walletsService.ensureWalletCoverageForAsset(createdAsset.id, tx);
+
+      await tx.insert(adminAuditLogs).values({
+        adminUserId,
+        action: "CREATE_ASSET",
+        targetType: "ASSET",
+        targetId: createdAsset.id,
+        afterValue: this.assetAuditValue(createdAsset),
+      });
+
+      return this.formatAssetStatusResponse(createdAsset);
+    });
+  }
+
+  async createMarket(adminUserId: string, dto: CreateMarketDto) {
+    const baseAssetSymbol = this.normalizeAssetSymbol(dto.baseAssetSymbol);
+    const quoteAssetSymbol = this.normalizeAssetSymbol(dto.quoteAssetSymbol);
+
+    if (baseAssetSymbol === quoteAssetSymbol) {
+      throw new BadRequestException("baseAssetSymbol and quoteAssetSymbol must be different.");
+    }
+
+    const symbol = this.normalizeMarketSymbol(dto.symbol?.trim() ? dto.symbol : `${baseAssetSymbol}/${quoteAssetSymbol}`);
+    const status = this.normalizeOptionalAssetStatus(dto.status, dto.isActive, true)
+      ? "ACTIVE"
+      : "PAUSED";
+    const priceDecimals = this.normalizePrecision(dto.pricePrecision, "pricePrecision");
+    const amountDecimals = this.normalizePrecision(dto.amountPrecision, "amountPrecision");
+    const note = dto.note?.trim() || null;
+
+    return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
+      const assetRows = await tx
+        .select()
+        .from(assets)
+        .where(inArray(assets.symbol, [baseAssetSymbol, quoteAssetSymbol]));
+
+      const baseAsset = assetRows.find((asset) => asset.symbol === baseAssetSymbol);
+      const quoteAsset = assetRows.find((asset) => asset.symbol === quoteAssetSymbol);
+
+      if (!baseAsset) {
+        throw new NotFoundException(`Base asset ${baseAssetSymbol} was not found.`);
+      }
+
+      if (!quoteAsset) {
+        throw new NotFoundException(`Quote asset ${quoteAssetSymbol} was not found.`);
+      }
+
+      if (symbol !== `${baseAssetSymbol}/${quoteAssetSymbol}`) {
+        throw new BadRequestException(
+          "symbol must match BASE/QUOTE for the selected assets in v0.x.",
+        );
+      }
+
+      const [existingMarket] = await tx
+        .select({ id: markets.id })
+        .from(markets)
+        .where(eq(markets.symbol, symbol))
+        .limit(1);
+
+      if (existingMarket) {
+        throw new BadRequestException(`Market ${symbol} already exists.`);
+      }
+
+      if (status === "ACTIVE" && (!baseAsset.isActive || !quoteAsset.isActive)) {
+        throw new BadRequestException(
+          "Active markets require both base and quote assets to be ACTIVE. Create the market as PAUSED or resume the assets first.",
+        );
+      }
+
+      const resolvedAmountDecimals = amountDecimals ?? baseAsset.decimals;
+      const resolvedPriceDecimals = priceDecimals ?? 18;
+      const minOrderAmount = this.parseOptionalMarketMinimum(
+        dto.minOrderAmount,
+        baseAsset.decimals,
+        "minOrderAmount",
+      );
+      const minNotional = this.parseOptionalMarketMinimum(
+        dto.minNotional,
+        quoteAsset.decimals,
+        "minNotional",
+      );
+
+      const [createdMarket] = await tx
+        .insert(markets)
+        .values({
+          symbol,
+          baseAssetId: baseAsset.id,
+          quoteAssetId: quoteAsset.id,
+          status,
+          priceDecimals: resolvedPriceDecimals,
+          amountDecimals: resolvedAmountDecimals,
+          minOrderAmount,
+          minNotional,
+        })
+        .returning();
+
+      if (!createdMarket) {
+        throw new Error("Failed to create market.");
+      }
+
+      const feeSetting = await this.feesService.ensureActiveFeeSetting(tx, createdMarket.symbol);
+      const marketResponse = await this.loadFormattedMarketBySymbol(tx, createdMarket.symbol);
+      if (!marketResponse) {
+        throw new Error("Failed to load created market.");
+      }
+
+      await tx.insert(adminAuditLogs).values({
+        adminUserId,
+        action: "CREATE_MARKET",
+        targetType: "MARKET",
+        targetId: createdMarket.id,
+        afterValue: {
+          ...marketResponse,
+          note,
+          buyerFeeRateBps: feeSetting.buyerFeeRateBps,
+          sellerFeeRateBps: feeSetting.sellerFeeRateBps,
+          feeSettingId: feeSetting.id,
+        },
+      });
+
+      return {
+        ...marketResponse,
+        feeSetting: {
+          id: feeSetting.id,
+          marketId: feeSetting.marketId,
+          marketSymbol: feeSetting.marketSymbol,
+          buyerFeeRateBps: feeSetting.buyerFeeRateBps,
+          sellerFeeRateBps: feeSetting.sellerFeeRateBps,
+          isActive: feeSetting.isActive,
+        },
+      };
+    });
+  }
+
   listLedger() {
     return this.ledgerService.listAllForAdmin();
   }
@@ -757,8 +938,8 @@ export class AdminService {
     return this.tradesService.listAllForAdmin(filters);
   }
 
-  getFeeSettings() {
-    return this.feesService.getAdminFeeSettings();
+  getFeeSettings(marketSymbol?: string) {
+    return this.feesService.getAdminFeeSettings(marketSymbol);
   }
 
   updateFeeSettings(adminUserId: string, dto: UpdateFeeSettingsDto) {
@@ -890,11 +1071,12 @@ export class AdminService {
       }
 
       if (market.status === status) {
-        return {
-          ...market,
-          created_at: market.createdAt,
-          updated_at: market.updatedAt,
-        };
+        const currentMarket = await this.loadFormattedMarketById(tx, market.id);
+        if (!currentMarket) {
+          throw new Error("Failed to load market.");
+        }
+
+        return currentMarket;
       }
 
       const updatedAt = new Date();
@@ -927,11 +1109,12 @@ export class AdminService {
         },
       });
 
-      return {
-        ...updatedMarket,
-        created_at: updatedMarket.createdAt,
-        updated_at: updatedMarket.updatedAt,
-      };
+      const formattedMarket = await this.loadFormattedMarketById(tx, updatedMarket.id);
+      if (!formattedMarket) {
+        throw new Error("Failed to load updated market.");
+      }
+
+      return formattedMarket;
     });
   }
 
@@ -1071,15 +1254,36 @@ export class AdminService {
   }
 
   private normalizeAssetStatus(dto: UpdateAssetStatusDto) {
-    if (typeof dto.isActive === "boolean") {
-      return dto.isActive;
+    return this.normalizeOptionalAssetStatus(dto.status, dto.isActive);
+  }
+
+  private normalizeMarketStatus(input: string) {
+    const status = input.trim().toUpperCase();
+    if (status !== "ACTIVE" && status !== "PAUSED") {
+      throw new BadRequestException("Invalid market status.");
     }
 
-    if (!dto.status?.trim()) {
+    return status;
+  }
+
+  private normalizeOptionalAssetStatus(
+    statusInput?: string,
+    isActiveInput?: boolean,
+    defaultIsActive?: boolean,
+  ) {
+    if (typeof isActiveInput === "boolean") {
+      return isActiveInput;
+    }
+
+    if (!statusInput?.trim()) {
+      if (typeof defaultIsActive === "boolean") {
+        return defaultIsActive;
+      }
+
       throw new BadRequestException("status or isActive is required.");
     }
 
-    const status = dto.status.trim().toUpperCase();
+    const status = statusInput.trim().toUpperCase();
     if (status === "ACTIVE") {
       return true;
     }
@@ -1091,13 +1295,84 @@ export class AdminService {
     throw new BadRequestException("Invalid asset status.");
   }
 
-  private normalizeMarketStatus(input: string) {
-    const status = input.trim().toUpperCase();
-    if (status !== "ACTIVE" && status !== "PAUSED") {
-      throw new BadRequestException("Invalid market status.");
+  private normalizeAssetSymbol(input: string) {
+    const symbol = input.trim().toUpperCase();
+    if (!symbol) {
+      throw new BadRequestException("symbol is required.");
     }
 
-    return status;
+    if (!/^[A-Z0-9]{2,16}$/.test(symbol)) {
+      throw new BadRequestException("symbol must be 2-16 uppercase letters or numbers.");
+    }
+
+    return symbol;
+  }
+
+  private normalizeMarketSymbol(input: string) {
+    const symbol = input.trim().toUpperCase();
+    if (!symbol) {
+      throw new BadRequestException("symbol is required.");
+    }
+
+    if (!/^[A-Z0-9]{2,16}\/[A-Z0-9]{2,16}$/.test(symbol)) {
+      throw new BadRequestException("symbol must look like BASE/QUOTE.");
+    }
+
+    return symbol;
+  }
+
+  private normalizeRequiredName(input: string, label: string, maxLength: number) {
+    const value = input.trim();
+    if (!value) {
+      throw new BadRequestException(`${label} is required.`);
+    }
+
+    if (value.length > maxLength) {
+      throw new BadRequestException(`${label} is too long.`);
+    }
+
+    return value;
+  }
+
+  private normalizeDecimals(input: number, label: string) {
+    if (!Number.isInteger(input) || input < 0 || input > 18) {
+      throw new BadRequestException(`${label} must be an integer between 0 and 18.`);
+    }
+
+    return input;
+  }
+
+  private normalizePrecision(input: number | undefined, label: string) {
+    if (input === undefined) {
+      return null;
+    }
+
+    if (!Number.isInteger(input) || input < 0 || input > 18) {
+      throw new BadRequestException(`${label} must be an integer between 0 and 18.`);
+    }
+
+    return input;
+  }
+
+  private parseOptionalMarketMinimum(
+    input: string | undefined,
+    decimals: number,
+    label: string,
+  ) {
+    const value = input?.trim();
+    if (!value) {
+      return 0n;
+    }
+
+    try {
+      return parseHumanAmountToMinimalUnits(value, decimals);
+    } catch (error) {
+      if (error instanceof MoneyFormatError) {
+        throw new BadRequestException(`${label}: ${error.message}`);
+      }
+
+      throw error;
+    }
   }
 
   private async assertActiveAdmin(tx: Transaction, adminUserId: string) {
@@ -1137,6 +1412,22 @@ export class AdminService {
       status: asset.isActive ? "ACTIVE" : "PAUSED",
       created_at: asset.createdAt,
       updated_at: asset.updatedAt,
+    };
+  }
+
+  private assetAuditValue(asset: typeof assets.$inferSelect) {
+    return {
+      id: asset.id,
+      symbol: asset.symbol,
+      name: asset.name,
+      displayName: asset.displayName ?? asset.name,
+      iconUrl: asset.iconUrl,
+      iconSource: asset.iconSource ?? (asset.iconUrl ? "MANUAL" : "FALLBACK"),
+      sortOrder: asset.sortOrder,
+      description: asset.description,
+      decimals: asset.decimals,
+      status: asset.isActive ? "ACTIVE" : "PAUSED",
+      isActive: asset.isActive,
     };
   }
 
@@ -1204,6 +1495,85 @@ export class AdminService {
       sortOrder: asset.sortOrder,
       description: asset.description,
     };
+  }
+
+  private async loadFormattedMarketById(tx: Transaction, marketId: string) {
+    const baseAssets = aliasedTable(assets, "admin_market_base_assets");
+    const quoteAssets = aliasedTable(assets, "admin_market_quote_assets");
+
+    const [market] = await tx
+      .select({
+        id: markets.id,
+        symbol: markets.symbol,
+        baseAssetId: markets.baseAssetId,
+        quoteAssetId: markets.quoteAssetId,
+        status: markets.status,
+        priceDecimals: markets.priceDecimals,
+        amountDecimals: markets.amountDecimals,
+        minOrderAmount: markets.minOrderAmount,
+        minNotional: markets.minNotional,
+        createdAt: markets.createdAt,
+        updatedAt: markets.updatedAt,
+        baseAssetSymbol: baseAssets.symbol,
+        quoteAssetSymbol: quoteAssets.symbol,
+        baseAssetName: baseAssets.name,
+        quoteAssetName: quoteAssets.name,
+        baseAssetDisplayName: baseAssets.displayName,
+        quoteAssetDisplayName: quoteAssets.displayName,
+        baseAssetIconUrl: baseAssets.iconUrl,
+        quoteAssetIconUrl: quoteAssets.iconUrl,
+        baseAssetIconSource: baseAssets.iconSource,
+        quoteAssetIconSource: quoteAssets.iconSource,
+        baseAssetDecimals: baseAssets.decimals,
+        quoteAssetDecimals: quoteAssets.decimals,
+      })
+      .from(markets)
+      .innerJoin(baseAssets, eq(markets.baseAssetId, baseAssets.id))
+      .innerJoin(quoteAssets, eq(markets.quoteAssetId, quoteAssets.id))
+      .where(eq(markets.id, marketId))
+      .limit(1);
+
+    if (!market) {
+      return null;
+    }
+
+    return {
+      id: market.id,
+      symbol: market.symbol,
+      baseAssetId: market.baseAssetId,
+      quoteAssetId: market.quoteAssetId,
+      status: market.status,
+      priceDecimals: market.priceDecimals,
+      amountDecimals: market.amountDecimals,
+      minOrderAmount: formatMinimalUnitsToHuman(market.minOrderAmount, market.baseAssetDecimals),
+      minOrderAmountRaw: market.minOrderAmount.toString(),
+      minNotional: formatMinimalUnitsToHuman(market.minNotional, market.quoteAssetDecimals),
+      minNotionalRaw: market.minNotional.toString(),
+      baseAssetSymbol: market.baseAssetSymbol,
+      quoteAssetSymbol: market.quoteAssetSymbol,
+      baseAssetName: market.baseAssetName,
+      quoteAssetName: market.quoteAssetName,
+      baseAssetDisplayName: market.baseAssetDisplayName,
+      quoteAssetDisplayName: market.quoteAssetDisplayName,
+      baseAssetIconUrl: market.baseAssetIconUrl,
+      quoteAssetIconUrl: market.quoteAssetIconUrl,
+      baseAssetIconSource: market.baseAssetIconSource,
+      quoteAssetIconSource: market.quoteAssetIconSource,
+      createdAt: market.createdAt,
+      updatedAt: market.updatedAt,
+      created_at: market.createdAt,
+      updated_at: market.updatedAt,
+    };
+  }
+
+  private async loadFormattedMarketBySymbol(tx: Transaction, marketSymbol: string) {
+    const [market] = await tx
+      .select({ id: markets.id })
+      .from(markets)
+      .where(eq(markets.symbol, marketSymbol))
+      .limit(1);
+
+    return market ? this.loadFormattedMarketById(tx, market.id) : null;
   }
 
   private auditWalletBalance(

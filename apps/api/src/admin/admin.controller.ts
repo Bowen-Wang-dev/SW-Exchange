@@ -17,6 +17,8 @@ import { RolesGuard } from "../common/guards/roles.guard.js";
 import type { AuthenticatedRequest } from "../common/interfaces/authenticated-request.interface.js";
 import { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import { AirdropDto } from "./dto/airdrop.dto.js";
+import { CreateAssetDto } from "./dto/create-asset.dto.js";
+import { CreateMarketDto } from "./dto/create-market.dto.js";
 import { UpdateAssetMetadataDto } from "./dto/update-asset-metadata.dto.js";
 import { UpdateAssetStatusDto } from "./dto/update-asset-status.dto.js";
 import { UpdateFeeSettingsDto } from "./dto/update-fee-settings.dto.js";
@@ -93,6 +95,11 @@ export class AdminController {
     return this.adminService.airdrop(request.user.sub, dto);
   }
 
+  @Post("assets")
+  createAsset(@Req() request: AuthenticatedRequest, @Body() dto: CreateAssetDto) {
+    return this.adminService.createAsset(request.user.sub, dto);
+  }
+
   @Get("ledger")
   listLedger() {
     return this.adminService.listLedger();
@@ -130,6 +137,11 @@ export class AdminController {
     return this.adminService.updateMarketStatus(request.user.sub, symbol, dto);
   }
 
+  @Post("markets")
+  createMarket(@Req() request: AuthenticatedRequest, @Body() dto: CreateMarketDto) {
+    return this.adminService.createMarket(request.user.sub, dto);
+  }
+
   @Get("orders")
   listOrders(
     @Query("status") status?: string,
@@ -145,8 +157,8 @@ export class AdminController {
   }
 
   @Get("fee-settings")
-  getFeeSettings() {
-    return this.adminService.getFeeSettings();
+  getFeeSettings(@Query("marketSymbol") marketSymbol?: string) {
+    return this.adminService.getFeeSettings(marketSymbol);
   }
 
   @Patch("fee-settings")

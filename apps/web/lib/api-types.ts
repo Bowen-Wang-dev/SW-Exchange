@@ -117,8 +117,14 @@ export type MarketRow = {
   quoteAssetIconSource?: string | null;
   priceDecimals: number;
   amountDecimals: number;
+  minOrderAmount?: string;
+  minOrderAmountRaw?: string;
+  minNotional?: string;
+  minNotionalRaw?: string;
   createdAt?: string;
   updatedAt?: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type MarketTicker = {

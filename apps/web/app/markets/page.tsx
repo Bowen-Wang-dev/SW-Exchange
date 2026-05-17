@@ -49,7 +49,7 @@ export default function MarketsPage() {
         <PageHeader
           eyebrow="Markets"
           title="Exchange markets"
-          description={`SW Exchange v0.x supports multiple seeded internal spot markets. Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x supports multiple internal spot markets, including admin-created listings. Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`}
         />
 
         <DataTable

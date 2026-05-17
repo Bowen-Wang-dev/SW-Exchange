@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
@@ -8,14 +9,25 @@ import { AssetIcon, AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { AssetRow, MarketRow, MarketStatus } from "@/lib/api-types";
+import type { AssetRow } from "@/lib/api-types";
+
+const INITIAL_CREATE_ASSET_FORM = {
+  symbol: "",
+  name: "",
+  displayName: "",
+  decimals: "18",
+  iconUrl: "",
+  description: "",
+  status: "ACTIVE" as "ACTIVE" | "PAUSED",
+};
 
 export default function AdminAssetsPage() {
   const [assets, setAssets] = useState<AssetRow[]>([]);
-  const [markets, setMarkets] = useState<MarketRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null);
+  const [createAssetForm, setCreateAssetForm] = useState(INITIAL_CREATE_ASSET_FORM);
   const [metadataForm, setMetadataForm] = useState({
     displayName: "",
     iconUrl: "",
@@ -28,23 +40,19 @@ export default function AdminAssetsPage() {
   useEffect(() => {
     let active = true;
 
-    void loadControls(active);
+    void loadAssets(active);
 
     return () => {
       active = false;
     };
   }, []);
 
-  async function loadControls(active = true) {
+  async function loadAssets(active = true) {
     try {
       setIsLoading(true);
-      const [assetResponse, marketResponse] = await Promise.all([
-        apiRequest<AssetRow[]>("/assets"),
-        apiRequest<MarketRow[]>("/markets"),
-      ]);
+      const response = await apiRequest<AssetRow[]>("/assets");
       if (active) {
-        setAssets(assetResponse);
-        setMarkets(marketResponse);
+        setAssets(response);
         setError(null);
       }
     } catch (loadError) {
@@ -58,14 +66,61 @@ export default function AdminAssetsPage() {
     }
   }
 
+  async function handleCreateAsset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    const symbol = createAssetForm.symbol.trim().toUpperCase();
+    const name = createAssetForm.name.trim();
+    const decimalsInput = createAssetForm.decimals.trim();
+    const decimals = Number.parseInt(decimalsInput, 10);
+
+    if (!/^[A-Z0-9]{2,16}$/.test(symbol)) {
+      setError("Symbol must be 2-16 uppercase letters or numbers.");
+      return;
+    }
+
+    if (!name) {
+      setError("Name is required.");
+      return;
+    }
+
+    if (!/^\d+$/.test(decimalsInput) || Number.isNaN(decimals) || decimals < 0 || decimals > 18) {
+      setError("Decimals must be a whole number between 0 and 18.");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      const createdAsset = await apiRequest<AssetRow>("/admin/assets", {
+        method: "POST",
+        body: {
+          symbol,
+          name,
+          displayName: createAssetForm.displayName.trim() || null,
+          decimals,
+          iconUrl: createAssetForm.iconUrl.trim() || null,
+          description: createAssetForm.description.trim() || null,
+          status: createAssetForm.status,
+        },
+      });
+
+      setCreateAssetForm(INITIAL_CREATE_ASSET_FORM);
+      setSuccess(`${createdAsset.symbol} created and wallet coverage initialized.`);
+      await loadAssets();
+    } catch (createError) {
+      setError(createError instanceof ApiError ? createError.message : "Unable to create asset.");
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
   async function updateAssetStatus(asset: AssetRow, status: "ACTIVE" | "PAUSED") {
-    const noteInput = window.prompt(
-      `Optional audit note for ${status.toLowerCase()} ${asset.symbol}:`,
-    );
+    const noteInput = window.prompt(`Optional audit note for ${status.toLowerCase()} ${asset.symbol}:`);
     if (noteInput === null) {
       return;
     }
-    const note = noteInput.trim();
 
     try {
       setUpdatingKey(`asset:${asset.symbol}`);
@@ -75,7 +130,7 @@ export default function AdminAssetsPage() {
         method: "PATCH",
         body: {
           status,
-          ...(note ? { note } : {}),
+          ...(noteInput.trim() ? { note: noteInput.trim() } : {}),
         },
       });
 
@@ -155,45 +210,6 @@ export default function AdminAssetsPage() {
     }
   }
 
-  async function updateMarketStatus(market: MarketRow, status: MarketStatus) {
-    const noteInput = window.prompt(
-      `Optional audit note for ${status.toLowerCase()} ${market.symbol}:`,
-    );
-    if (noteInput === null) {
-      return;
-    }
-    const note = noteInput.trim();
-
-    try {
-      setUpdatingKey(`market:${market.symbol}`);
-      setError(null);
-      setSuccess(null);
-      const updatedMarket = await apiRequest<MarketRow>(
-        `/admin/markets/${encodeURIComponent(market.symbol)}/status`,
-        {
-          method: "PATCH",
-          body: {
-            status,
-            ...(note ? { note } : {}),
-          },
-        },
-      );
-
-      setMarkets((currentMarkets) =>
-        currentMarkets.map((currentMarket) =>
-          currentMarket.id === updatedMarket.id ? updatedMarket : currentMarket,
-        ),
-      );
-      setSuccess(`${updatedMarket.symbol} market is now ${updatedMarket.status}.`);
-    } catch (updateError) {
-      setError(
-        updateError instanceof ApiError ? updateError.message : "Unable to update market status.",
-      );
-    } finally {
-      setUpdatingKey(null);
-    }
-  }
-
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -201,48 +217,191 @@ export default function AdminAssetsPage() {
           <PageHeader
             eyebrow="Admin Assets"
             title="Asset registry"
-            description="The seeded asset universe remains small in v0.x. Admins can pause assets, edit display metadata, and manage seeded markets from this existing operations page."
-            action={<StatusBadge label="v0.12 Markets" tone="warning" />}
+            description="Create virtual assets, manage manual metadata, and control whether an asset is active for airdrop and new order flows."
+            action={
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge label="v0.13 Live" tone="success" />
+                <Link
+                  href="/admin/markets"
+                  className="rounded-2xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white"
+                >
+                  Open Markets
+                </Link>
+              </div>
+            }
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
           {success ? <Notice tone="success" message={success} /> : null}
           {isLoading ? <Notice tone="info" message="Loading asset controls..." /> : null}
 
-          <DataTable
-            columns={["Icon", "Symbol", "Name", "Display Name", "Decimals", "Status", "Actions"]}
-            rows={assets.map((asset) => [
-              <AssetIcon
-                key={`${asset.symbol}-icon`}
-                symbol={asset.symbol}
-                name={asset.displayName ?? asset.name}
-                iconUrl={asset.iconUrl}
-              />,
-              asset.symbol,
-              asset.name,
-              asset.displayName ?? asset.name,
-              String(asset.decimals),
-              <StatusBadge
-                key={`${asset.symbol}-status`}
-                label={assetStatus(asset)}
-                tone={asset.isActive ? "success" : "warning"}
-              />,
-              <div key={`${asset.symbol}-actions`} className="flex flex-wrap gap-2">
-                <StatusButton
-                  label="Edit metadata"
-                  disabled={updatingKey === `metadata:${asset.symbol}`}
-                  tone="info"
-                  onClick={() => beginMetadataEdit(asset)}
+          <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+            <section className="panel rounded-3xl p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                    Create Asset
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">List a virtual asset</h2>
+                </div>
+                <StatusBadge label={createAssetForm.status} tone={createAssetForm.status === "ACTIVE" ? "success" : "warning"} />
+              </div>
+
+              <form onSubmit={handleCreateAsset} className="mt-5 grid gap-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                    Symbol
+                    <input
+                      value={createAssetForm.symbol}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({ ...current, symbol: event.target.value.toUpperCase() }))
+                      }
+                      placeholder="SWT"
+                      maxLength={16}
+                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    />
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                    Name
+                    <input
+                      value={createAssetForm.name}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({ ...current, name: event.target.value }))
+                      }
+                      placeholder="SW Test"
+                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    />
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                    Display name
+                    <input
+                      value={createAssetForm.displayName}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({ ...current, displayName: event.target.value }))
+                      }
+                      placeholder="SW Test"
+                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    />
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                    Decimals
+                    <input
+                      value={createAssetForm.decimals}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({ ...current, decimals: event.target.value }))
+                      }
+                      inputMode="numeric"
+                      placeholder="18"
+                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    />
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)] md:col-span-2">
+                    Icon URL
+                    <input
+                      value={createAssetForm.iconUrl}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({ ...current, iconUrl: event.target.value }))
+                      }
+                      placeholder="https://example.com/icon.png"
+                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    />
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)] md:col-span-2">
+                    Description
+                    <textarea
+                      value={createAssetForm.description}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({ ...current, description: event.target.value }))
+                      }
+                      rows={3}
+                      placeholder="Manual simulation asset note"
+                      className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    />
+                  </label>
+
+                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                    Status
+                    <select
+                      value={createAssetForm.status}
+                      onChange={(event) =>
+                        setCreateAssetForm((current) => ({
+                          ...current,
+                          status: event.target.value as "ACTIVE" | "PAUSED",
+                        }))
+                      }
+                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    >
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="PAUSED">PAUSED</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="rounded-2xl border border-blue-300/20 bg-blue-300/10 px-4 py-3 text-sm text-blue-100">
+                  New assets create zero-balance MAIN wallets for existing users and zero-balance admin bucket wallets without touching existing balances.
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isCreating ? "Creating asset..." : "Create asset"}
+                </button>
+              </form>
+            </section>
+
+            <section className="panel rounded-3xl p-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                  Asset Controls
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-white">Manage existing assets</h2>
+              </div>
+
+              <div className="mt-5">
+                <DataTable
+                  columns={["Icon", "Symbol", "Name", "Display Name", "Decimals", "Status", "Actions"]}
+                  rows={assets.map((asset) => [
+                    <AssetIcon
+                      key={`${asset.symbol}-icon`}
+                      symbol={asset.symbol}
+                      name={asset.displayName ?? asset.name}
+                      iconUrl={asset.iconUrl}
+                    />,
+                    asset.symbol,
+                    asset.name,
+                    asset.displayName ?? asset.name,
+                    String(asset.decimals),
+                    <StatusBadge
+                      key={`${asset.symbol}-status`}
+                      label={assetStatus(asset)}
+                      tone={asset.isActive ? "success" : "warning"}
+                    />,
+                    <div key={`${asset.symbol}-actions`} className="flex flex-wrap gap-2">
+                      <StatusButton
+                        label="Edit metadata"
+                        disabled={updatingKey === `metadata:${asset.symbol}`}
+                        tone="info"
+                        onClick={() => beginMetadataEdit(asset)}
+                      />
+                      <StatusButton
+                        label={asset.isActive ? "Pause" : "Resume"}
+                        disabled={updatingKey === `asset:${asset.symbol}`}
+                        tone={asset.isActive ? "warning" : "success"}
+                        onClick={() => void updateAssetStatus(asset, asset.isActive ? "PAUSED" : "ACTIVE")}
+                      />
+                    </div>,
+                  ])}
                 />
-                <StatusButton
-                  label={asset.isActive ? "Pause" : "Resume"}
-                  disabled={updatingKey === `asset:${asset.symbol}`}
-                  tone={asset.isActive ? "warning" : "success"}
-                  onClick={() => void updateAssetStatus(asset, asset.isActive ? "PAUSED" : "ACTIVE")}
-                />
-              </div>,
-            ])}
-          />
+              </div>
+            </section>
+          </div>
 
           {editingAsset ? (
             <section className="panel rounded-3xl p-5">
@@ -251,9 +410,7 @@ export default function AdminAssetsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Asset Metadata
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">
-                    Edit {editingAsset.symbol}
-                  </h2>
+                  <h2 className="mt-2 text-xl font-semibold text-white">Edit {editingAsset.symbol}</h2>
                 </div>
                 <AssetIdentity
                   symbol={editingAsset.symbol}
@@ -270,10 +427,7 @@ export default function AdminAssetsPage() {
                   <input
                     value={metadataForm.displayName}
                     onChange={(event) =>
-                      setMetadataForm((current) => ({
-                        ...current,
-                        displayName: event.target.value,
-                      }))
+                      setMetadataForm((current) => ({ ...current, displayName: event.target.value }))
                     }
                     placeholder={editingAsset.name}
                     className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
@@ -310,10 +464,7 @@ export default function AdminAssetsPage() {
                   <textarea
                     value={metadataForm.description}
                     onChange={(event) =>
-                      setMetadataForm((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
+                      setMetadataForm((current) => ({ ...current, description: event.target.value }))
                     }
                     rows={3}
                     className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
@@ -338,28 +489,6 @@ export default function AdminAssetsPage() {
               </div>
             </section>
           ) : null}
-
-          <DataTable
-            columns={["Market", "Status", "Action", "Notes"]}
-            rows={markets.map((market) => [
-              market.symbol,
-              <StatusBadge
-                key={`${market.symbol}-status`}
-                label={market.status}
-                tone={market.status === "ACTIVE" ? "success" : "warning"}
-              />,
-              <StatusButton
-                key={`${market.symbol}-action`}
-                label={market.status === "ACTIVE" ? "Pause" : "Resume"}
-                disabled={updatingKey === `market:${market.symbol}`}
-                tone={market.status === "ACTIVE" ? "warning" : "success"}
-                onClick={() =>
-                  void updateMarketStatus(market, market.status === "ACTIVE" ? "PAUSED" : "ACTIVE")
-                }
-              />,
-              "Paused markets block new orders and matching; users can still view the book/history and cancel open orders.",
-            ])}
-          />
         </div>
       </AppShell>
     </ProtectedRoute>
@@ -408,9 +537,5 @@ function Notice({ tone, message }: { tone: "info" | "danger" | "success"; messag
         ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
         : "border-blue-300/20 bg-blue-300/10 text-blue-100";
 
-  return (
-    <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>
-      {message}
-    </div>
-  );
+  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

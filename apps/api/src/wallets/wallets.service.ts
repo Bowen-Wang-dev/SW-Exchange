@@ -70,6 +70,47 @@ export class WalletsService {
     }
   }
 
+  async ensureWalletCoverageForAsset(assetId: string, db: DbLike = this.db) {
+    const userRows = await db
+      .select({
+        id: users.id,
+        role: users.role,
+        isSystem: users.isSystem,
+      })
+      .from(users)
+      .where(eq(users.isSystem, false));
+
+    for (const user of userRows) {
+      await db
+        .insert(wallets)
+        .values({
+          userId: user.id,
+          assetId,
+          walletType: "MAIN",
+          availableBalance: 0n,
+          lockedBalance: 0n,
+        })
+        .onConflictDoNothing();
+
+      if (user.role !== "ADMIN") {
+        continue;
+      }
+
+      for (const walletType of walletTypeValues.filter((value) => value !== "MAIN")) {
+        await db
+          .insert(wallets)
+          .values({
+            userId: user.id,
+            assetId,
+            walletType,
+            availableBalance: 0n,
+            lockedBalance: 0n,
+          })
+          .onConflictDoNothing();
+      }
+    }
+  }
+
   async findByUserId(userId: string) {
     await this.ensureWalletsForUser(userId);
 

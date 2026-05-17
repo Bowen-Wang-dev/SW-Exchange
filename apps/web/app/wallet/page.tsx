@@ -67,7 +67,7 @@ export default function WalletPage() {
           <PageHeader
             eyebrow="Wallet"
             title="Internal asset balances"
-            description="View your live seeded asset balances. Internal transfers are live; deposit and withdraw stay disabled in v0.x."
+            description="View your live internal asset balances. Internal transfers are live; deposit and withdraw stay disabled in v0.x."
             action={<StatusBadge label="Internal Only" tone="info" />}
           />
 

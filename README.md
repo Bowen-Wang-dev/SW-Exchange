@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.12 Multi-Market Foundation`
+Current completed milestone: `v0.13 Admin Asset / Market Creation`
 
-Next milestone: `v0.13 Admin Asset / Market Creation`
+Next milestone: `v0.14 K-line / Candlestick Chart`
 
 This version is intentionally limited:
 
@@ -14,7 +14,6 @@ This version is intentionally limited:
 - No KYC
 - No market orders
 - No candlestick / K-line chart
-- No admin asset or market creation
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
@@ -25,7 +24,7 @@ Current scope:
 - User wallet viewer
 - User ledger viewer
 - Admin user and wallet viewer
-- Admin seeded-asset airdrop flow
+- Admin active-asset airdrop flow
 - User SWC/SWL internal transfer flow
 - User and admin transfer history
 - Admin ledger and audit log viewer
@@ -62,6 +61,11 @@ Current scope:
 - Seeded demo market `SWD/SWC` alongside existing `SWL/SWC`
 - Market selector on `/trade`
 - Market summary list includes all seeded markets
+- Admin asset creation endpoint and `/admin/assets` form
+- Admin market creation endpoint and `/admin/markets` form
+- Eager zero-balance wallet coverage for new assets across existing users and admin buckets
+- Default fee-setting bootstrap for newly created markets
+- Public `/assets` directory for listed simulation assets
 
 ## Milestone status
 
@@ -78,16 +82,30 @@ Current scope:
 - `v0.10 Market Data + Portfolio Valuation` completed
 - `v0.11 Asset Metadata + Icon System` completed
 - `v0.12 Multi-Market Foundation` completed
+- `v0.13 Admin Asset / Market Creation` completed
 
-- Current completed milestone: `v0.12 Multi-Market Foundation`
-- Next milestone: `v0.13 Admin Asset / Market Creation`
+- Current completed milestone: `v0.13 Admin Asset / Market Creation`
+- Next milestone: `v0.14 K-line / Candlestick Chart`
 
 ## Planned milestones
 
-- `v0.13 Admin Asset / Market Creation`
 - `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.13 Admin Asset / Market Creation
+
+v0.13 lets admins list new virtual assets and new spot markets manually without any blockchain integration.
+
+- `POST /api/admin/assets` creates a virtual asset with manual metadata, status, and audit logging
+- New assets eagerly create zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`/`FEE`/`TREASURY`/`AIRDROP`/`HOT` wallets idempotently
+- `POST /api/admin/markets` creates a new `BASE/QUOTE` spot market with optional precision and minimum settings
+- New markets get default fee settings automatically and appear in `/markets`, `/trade`, ticker, order book, matching, trades, fees, and valuation flows
+- `/admin/assets` now includes a create form while keeping metadata editing and asset status controls
+- `/admin/markets` lists existing markets, shows last price when available, and lets admins create or pause/resume markets
+- `/admin/fees` can manage fee settings per market instead of only the seeded default pair
+- `/assets` lists all internal simulation assets
+- No fake prices, fake trades, seeded order books, chain metadata, deposit, withdraw, or blockchain integration are added
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md), and [docs/FUTURE_ROADMAP.md](docs/FUTURE_ROADMAP.md) for milestone planning, released history, the current wallet bucket model, and future product direction.
 

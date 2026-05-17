@@ -162,6 +162,12 @@ export const markets = pgTable("markets", {
   status: marketStatusEnum("status").notNull().default("ACTIVE"),
   priceDecimals: integer("price_decimals").notNull().default(18),
   amountDecimals: integer("amount_decimals").notNull().default(18),
+  minOrderAmount: numeric("min_order_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  minNotional: numeric("min_notional", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

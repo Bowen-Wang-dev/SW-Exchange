@@ -203,7 +203,7 @@ export default function TradePage() {
               </span>
             }
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.12 Live" tone="success" />}
+            action={<StatusBadge label="v0.13 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

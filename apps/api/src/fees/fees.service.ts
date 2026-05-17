@@ -53,9 +53,9 @@ export class FeesService {
     @Inject(ConfigService) private readonly configService: ConfigService,
   ) {}
 
-  async getAdminFeeSettings() {
+  async getAdminFeeSettings(marketSymbolInput = SUPPORTED_MARKET_SYMBOL) {
     return this.db.transaction(async (tx) => {
-      const setting = await this.ensureActiveFeeSetting(tx, SUPPORTED_MARKET_SYMBOL);
+      const setting = await this.ensureActiveFeeSetting(tx, marketSymbolInput);
       const adminUser = await this.getConfiguredAdminUser(tx);
       await this.ensureAdminFeeWallets(tx, adminUser.id);
       const balances = await this.getAdminFeeWalletBalances(tx, adminUser.id);

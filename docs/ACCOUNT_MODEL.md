@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.12 Multi-Market Foundation`
+Current completed milestone: `v0.13 Admin Asset / Market Creation`
 
 ## Account Status
 
@@ -28,7 +28,8 @@ Fees go to the admin `FEE` wallet. Buyer fees are collected in the traded base a
 
 Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP` wallet.
 
-v0.12 adds a second seeded demo market, but does not change the wallet bucket model or transfer rules.
+v0.13 adds admin-created asset and market listing without changing the wallet bucket model or transfer rules.
+New assets eagerly create zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
 
 ## Asset Metadata
 
@@ -40,7 +41,7 @@ Assets may have optional display metadata:
 - sort order
 - description
 
-`SWC`, `SWL`, and `SWD` remain internal simulation assets. Manual admin icon URLs can override fallback/mapped icons. Missing icons render as clean symbol avatars. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
+Listed assets such as `SWC`, `SWL`, and `SWD` remain internal simulation assets. Admins can manually add more virtual assets and set icon URLs directly. Missing icons render as clean symbol avatars. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
 
 ## Portfolio Valuation
 
@@ -79,7 +80,7 @@ Assets are either active or paused.
 - Paused assets cannot be transferred or airdropped
 - Paused assets cannot be used for new orders
 
-Markets such as `SWL/SWC` and `SWD/SWC` are either `ACTIVE` or `PAUSED`.
+Markets such as `SWL/SWC`, `SWD/SWC`, and later admin-created `BASE/QUOTE` pairs are either `ACTIVE` or `PAUSED`.
 
 - Paused markets block new orders and matching
 - Order book and trade history remain viewable

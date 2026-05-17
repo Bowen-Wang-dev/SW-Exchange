@@ -5,6 +5,7 @@ export type NavigationItem = {
 
 export const topNavigation: NavigationItem[] = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/assets", label: "Assets" },
   { href: "/markets", label: "Markets" },
   { href: "/trade", label: "Trade" },
   { href: "/wallet", label: "Wallet" },
@@ -13,6 +14,7 @@ export const topNavigation: NavigationItem[] = [
 
 export const userSidebarNavigation: NavigationItem[] = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/assets", label: "Assets" },
   { href: "/wallet", label: "Wallet" },
   { href: "/transfer", label: "Transfer" },
   { href: "/trade", label: "Trade" },
@@ -28,6 +30,7 @@ export const adminSidebarNavigation: NavigationItem[] = [
   { href: "/admin/airdrop", label: "Airdrop" },
   { href: "/admin/transfers", label: "Transfers" },
   { href: "/admin/assets", label: "Assets" },
+  { href: "/admin/markets", label: "Markets" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/trades", label: "Trades" },
   { href: "/admin/fees", label: "Fees" },

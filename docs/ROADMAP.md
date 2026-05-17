@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.12 Multi-Market Foundation`
+Current completed milestone: `v0.13 Admin Asset / Market Creation`
 
-Next milestone: `v0.13 Admin Asset / Market Creation`
+Next milestone: `v0.14 K-line / Candlestick Chart`
 
 ### v0.1 Foundation - Completed
 
@@ -172,12 +172,20 @@ Next milestone: `v0.13 Admin Asset / Market Creation`
 - Portfolio valuation remains SWC-based and leaves unpriced assets pending
 - No admin asset creation, admin market creation, K-line, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
-### v0.13 Admin Asset / Market Creation - Planned
+### v0.13 Admin Asset / Market Creation - Completed
 
-- Admin can create assets manually
-- Admin can create markets from base/quote assets
-- Precision, minimum order, and minimum notional settings if needed
-- Market status controls
+- `POST /api/admin/assets` creates virtual assets with manual metadata and status
+- Asset symbols normalize to uppercase, stay unique, and create `CREATE_ASSET` audit logs
+- New assets eagerly create zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently
+- `POST /api/admin/markets` creates new `BASE/QUOTE` spot markets from listed assets
+- Active market creation requires both assets to already be `ACTIVE`; paused assets can still back a paused market
+- New markets bootstrap default fee settings automatically and create `CREATE_MARKET` audit logs
+- Optional market configuration supports `pricePrecision`, `amountPrecision`, `minOrderAmount`, and `minNotional`
+- `/admin/assets` includes a create form while keeping existing asset metadata editing and status controls
+- `/admin/markets` lists markets, shows last price when available, and supports market creation plus pause/resume
+- `/admin/fees` can review/update fee settings per market
+- `/assets`, `/markets`, `/trade`, ticker, order book, trades, matching, fees, and SWC valuation all include admin-created listings using the existing foundation
+- No fake trades/order book, K-line, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
 ### v0.14 K-line / Candlestick Chart - Planned
 
@@ -204,4 +212,4 @@ Next milestone: `v0.13 Admin Asset / Market Creation`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.12
+- No blockchain feature is implemented in v0.13

@@ -91,7 +91,7 @@ export default function AdminAirdropPage() {
             eyebrow="Admin Airdrop"
             title="Airdrop asset"
             description="Credit a user's available wallet balance. Every airdrop writes wallet, ledger, and admin audit records together."
-            action={<StatusBadge label="Enabled" tone="warning" />}
+            action={<StatusBadge label="v0.13 Live" tone="success" />}
           />
 
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
@@ -171,7 +171,7 @@ export default function AdminAirdropPage() {
               </p>
               <div className="data-divider mt-4 rounded-2xl border border-[var(--border)]">
                 {[
-                  "Only active seeded assets are allowed.",
+                  "Only active assets are allowed.",
                   "Target users must be ACTIVE; FROZEN and BANNED accounts cannot receive airdrops.",
                   "Amounts must be positive plain decimal strings, never scientific notation.",
                   "Airdrops write wallet, ledger, and audit records in one transaction.",

@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { aliasedTable } from "drizzle-orm/alias";
-import { and, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import {
   formatMinimalUnitsToHuman,
   formatSignedMinimalUnitsToHuman,
@@ -19,6 +19,8 @@ type MarketDetails = {
   status: "ACTIVE" | "PAUSED";
   priceDecimals: number;
   amountDecimals: number;
+  minOrderAmount: bigint;
+  minNotional: bigint;
   baseAssetId: string;
   baseAssetSymbol: string;
   baseAssetName: string;
@@ -33,6 +35,8 @@ type MarketDetails = {
   quoteAssetIconUrl: string | null;
   quoteAssetIconSource: string | null;
   quoteAssetDecimals: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type TradePriceRow = {
@@ -48,40 +52,14 @@ export class MarketsService {
   constructor(@Inject(DRIZZLE_DB) private readonly db: Database) {}
 
   async findAll() {
-    const baseAssets = aliasedTable(assets, "market_list_base_assets");
-    const quoteAssets = aliasedTable(assets, "market_list_quote_assets");
+    const rows = await this.selectMarketRows().orderBy(asc(markets.symbol));
+    return rows.map((row) => this.formatMarketRow(row as MarketDetails));
+  }
 
-    const rows = await this.db
-      .select({
-        id: markets.id,
-        symbol: markets.symbol,
-        baseAssetId: markets.baseAssetId,
-        quoteAssetId: markets.quoteAssetId,
-        status: markets.status,
-        priceDecimals: markets.priceDecimals,
-        amountDecimals: markets.amountDecimals,
-        createdAt: markets.createdAt,
-        updatedAt: markets.updatedAt,
-        baseAssetSymbol: baseAssets.symbol,
-        quoteAssetSymbol: quoteAssets.symbol,
-        baseAssetName: baseAssets.name,
-        quoteAssetName: quoteAssets.name,
-        baseAssetDisplayName: baseAssets.displayName,
-        quoteAssetDisplayName: quoteAssets.displayName,
-        baseAssetIconUrl: baseAssets.iconUrl,
-        quoteAssetIconUrl: quoteAssets.iconUrl,
-        baseAssetIconSource: baseAssets.iconSource,
-        quoteAssetIconSource: quoteAssets.iconSource,
-      })
-      .from(markets)
-      .innerJoin(baseAssets, eq(markets.baseAssetId, baseAssets.id))
-      .innerJoin(quoteAssets, eq(markets.quoteAssetId, quoteAssets.id));
-
-    return rows.map((row) => ({
-      ...row,
-      created_at: row.createdAt,
-      updated_at: row.updatedAt,
-    }));
+  async findBySymbol(marketSymbolInput: string) {
+    const marketSymbol = this.normalizeMarketSymbol(marketSymbolInput);
+    const [market] = await this.selectMarketRows().where(eq(markets.symbol, marketSymbol)).limit(1);
+    return market ? this.formatMarketRow(market as MarketDetails) : null;
   }
 
   async getTicker(marketSymbolInput = SUPPORTED_MARKET_SYMBOL) {
@@ -289,6 +267,41 @@ export class MarketsService {
     };
   }
 
+  private selectMarketRows() {
+    const baseAssets = aliasedTable(assets, "market_list_base_assets");
+    const quoteAssets = aliasedTable(assets, "market_list_quote_assets");
+
+    return this.db
+      .select({
+        id: markets.id,
+        symbol: markets.symbol,
+        baseAssetId: markets.baseAssetId,
+        quoteAssetId: markets.quoteAssetId,
+        status: markets.status,
+        priceDecimals: markets.priceDecimals,
+        amountDecimals: markets.amountDecimals,
+        minOrderAmount: markets.minOrderAmount,
+        minNotional: markets.minNotional,
+        createdAt: markets.createdAt,
+        updatedAt: markets.updatedAt,
+        baseAssetSymbol: baseAssets.symbol,
+        quoteAssetSymbol: quoteAssets.symbol,
+        baseAssetName: baseAssets.name,
+        quoteAssetName: quoteAssets.name,
+        baseAssetDisplayName: baseAssets.displayName,
+        quoteAssetDisplayName: quoteAssets.displayName,
+        baseAssetIconUrl: baseAssets.iconUrl,
+        quoteAssetIconUrl: quoteAssets.iconUrl,
+        baseAssetIconSource: baseAssets.iconSource,
+        quoteAssetIconSource: quoteAssets.iconSource,
+        baseAssetDecimals: baseAssets.decimals,
+        quoteAssetDecimals: quoteAssets.decimals,
+      })
+      .from(markets)
+      .innerJoin(baseAssets, eq(markets.baseAssetId, baseAssets.id))
+      .innerJoin(quoteAssets, eq(markets.quoteAssetId, quoteAssets.id));
+  }
+
   private async findMarketDetails(marketSymbol: string) {
     const baseAssets = aliasedTable(assets, "market_details_base_assets");
     const quoteAssets = aliasedTable(assets, "market_details_quote_assets");
@@ -300,6 +313,8 @@ export class MarketsService {
         status: markets.status,
         priceDecimals: markets.priceDecimals,
         amountDecimals: markets.amountDecimals,
+        minOrderAmount: markets.minOrderAmount,
+        minNotional: markets.minNotional,
         baseAssetId: markets.baseAssetId,
         baseAssetSymbol: baseAssets.symbol,
         baseAssetName: baseAssets.name,
@@ -322,6 +337,36 @@ export class MarketsService {
       .limit(1);
 
     return (market as MarketDetails | undefined) ?? null;
+  }
+
+  private formatMarketRow(row: MarketDetails) {
+    return {
+      id: row.id,
+      symbol: row.symbol,
+      baseAssetId: row.baseAssetId,
+      quoteAssetId: row.quoteAssetId,
+      status: row.status,
+      priceDecimals: row.priceDecimals,
+      amountDecimals: row.amountDecimals,
+      minOrderAmount: formatMinimalUnitsToHuman(row.minOrderAmount, row.baseAssetDecimals),
+      minOrderAmountRaw: row.minOrderAmount.toString(),
+      minNotional: formatMinimalUnitsToHuman(row.minNotional, row.quoteAssetDecimals),
+      minNotionalRaw: row.minNotional.toString(),
+      baseAssetSymbol: row.baseAssetSymbol,
+      quoteAssetSymbol: row.quoteAssetSymbol,
+      baseAssetName: row.baseAssetName,
+      quoteAssetName: row.quoteAssetName,
+      baseAssetDisplayName: row.baseAssetDisplayName,
+      quoteAssetDisplayName: row.quoteAssetDisplayName,
+      baseAssetIconUrl: row.baseAssetIconUrl,
+      quoteAssetIconUrl: row.quoteAssetIconUrl,
+      baseAssetIconSource: row.baseAssetIconSource,
+      quoteAssetIconSource: row.quoteAssetIconSource,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      created_at: row.createdAt,
+      updated_at: row.updatedAt,
+    };
   }
 
   private normalizeMarketSymbol(input = SUPPORTED_MARKET_SYMBOL) {

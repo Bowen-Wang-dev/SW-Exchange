@@ -19,7 +19,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and seeded spot markets. Market data, portfolio valuation, asset metadata/icons, fee settlement, and admin wallet bucket polish are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Market data, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -53,13 +53,13 @@ export default function HomePage() {
             hint={NEXT_MILESTONE_HINT}
             tone="warning"
           />
-            <StatCard
-              label="Market Universe"
-              badgeLabel="Seeded"
-              value="2"
-              hint="SWL/SWC and SWD/SWC are seeded for v0.12."
-              tone="success"
-            />
+          <StatCard
+            label="Listing Mode"
+            badgeLabel="Admin"
+            value="Manual"
+            hint="Seeded pairs remain, and admins can create new assets and markets in v0.13."
+            tone="success"
+          />
           <StatCard
             label="Chain Features"
             badgeLabel="None"
@@ -100,7 +100,7 @@ export default function HomePage() {
             rows={[
               ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances and SWC valuation"],
-              ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin seeded asset funding is enabled"],
+              ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin asset funding is enabled for active assets"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
               ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, ticker data, fee settlement, trade history, and the order book are live."],
             ]}

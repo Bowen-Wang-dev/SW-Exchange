@@ -35,6 +35,8 @@ type MarketDetails = {
   status: "ACTIVE" | "PAUSED";
   priceDecimals: number;
   amountDecimals: number;
+  minOrderAmount: bigint;
+  minNotional: bigint;
   baseAssetId: string;
   baseAssetSymbol: string;
   baseAssetIsActive: boolean;
@@ -146,14 +148,21 @@ export class OrdersService {
 
       const price = this.parsePrice(dto.price, market.priceDecimals);
       const amount = this.parseAmount(dto.amount, market.baseAssetDecimals);
+      const quoteTotal = this.calculateQuoteTotalMinimalUnits(
+        price,
+        amount,
+        market.priceDecimals,
+        market.baseAssetDecimals,
+        market.quoteAssetDecimals,
+      );
+
+      this.assertOrderMinimums(market, amount, quoteTotal);
+
       const lockedAssetId = side === "BUY" ? market.quoteAssetId : market.baseAssetId;
       const lockedAssetSymbol = side === "BUY" ? market.quoteAssetSymbol : market.baseAssetSymbol;
       const lockedAssetDecimals =
         side === "BUY" ? market.quoteAssetDecimals : market.baseAssetDecimals;
-      const initialLockedAmount =
-        side === "BUY"
-          ? this.calculateBuyLockedAmount(price, amount, market)
-          : amount;
+      const initialLockedAmount = side === "BUY" ? quoteTotal : amount;
 
       const wallet = await this.ensureWalletForUpdate(tx, userId, lockedAssetId);
       if (wallet.availableBalance < initialLockedAmount) {
@@ -1050,6 +1059,8 @@ export class OrdersService {
         status: markets.status,
         priceDecimals: markets.priceDecimals,
         amountDecimals: markets.amountDecimals,
+        minOrderAmount: markets.minOrderAmount,
+        minNotional: markets.minNotional,
         baseAssetId: markets.baseAssetId,
         baseAssetSymbol: baseAssets.symbol,
         baseAssetIsActive: baseAssets.isActive,
@@ -1193,6 +1204,33 @@ export class OrdersService {
     }
 
     return remainingAmount;
+  }
+
+  private assertOrderMinimums(
+    market: Pick<
+      MarketDetails,
+      "minOrderAmount" | "minNotional" | "baseAssetDecimals" | "quoteAssetDecimals"
+    >,
+    amount: bigint,
+    quoteTotal: bigint,
+  ) {
+    if (market.minOrderAmount > 0n && amount < market.minOrderAmount) {
+      throw new BadRequestException(
+        `Amount must be at least ${formatMinimalUnitsToHuman(
+          market.minOrderAmount,
+          market.baseAssetDecimals,
+        )}.`,
+      );
+    }
+
+    if (market.minNotional > 0n && quoteTotal < market.minNotional) {
+      throw new BadRequestException(
+        `Order notional must be at least ${formatMinimalUnitsToHuman(
+          market.minNotional,
+          market.quoteAssetDecimals,
+        )}.`,
+      );
+    }
   }
 
   private buildBookSide(
