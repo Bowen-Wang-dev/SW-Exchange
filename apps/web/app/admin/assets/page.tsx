@@ -201,8 +201,8 @@ export default function AdminAssetsPage() {
           <PageHeader
             eyebrow="Admin Assets"
             title="Asset registry"
-            description="The seeded asset universe remains small in v0.x. Admins can pause assets, edit display metadata, and manage the SWL/SWC market from this existing operations page."
-            action={<StatusBadge label="v0.11 Metadata" tone="warning" />}
+            description="The seeded asset universe remains small in v0.x. Admins can pause assets, edit display metadata, and manage seeded markets from this existing operations page."
+            action={<StatusBadge label="v0.12 Markets" tone="warning" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

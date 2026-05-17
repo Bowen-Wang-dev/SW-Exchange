@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.11 Asset Metadata + Icon System`
+Current completed milestone: `v0.12 Multi-Market Foundation`
 
-Next milestone: `v0.12 Multi-Market Foundation`
+Next milestone: `v0.13 Admin Asset / Market Creation`
 
 ### v0.1 Foundation - Completed
 
@@ -157,12 +157,20 @@ Next milestone: `v0.12 Multi-Market Foundation`
 - Upload is deferred as future polish
 - No matching, fee, transfer, wallet bucket, or user/asset/market status rules changed
 
-### v0.12 Multi-Market Foundation - Planned
+### v0.12 Multi-Market Foundation - Completed
 
-- Remove `SWL/SWC` hardcoding where practical
-- Support multiple markets internally
-- Market selector
-- Each market has independent order book, trades, and ticker
+- Removed `SWL/SWC` hardcoding where practical from app-facing exchange behavior
+- Existing `SWL/SWC` market remains supported
+- Seeded demo asset `SWD` and market `SWD/SWC`
+- Market summaries return all seeded markets
+- Ticker, order book, recent trades, order placement, matching, and trade records use the selected market
+- Matching only considers orders in the same market
+- `/trade` defaults to `SWL/SWC` and includes a seeded-market selector
+- `/markets` lists all seeded markets and links to the selected market trade view
+- User/admin order and trade history support market filters
+- Existing users/admin receive missing active-asset wallets idempotently without balance resets
+- Portfolio valuation remains SWC-based and leaves unpriced assets pending
+- No admin asset creation, admin market creation, K-line, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
 ### v0.13 Admin Asset / Market Creation - Planned
 
@@ -196,4 +204,4 @@ Next milestone: `v0.12 Multi-Market Foundation`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.11
+- No blockchain feature is implemented in v0.12

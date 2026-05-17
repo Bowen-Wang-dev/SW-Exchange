@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { aliasedTable } from "drizzle-orm/alias";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { formatMinimalUnitsToHuman } from "../common/money.js";
 import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
@@ -104,9 +105,20 @@ export class TradesService {
     return rows.map((row) => this.formatPublicTrade(row));
   }
 
-  async listMine(userId: string) {
+  async listMine(
+    userId: string,
+    filters: {
+      marketSymbol?: string;
+    } = {},
+  ) {
+    const conditions: SQL[] = [or(eq(trades.buyerId, userId), eq(trades.sellerId, userId))!];
+
+    if (filters.marketSymbol?.trim()) {
+      conditions.push(eq(markets.symbol, this.normalizeMarketSymbol(filters.marketSymbol)));
+    }
+
     const rows = await this.selectTradeRows()
-      .where(or(eq(trades.buyerId, userId), eq(trades.sellerId, userId)))
+      .where(and(...conditions))
       .orderBy(desc(trades.createdAt), desc(trades.id))
       .limit(300);
 
@@ -115,8 +127,40 @@ export class TradesService {
     );
   }
 
-  async listAllForAdmin() {
+  async listAllForAdmin(
+    filters: {
+      marketSymbol?: string;
+      user?: string;
+    } = {},
+  ) {
+    const conditions: SQL[] = [];
+
+    if (filters.marketSymbol?.trim()) {
+      conditions.push(eq(markets.symbol, this.normalizeMarketSymbol(filters.marketSymbol)));
+    }
+
+    if (filters.user?.trim()) {
+      const userFilter = filters.user.trim();
+      const userConditions: SQL[] = [eq(users.email, userFilter), eq(users.username, userFilter)];
+      if (this.isUuid(userFilter)) {
+        userConditions.push(eq(users.id, userFilter));
+      }
+
+      const matchingUsers = await this.db
+        .select({ id: users.id })
+        .from(users)
+        .where(or(...userConditions));
+
+      if (matchingUsers.length === 0) {
+        return [];
+      }
+
+      const userIds = matchingUsers.map((user) => user.id);
+      conditions.push(or(inArray(trades.buyerId, userIds), inArray(trades.sellerId, userIds))!);
+    }
+
     const rows = await this.selectTradeRows()
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(trades.createdAt), desc(trades.id))
       .limit(500);
 
@@ -178,11 +222,21 @@ export class TradesService {
   private normalizeMarketSymbol(input: string) {
     const symbol = input.trim().toUpperCase();
 
-    if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported.");
+    if (!symbol) {
+      throw new BadRequestException("marketSymbol is required.");
+    }
+
+    if (symbol.length > 32) {
+      throw new BadRequestException("marketSymbol is too long.");
     }
 
     return symbol;
+  }
+
+  private isUuid(input: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      input,
+    );
   }
 
   private formatPublicTrade(row: TradeRow) {

@@ -1,13 +1,13 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.11 Asset Metadata + Icon System`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v0.12 Multi-Market Foundation`. These items are not live until their milestone is implemented.
 
-## v0.12 Multi-Market Foundation
+## Completed Baseline
 
-- Remove `SWL/SWC` hardcoding where practical
-- Support multiple markets internally
-- Market selector
-- Each market has independent order book, trades, and ticker
+- `v0.11 Asset Metadata + Icon System` is completed.
+- `v0.12 Multi-Market Foundation` is completed.
+- Multiple seeded markets are supported internally.
+- Admin asset creation, admin market creation, K-line, market orders, deposit, withdraw, and blockchain features are not live.
 
 ## v0.13 Admin Asset / Market Creation
 
@@ -41,4 +41,4 @@ This plan documents intended future work after `v0.11 Asset Metadata + Icon Syst
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.11
+- No blockchain feature is implemented in v0.12

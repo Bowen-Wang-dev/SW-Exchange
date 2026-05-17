@@ -18,9 +18,21 @@ export declare const DEFAULT_ASSETS: readonly [{
     readonly iconSource: "FALLBACK";
     readonly sortOrder: 20;
     readonly description: "Virtual volatile token for simulation.";
+}, {
+    readonly symbol: "SWD";
+    readonly name: "SW DOGE";
+    readonly displayName: "SW DOGE";
+    readonly decimals: 18;
+    readonly iconSource: "FALLBACK";
+    readonly sortOrder: 30;
+    readonly description: "Virtual demo asset used to verify multi-market simulation support.";
 }];
 export declare const DEFAULT_MARKETS: readonly [{
     readonly symbol: "SWL/SWC";
     readonly baseAssetSymbol: "SWL";
+    readonly quoteAssetSymbol: "SWC";
+}, {
+    readonly symbol: "SWD/SWC";
+    readonly baseAssetSymbol: "SWD";
     readonly quoteAssetSymbol: "SWC";
 }];

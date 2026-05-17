@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.11 Asset Metadata + Icon System`
+Current completed milestone: `v0.12 Multi-Market Foundation`
 
-Next milestone: `v0.12 Multi-Market Foundation`
+Next milestone: `v0.13 Admin Asset / Market Creation`
 
 This version is intentionally limited:
 
@@ -14,7 +14,7 @@ This version is intentionally limited:
 - No KYC
 - No market orders
 - No candlestick / K-line chart
-- No multi-market creation
+- No admin asset or market creation
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
@@ -25,40 +25,43 @@ Current scope:
 - User wallet viewer
 - User ledger viewer
 - Admin user and wallet viewer
-- Admin SWC/SWL airdrop flow
+- Admin seeded-asset airdrop flow
 - User SWC/SWL internal transfer flow
 - User and admin transfer history
 - Admin ledger and audit log viewer
-- SWL/SWC limit order placement and cancellation
-- SWL/SWC automatic matching with price-time priority
-- SWL/SWC trade recording and trade history
-- SWL/SWC order book grouped by price
+- Market-aware limit order placement and cancellation
+- Market-aware automatic matching with price-time priority
+- Market-aware trade recording and trade history
+- Market-specific order book grouped by price
 - User and admin order history
 - User and admin trade history
 - ORDER_LOCK and ORDER_UNLOCK ledger entries
 - TRADE_BUY and TRADE_SELL ledger entries
 - Admin-configurable buyer and seller trading fees
-- Admin Fee Wallet bucket for collected SWL/SWC fees
+- Admin Fee Wallet bucket for collected trading fees
 - Admin MAIN/FEE/TREASURY/AIRDROP/HOT wallet bucket model
 - Trade records with persisted fee amounts and fee rates
 - FEE ledger entries for fees charged and fee income
 - Admin user freeze/ban controls
 - Admin asset pause/resume controls
-- Admin SWL/SWC market pause/resume controls
+- Admin seeded-market pause/resume controls
 - Admin audit logs for user, asset, and market status changes
 - Polished user and admin ledger tables with filters
 - Polished admin audit log table with readable before/after details
 - Admin reports summary cards and recent activity
-- SWL/SWC market ticker from real trades and open orders
+- Market ticker from selected-market trades and open orders
 - Best bid and best ask from the open order book
 - Last price, 24h high/low/volume/quote volume/change from settled trades
-- User portfolio valuation in `SWC` using real balances and latest SWL/SWC last price
+- User portfolio valuation in `SWC` using real balances and latest available `*/SWC` market prices
 - Wallet estimated value column for priced assets
 - Admin market summary card for last price, 24h volume, open orders, and total trades
 - Asset metadata fields for display name, icon URL, icon source, sort order, and description
 - Clean fallback asset icons across user and admin asset displays
 - Admin asset metadata editing for display name, icon URL, description, and sort order
 - Admin audit logs for asset metadata changes
+- Seeded demo market `SWD/SWC` alongside existing `SWL/SWC`
+- Market selector on `/trade`
+- Market summary list includes all seeded markets
 
 ## Milestone status
 
@@ -74,19 +77,37 @@ Current scope:
 - `v0.9 Ledger / Audit / Reports Polish` completed
 - `v0.10 Market Data + Portfolio Valuation` completed
 - `v0.11 Asset Metadata + Icon System` completed
+- `v0.12 Multi-Market Foundation` completed
 
-- Current completed milestone: `v0.11 Asset Metadata + Icon System`
-- Next milestone: `v0.12 Multi-Market Foundation`
+- Current completed milestone: `v0.12 Multi-Market Foundation`
+- Next milestone: `v0.13 Admin Asset / Market Creation`
 
 ## Planned milestones
 
-- `v0.12 Multi-Market Foundation`
 - `v0.13 Admin Asset / Market Creation`
 - `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md), and [docs/FUTURE_ROADMAP.md](docs/FUTURE_ROADMAP.md) for milestone planning, released history, the current wallet bucket model, and future product direction.
+
+## v0.12 Multi-Market Foundation
+
+v0.12 makes market-dependent exchange behavior use the selected market instead of assuming only `SWL/SWC`.
+
+- Existing `SWL/SWC` behavior remains supported
+- Seed adds demo asset `SWD` / `SW DOGE` and market `SWD/SWC`
+- `GET /api/markets/summary` returns all seeded markets with base/quote asset metadata, last price, best bid/ask, 24h volume, quote volume, and change
+- `GET /api/markets/ticker?marketSymbol=...`, `GET /api/order-book?marketSymbol=...`, and `GET /api/trades/recent?marketSymbol=...` are market-specific
+- `POST /api/orders` uses the selected market's base and quote assets for locking, matching, trades, fees, and asset/market pause checks
+- Matching only considers orders in the same market
+- `/trade` defaults to `SWL/SWC` and includes a seeded-market selector
+- `/markets` lists all seeded markets and links to `/trade?market=...`
+- `/orders`, `/trades`, `/admin/orders`, and `/admin/trades` support market filtering
+- Existing users receive missing active-asset MAIN wallets idempotently; admin receives missing active-asset bucket wallets idempotently
+- Portfolio valuation remains SWC-based: `SWC = 1`, other assets use their latest `*/SWC` market price when one exists, otherwise valuation is pending
+- Admin market/asset status pages display all seeded markets/assets
+- Admin asset creation, admin market creation, K-line, market orders, deposit, withdraw, blockchain integration, and chain addresses are not implemented
 
 ## v0.11 Asset Metadata + Icon System
 

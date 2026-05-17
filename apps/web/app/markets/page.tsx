@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
@@ -48,11 +49,11 @@ export default function MarketsPage() {
         <PageHeader
           eyebrow="Markets"
           title="Exchange markets"
-          description={`SW Exchange v0.x supports one internal spot market today. Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x supports multiple seeded internal spot markets. Limit orders and the order book are live. ${REAL_TIME_SYNC_COPY}`}
         />
 
         <DataTable
-          columns={["Market", "Last Price", "24h Change", "24h Volume", "Best Bid", "Best Ask", "Status"]}
+          columns={["Market", "Last Price", "24h Change", "24h Volume", "Best Bid", "Best Ask", "Status", "Action"]}
           rows={markets.length > 0 ? markets.map((market) => [
               <div key={`${market.marketSymbol}-market`} className="flex items-center gap-2">
                 <span className="flex -space-x-2">
@@ -91,6 +92,13 @@ export default function MarketsPage() {
                 label={market.status}
                 tone={market.status === "ACTIVE" ? "success" : "warning"}
               />,
+              <Link
+                key={`${market.marketSymbol}-trade`}
+                href={`/trade?market=${encodeURIComponent(market.marketSymbol)}`}
+                className="rounded-xl border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
+              >
+                Trade
+              </Link>,
             ]) : [
               [
                 <div key="fallback-market" className="flex items-center gap-2">
@@ -111,6 +119,7 @@ export default function MarketsPage() {
                 "—",
                 "—",
                 <StatusBadge key="fallback-status" label="Unknown" tone="neutral" />,
+                "—",
               ],
             ]}
         />

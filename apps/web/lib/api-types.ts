@@ -151,6 +151,18 @@ export type MarketTicker = {
 
 export type MarketSummary = {
   marketSymbol: string;
+  baseAsset?: {
+    symbol: string;
+    name?: string;
+    displayName?: string | null;
+    iconUrl?: string | null;
+  };
+  quoteAsset?: {
+    symbol: string;
+    name?: string;
+    displayName?: string | null;
+    iconUrl?: string | null;
+  };
   baseAssetSymbol: string;
   quoteAssetSymbol: string;
   baseAssetName?: string;
@@ -167,6 +179,8 @@ export type MarketSummary = {
   volume24h: string;
   quoteVolume24h: string;
   change24hPercent: string | null;
+  openOrderCount?: number;
+  totalTradeCount?: number;
   status: MarketStatus;
 };
 
@@ -279,12 +293,15 @@ export type AdminReportsSummary = {
   feeWalletBalances: WalletBalance[];
   marketSummary?: {
     marketSymbol: string;
+    baseAssetSymbol?: string;
+    quoteAssetSymbol?: string;
     lastPrice: string | null;
     volume24h: string;
     openOrderCount: number;
     totalTradeCount: number;
     status: MarketStatus;
-  };
+  } | null;
+  marketSummaries?: MarketSummary[];
   recentTrades: AdminTradeEntry[];
   recentTransfers: AdminTransferEntry[];
   recentAuditLogs: AdminAuditLog[];

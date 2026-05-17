@@ -47,7 +47,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.11 Asset Metadata + Icon System. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.12 Multi-Market Foundation. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -96,16 +96,22 @@ export function AdminDashboardContent() {
         />
         <StatCard
           label="Last Price"
-          badgeLabel="SWL/SWC"
-          value={formatMarketValue(summary?.marketSummary?.lastPrice, "SWC")}
+          badgeLabel={summary?.marketSummary?.marketSymbol ?? "Market"}
+          value={formatMarketValue(
+            summary?.marketSummary?.lastPrice,
+            summary?.marketSummary?.quoteAssetSymbol ?? "SWC",
+          )}
           hint="Latest settled trade price; empty until trades exist."
           tone="info"
         />
         <StatCard
           label="24h Volume"
-          badgeLabel="SWL/SWC"
-          value={formatMarketValue(summary?.marketSummary?.volume24h, "SWL")}
-          hint="Settled SWL amount traded in the last 24 hours."
+          badgeLabel={summary?.marketSummary?.marketSymbol ?? "Market"}
+          value={formatMarketValue(
+            summary?.marketSummary?.volume24h,
+            summary?.marketSummary?.baseAssetSymbol ?? "",
+          )}
+          hint="Settled base asset amount traded in the last 24 hours."
           tone="success"
         />
         <StatCard
@@ -119,7 +125,7 @@ export function AdminDashboardContent() {
           label="Total Trades"
           badgeLabel="Live"
           value={formatCount(summary?.tradeCount)}
-          hint="Settled SWL/SWC fills."
+          hint="Settled market fills."
           tone="success"
         />
         <StatCard
@@ -198,11 +204,11 @@ export function AdminDashboardContent() {
           columns={["Area", "Status", "Notes"]}
           rows={[
             ["Users", <StatusBadge key="users" label="Live" tone="success" />, "Admin user list endpoint"],
-            ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "SWC/SWL balances"],
-            ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only SWC/SWL funding"],
+            ["Wallets", <StatusBadge key="wallets" label="Live" tone="success" />, "Seeded asset balances"],
+            ["Airdrop", <StatusBadge key="airdrop" label="Enabled" tone="warning" />, "Admin-only seeded asset funding"],
             ["Transfers", <StatusBadge key="transfers" label="Live" tone="success" />, "Free user-to-user internal transfers"],
             ["Orders", <StatusBadge key="orders" label="Live" tone="success" />, "Limit order matching, fills, and cancel review"],
-            ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled SWL/SWC trade review"],
+            ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled market trade review"],
             ["Fees", <StatusBadge key="fees" label="Live" tone="warning" />, "Admin fee settings and Fee Wallet balances"],
             ["Market Data", <StatusBadge key="market-data" label="v0.10" tone="info" />, "Ticker, 24h volume, open orders, and total trades"],
             ["Asset Metadata", <StatusBadge key="asset-metadata" label="v0.11" tone="info" />, "Display names, icon URLs, and clean fallbacks"],
@@ -214,23 +220,18 @@ export function AdminDashboardContent() {
 
       <DataTable
         columns={["Market", "Last Price", "24h Volume", "Open Orders", "Total Trades", "Status"]}
-        rows={[
-          [
-            <MarketCell
-              key="admin-market-cell"
-              marketSymbol={summary?.marketSummary?.marketSymbol ?? "SWL/SWC"}
-            />,
-            formatMarketValue(summary?.marketSummary?.lastPrice, "SWC"),
-            formatMarketValue(summary?.marketSummary?.volume24h, "SWL"),
-            formatCount(summary?.marketSummary?.openOrderCount),
-            formatCount(summary?.marketSummary?.totalTradeCount),
-            <StatusBadge
-              key="admin-market-status"
-              label={summary?.marketSummary?.status ?? "ACTIVE"}
-              tone={summary?.marketSummary?.status === "PAUSED" ? "warning" : "success"}
-            />,
-          ],
-        ]}
+        rows={(summary?.marketSummaries?.length ? summary.marketSummaries : []).map((market) => [
+          <MarketCell key={`${market.marketSymbol}-market-cell`} marketSymbol={market.marketSymbol} />,
+          formatMarketValue(market.lastPrice, market.quoteAssetSymbol),
+          formatMarketValue(market.volume24h, market.baseAssetSymbol),
+          formatCount(market.openOrderCount),
+          formatCount(market.totalTradeCount),
+          <StatusBadge
+            key={`${market.marketSymbol}-status`}
+            label={market.status}
+            tone={market.status === "PAUSED" ? "warning" : "success"}
+          />,
+        ])}
       />
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -253,7 +254,7 @@ function RecentTrades({ trades }: { trades: AdminTradeEntry[] }) {
             formatDateTime(trade.createdAt),
             <MarketCell key={`${trade.id}-market`} marketSymbol={trade.marketSymbol} />,
             trade.price,
-            `${trade.amount} SWL`,
+            `${trade.amount} ${marketBaseSymbol(trade.marketSymbol)}`,
           ])}
         />
       ) : (
@@ -261,6 +262,10 @@ function RecentTrades({ trades }: { trades: AdminTradeEntry[] }) {
       )}
     </section>
   );
+}
+
+function marketBaseSymbol(marketSymbol: string) {
+  return marketSymbol.split("/")[0] || "";
 }
 
 function MarketCell({ marketSymbol }: { marketSymbol: string }) {

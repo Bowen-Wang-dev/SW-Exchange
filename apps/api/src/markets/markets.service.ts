@@ -222,11 +222,23 @@ export class MarketsService {
     const marketRows = await this.findAll();
 
     return Promise.all(
-      marketRows.filter((market) => market.symbol === SUPPORTED_MARKET_SYMBOL).map(async (market) => {
+      marketRows.map(async (market) => {
         const ticker = await this.getTicker(market.symbol);
 
         return {
           marketSymbol: ticker.marketSymbol,
+          baseAsset: {
+            symbol: ticker.baseAssetSymbol,
+            name: ticker.baseAssetName,
+            displayName: ticker.baseAssetDisplayName,
+            iconUrl: ticker.baseAssetIconUrl,
+          },
+          quoteAsset: {
+            symbol: ticker.quoteAssetSymbol,
+            name: ticker.quoteAssetName,
+            displayName: ticker.quoteAssetDisplayName,
+            iconUrl: ticker.quoteAssetIconUrl,
+          },
           baseAssetSymbol: ticker.baseAssetSymbol,
           quoteAssetSymbol: ticker.quoteAssetSymbol,
           baseAssetName: ticker.baseAssetName,
@@ -243,6 +255,8 @@ export class MarketsService {
           volume24h: ticker.volume24h,
           quoteVolume24h: ticker.quoteVolume24h,
           change24hPercent: ticker.change24hPercent,
+          openOrderCount: ticker.openOrderCount,
+          totalTradeCount: ticker.totalTradeCount,
           status: ticker.status,
         };
       }),
@@ -313,8 +327,12 @@ export class MarketsService {
   private normalizeMarketSymbol(input = SUPPORTED_MARKET_SYMBOL) {
     const symbol = input.trim().toUpperCase();
 
-    if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported.");
+    if (!symbol) {
+      throw new BadRequestException("marketSymbol is required.");
+    }
+
+    if (symbol.length > 32) {
+      throw new BadRequestException("marketSymbol is too long.");
     }
 
     return symbol;

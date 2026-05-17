@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { formatMinimalUnitsToHuman } from "../common/money.js";
 import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
@@ -245,7 +245,7 @@ export class FeesService {
     const assetRows = await db
       .select()
       .from(assets)
-      .where(and(eq(assets.isActive, true), or(eq(assets.symbol, "SWC"), eq(assets.symbol, "SWL"))));
+      .where(eq(assets.isActive, true));
 
     for (const asset of assetRows) {
       await db
@@ -283,7 +283,6 @@ export class FeesService {
       .where(and(eq(wallets.userId, adminUserId), eq(wallets.walletType, "FEE")));
 
     return rows
-      .filter((wallet) => wallet.symbol === "SWC" || wallet.symbol === "SWL")
       .sort((a, b) => a.symbol.localeCompare(b.symbol))
       .map((wallet) => {
         const total = wallet.availableBalance + wallet.lockedBalance;
@@ -364,8 +363,12 @@ export class FeesService {
   private normalizeMarketSymbol(input: string) {
     const symbol = input.trim().toUpperCase();
 
-    if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported.");
+    if (!symbol) {
+      throw new BadRequestException("marketSymbol is required.");
+    }
+
+    if (symbol.length > 32) {
+      throw new BadRequestException("marketSymbol is too long.");
     }
 
     return symbol;

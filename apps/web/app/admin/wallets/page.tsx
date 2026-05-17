@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type {
   AdminWalletBucketBalance,
+  AssetRow,
   AdminWalletBucketTransferResponse,
   WalletBalance,
   WalletType,
@@ -26,7 +27,8 @@ export default function AdminWalletsPage() {
   const [systemWallets, setSystemWallets] = useState<AdminWalletBucketBalance[]>([]);
   const [fromWalletType, setFromWalletType] = useState<WalletType>("FEE");
   const [toWalletType, setToWalletType] = useState<WalletType>("MAIN");
-  const [assetSymbol, setAssetSymbol] = useState<"SWC" | "SWL">("SWC");
+  const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [assetSymbol, setAssetSymbol] = useState("SWC");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +49,19 @@ export default function AdminWalletsPage() {
       ]);
       setAdminWallets(adminWalletResponse);
       setSystemWallets(systemWalletResponse);
+      setAssets(
+        adminWalletResponse
+          .map((wallet) => ({
+            id: wallet.assetId ?? wallet.asset,
+            symbol: wallet.asset,
+            name: wallet.name,
+            decimals: wallet.decimals,
+            isActive: true,
+          }))
+          .filter((asset, index, assetRows) =>
+            assetRows.findIndex((candidate) => candidate.symbol === asset.symbol) === index,
+          ),
+      );
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof ApiError ? loadError.message : "Unable to load wallets.");
@@ -98,7 +113,7 @@ export default function AdminWalletsPage() {
           <PageHeader
             eyebrow="Admin Wallets"
             title="Wallet buckets"
-            description="Review the admin MAIN wallet and platform wallet buckets for SWC and SWL."
+            description="Review the admin MAIN wallet and platform wallet buckets for seeded assets."
             action={<StatusBadge label="Wallet Buckets" tone="info" />}
           />
 
@@ -127,6 +142,7 @@ export default function AdminWalletsPage() {
               fromWalletType={fromWalletType}
               toWalletType={toWalletType}
               assetSymbol={assetSymbol}
+              assets={assets}
               amount={amount}
               note={note}
               isSubmitting={isSubmitting}
@@ -180,6 +196,7 @@ function SystemWalletsTab({
   fromWalletType,
   toWalletType,
   assetSymbol,
+  assets,
   amount,
   note,
   isSubmitting,
@@ -193,13 +210,14 @@ function SystemWalletsTab({
   wallets: AdminWalletBucketBalance[];
   fromWalletType: WalletType;
   toWalletType: WalletType;
-  assetSymbol: "SWC" | "SWL";
+  assetSymbol: string;
+  assets: AssetRow[];
   amount: string;
   note: string;
   isSubmitting: boolean;
   onFromWalletTypeChange: (value: WalletType) => void;
   onToWalletTypeChange: (value: WalletType) => void;
-  onAssetSymbolChange: (value: "SWC" | "SWL") => void;
+  onAssetSymbolChange: (value: string) => void;
   onAmountChange: (value: string) => void;
   onNoteChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -293,11 +311,14 @@ function SystemWalletsTab({
             Asset
             <select
               value={assetSymbol}
-              onChange={(event) => onAssetSymbolChange(event.target.value as "SWC" | "SWL")}
+              onChange={(event) => onAssetSymbolChange(event.target.value)}
               className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
             >
-              <option value="SWC">SWC</option>
-              <option value="SWL">SWL</option>
+              {buildAssetOptions(assets, assetSymbol).map((asset) => (
+                <option key={asset} value={asset}>
+                  {asset}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -334,6 +355,15 @@ function SystemWalletsTab({
       </section>
     </div>
   );
+}
+
+function buildAssetOptions(assets: AssetRow[], selectedAsset: string) {
+  const options = new Set<string>([selectedAsset]);
+  for (const asset of assets) {
+    options.add(asset.symbol);
+  }
+
+  return [...options].filter(Boolean);
 }
 
 function bucketStatusTone(status: AdminWalletBucketBalance["status"]) {

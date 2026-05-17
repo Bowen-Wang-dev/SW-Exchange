@@ -1,16 +1,50 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.11 Asset Metadata + Icon System`
+Current completed milestone: `v0.12 Multi-Market Foundation`
 
-Next milestone: `v0.12 Multi-Market Foundation`
+Next milestone: `v0.13 Admin Asset / Market Creation`
 
 ## Upcoming plan
 
-- `v0.12 Multi-Market Foundation`
 - `v0.13 Admin Asset / Market Creation`
 - `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.12 Multi-Market Foundation
+
+This milestone makes market-dependent exchange behavior use the selected market while preserving existing `SWL/SWC` behavior.
+
+### Highlights
+
+- Seeded demo asset `SWD` / `SW DOGE` and market `SWD/SWC`
+- Market summary endpoint returns all seeded markets
+- Ticker, order book, recent trades, order placement, matching, and trade settlement are market-specific
+- Matching only considers open/partially filled orders in the same market
+- BUY locks the selected market quote asset; SELL locks the selected market base asset
+- Fees continue to use bigint minimal-unit math and are looked up per selected market setting
+- `/trade` defaults to `SWL/SWC` and includes a seeded-market selector
+- `/markets` lists all seeded markets and links to `/trade?market=...`
+- User/admin orders and trades support market filtering
+- Wallet and portfolio valuation handle additional seeded assets; unpriced non-SWC assets remain pending
+- Admin asset and market status controls display all seeded assets/markets
+
+### Developer and operational notes
+
+- No schema migration was required; existing `markets`, `orders`, `trades`, and `fee_settings` already had market identifiers.
+- Seed changes are idempotent and do not reset balances.
+- Existing users receive missing active-asset `MAIN` wallets.
+- Admin receives missing active-asset `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` bucket wallets.
+
+### Constraints kept in place
+
+- No admin asset creation
+- No admin market creation
+- No K-line chart
+- No market orders
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
 
 ## v0.11 Asset Metadata + Icon System
 

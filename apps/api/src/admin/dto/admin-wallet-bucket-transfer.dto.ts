@@ -12,8 +12,8 @@ export class AdminWalletBucketTransferDto {
   toWalletType!: WalletType;
 
   @IsString()
-  @IsIn(["SWC", "SWL"])
-  assetSymbol!: "SWC" | "SWL";
+  @MaxLength(16)
+  assetSymbol!: string;
 
   @IsString()
   @MaxLength(128)

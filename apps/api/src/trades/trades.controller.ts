@@ -16,7 +16,7 @@ export class TradesController {
 
   @UseGuards(JwtAuthGuard)
   @Get("me")
-  listMine(@Req() request: AuthenticatedRequest) {
-    return this.tradesService.listMine(request.user.sub);
+  listMine(@Req() request: AuthenticatedRequest, @Query("marketSymbol") marketSymbol?: string) {
+    return this.tradesService.listMine(request.user.sub, { marketSymbol });
   }
 }

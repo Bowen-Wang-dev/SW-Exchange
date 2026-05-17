@@ -8,12 +8,14 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { OrderSide, TradeEntry } from "@/lib/api-types";
+import type { MarketSummary, OrderSide, TradeEntry } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
 import { TRADE_HISTORY_COPY } from "@/lib/milestone-copy";
 
 export default function TradesPage() {
   const [trades, setTrades] = useState<TradeEntry[]>([]);
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
+  const [marketFilter, setMarketFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,9 +25,14 @@ export default function TradesPage() {
     async function loadTrades() {
       try {
         setIsLoading(true);
-        const response = await apiRequest<TradeEntry[]>("/trades/me");
+        const query = marketFilter ? `?marketSymbol=${encodeURIComponent(marketFilter)}` : "";
+        const [tradeResponse, marketResponse] = await Promise.all([
+          apiRequest<TradeEntry[]>(`/trades/me${query}`),
+          apiRequest<MarketSummary[]>("/markets/summary"),
+        ]);
         if (active) {
-          setTrades(response);
+          setTrades(tradeResponse);
+          setMarkets(marketResponse);
           setError(null);
         }
       } catch (loadError) {
@@ -44,7 +51,7 @@ export default function TradesPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [marketFilter]);
 
   return (
     <ProtectedRoute>
@@ -54,7 +61,13 @@ export default function TradesPage() {
             eyebrow="Trades"
             title="Executed trade history"
             description={TRADE_HISTORY_COPY}
-            action={<StatusBadge label="v0.11 Live" tone="success" />}
+            action={<StatusBadge label="v0.12 Live" tone="success" />}
+          />
+
+          <MarketFilter
+            markets={markets}
+            value={marketFilter}
+            onChange={setMarketFilter}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -81,11 +94,41 @@ export default function TradesPage() {
           ) : null}
 
           <div className="rounded-2xl border border-emerald-300/16 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100">
-            Fees are live. Buyer fees are charged in SWL and seller fees are charged in SWC at execution time.
+            Fees are live. Buyer fees are charged in the traded base asset and seller fees are charged in the quote asset at execution time.
           </div>
         </div>
       </AppShell>
     </ProtectedRoute>
+  );
+}
+
+function MarketFilter({
+  markets,
+  value,
+  onChange,
+}: {
+  markets: MarketSummary[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="panel rounded-3xl p-4">
+      <label className="grid max-w-xs gap-2 text-sm text-[var(--foreground-soft)]">
+        Market
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+        >
+          <option value="">All markets</option>
+          {markets.map((market) => (
+            <option key={market.marketSymbol} value={market.marketSymbol}>
+              {market.marketSymbol}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
   );
 }
 

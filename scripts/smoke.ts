@@ -103,20 +103,20 @@ async function testSeedData() {
 
   try {
     const assets = await client.query<{ symbol: string }>(
-      "select symbol from assets where symbol in ('SWC', 'SWL') order by symbol",
+      "select symbol from assets where symbol in ('SWC', 'SWL', 'SWD') order by symbol",
     );
     expectValues(
       assets.rows.map((row) => row.symbol),
-      ["SWC", "SWL"],
+      ["SWC", "SWD", "SWL"],
       "seeded assets",
     );
 
     const markets = await client.query<{ symbol: string }>(
-      "select symbol from markets where symbol = 'SWL/SWC'",
+      "select symbol from markets where symbol in ('SWL/SWC', 'SWD/SWC') order by symbol",
     );
     expectValues(
       markets.rows.map((row) => row.symbol),
-      ["SWL/SWC"],
+      ["SWD/SWC", "SWL/SWC"],
       "seeded markets",
     );
 
@@ -138,13 +138,13 @@ async function testSeedData() {
           and users.email = $1
           and users.username = $2
           and wallets.wallet_type in ('MAIN', 'FEE', 'TREASURY', 'AIRDROP', 'HOT')
-          and assets.symbol in ('SWC', 'SWL')
+          and assets.symbol in ('SWC', 'SWL', 'SWD')
         order by wallets.wallet_type, assets.symbol
       `,
       [adminEmail, adminUsername],
     );
-    if (adminBuckets.rows.length !== 10) {
-      throw new Error("Expected seeded admin MAIN/FEE/TREASURY/AIRDROP/HOT wallets for SWC and SWL.");
+    if (adminBuckets.rows.length !== 15) {
+      throw new Error("Expected seeded admin MAIN/FEE/TREASURY/AIRDROP/HOT wallets for SWC, SWL, and SWD.");
     }
 
     const feeSettings = await client.query<{
@@ -152,9 +152,11 @@ async function testSeedData() {
       buyer_fee_rate_bps: number;
       seller_fee_rate_bps: number;
       is_active: boolean;
-    }>("select market_symbol, buyer_fee_rate_bps, seller_fee_rate_bps, is_active from fee_settings where market_symbol = 'SWL/SWC'");
-    if (feeSettings.rows.length !== 1 || feeSettings.rows[0]?.is_active !== true) {
-      throw new Error("Expected one active SWL/SWC fee setting.");
+    }>(
+      "select market_symbol, buyer_fee_rate_bps, seller_fee_rate_bps, is_active from fee_settings where market_symbol in ('SWL/SWC', 'SWD/SWC')",
+    );
+    if (feeSettings.rows.length !== 2 || feeSettings.rows.some((setting) => !setting.is_active)) {
+      throw new Error("Expected active SWL/SWC and SWD/SWC fee settings.");
     }
   } finally {
     await client.end();
@@ -778,6 +780,40 @@ async function testV10MarketDataAndValuation(auth: {
   if (!swlSwcSummary || swlSwcSummary.lastPrice !== ticker.lastPrice) {
     throw new Error("Market summary should include SWL/SWC with the same last price as ticker.");
   }
+  const swdSwcSummary = summary.find((entry) => entry.marketSymbol === "SWD/SWC");
+  if (!swdSwcSummary) {
+    throw new Error("Market summary should include SWD/SWC for v0.12 multi-market support.");
+  }
+
+  const swdTicker = await getJson<{
+    marketSymbol: string;
+    baseAssetSymbol: string;
+    quoteAssetSymbol: string;
+    lastPrice: string | null;
+    bestBid: string | null;
+    bestAsk: string | null;
+  }>(
+    `${apiBaseUrl}/markets/ticker?marketSymbol=${encodeURIComponent("SWD/SWC")}`,
+    auth.userAccessToken,
+    "load v0.12 demo market ticker",
+  );
+  if (
+    swdTicker.marketSymbol !== "SWD/SWC" ||
+    swdTicker.baseAssetSymbol !== "SWD" ||
+    swdTicker.quoteAssetSymbol !== "SWC" ||
+    swdTicker.lastPrice !== null
+  ) {
+    throw new Error(`Unexpected SWD/SWC ticker payload: ${JSON.stringify(swdTicker)}`);
+  }
+
+  const swdOrderBook = await getJson<{ marketSymbol: string; bids: unknown[]; asks: unknown[] }>(
+    `${apiBaseUrl}/order-book?marketSymbol=${encodeURIComponent("SWD/SWC")}`,
+    auth.userAccessToken,
+    "load v0.12 demo market order book",
+  );
+  if (swdOrderBook.marketSymbol !== "SWD/SWC") {
+    throw new Error(`Unexpected SWD/SWC order book payload: ${JSON.stringify(swdOrderBook)}`);
+  }
 
   const valuation = await getJson<{
     quoteAssetSymbol: string;
@@ -792,8 +828,9 @@ async function testV10MarketDataAndValuation(auth: {
   }>(`${apiBaseUrl}/wallets/me/valuation`, auth.userAccessToken, "load v0.10 wallet valuation");
   const swcValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWC");
   const swlValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWL");
+  const swdValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWD");
 
-  if (valuation.quoteAssetSymbol !== "SWC" || !swcValuation || !swlValuation) {
+  if (valuation.quoteAssetSymbol !== "SWC" || !swcValuation || !swlValuation || !swdValuation) {
     throw new Error(`Unexpected valuation payload: ${JSON.stringify(valuation)}`);
   }
 

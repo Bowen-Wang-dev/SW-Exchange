@@ -8,13 +8,16 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { AdminTradeEntry } from "@/lib/api-types";
+import type { AdminTradeEntry, MarketSummary } from "@/lib/api-types";
 import { downloadCsv } from "@/lib/csv";
 import { formatDateTime, shortId } from "@/lib/format";
 import { ADMIN_TRADE_REVIEW_COPY } from "@/lib/milestone-copy";
 
 export default function AdminTradesPage() {
   const [trades, setTrades] = useState<AdminTradeEntry[]>([]);
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
+  const [marketFilter, setMarketFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,9 +27,21 @@ export default function AdminTradesPage() {
     async function loadTrades() {
       try {
         setIsLoading(true);
-        const response = await apiRequest<AdminTradeEntry[]>("/admin/trades");
+        const params = new URLSearchParams();
+        if (marketFilter) {
+          params.set("marketSymbol", marketFilter);
+        }
+        if (userFilter.trim()) {
+          params.set("user", userFilter.trim());
+        }
+        const query = params.toString() ? `?${params.toString()}` : "";
+        const [tradeResponse, marketResponse] = await Promise.all([
+          apiRequest<AdminTradeEntry[]>(`/admin/trades${query}`),
+          apiRequest<MarketSummary[]>("/markets/summary"),
+        ]);
         if (active) {
-          setTrades(response);
+          setTrades(tradeResponse);
+          setMarkets(marketResponse);
           setError(null);
         }
       } catch (loadError) {
@@ -45,7 +60,7 @@ export default function AdminTradesPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [marketFilter, userFilter]);
 
   function exportTrades() {
     downloadCsv(
@@ -86,6 +101,14 @@ export default function AdminTradesPage() {
             }
           />
 
+          <AdminTradeFilters
+            markets={markets}
+            marketFilter={marketFilter}
+            userFilter={userFilter}
+            onMarketFilterChange={setMarketFilter}
+            onUserFilterChange={setUserFilter}
+          />
+
           {error ? <Notice tone="danger" message={error} /> : null}
           {isLoading ? <Notice tone="info" message="Loading trades..." /> : null}
 
@@ -124,6 +147,51 @@ export default function AdminTradesPage() {
         </div>
       </AppShell>
     </ProtectedRoute>
+  );
+}
+
+function AdminTradeFilters({
+  markets,
+  marketFilter,
+  userFilter,
+  onMarketFilterChange,
+  onUserFilterChange,
+}: {
+  markets: MarketSummary[];
+  marketFilter: string;
+  userFilter: string;
+  onMarketFilterChange: (value: string) => void;
+  onUserFilterChange: (value: string) => void;
+}) {
+  return (
+    <div className="panel rounded-3xl p-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+          Market
+          <select
+            value={marketFilter}
+            onChange={(event) => onMarketFilterChange(event.target.value)}
+            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          >
+            <option value="">All markets</option>
+            {markets.map((market) => (
+              <option key={market.marketSymbol} value={market.marketSymbol}>
+                {market.marketSymbol}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+          User
+          <input
+            value={userFilter}
+            onChange={(event) => onUserFilterChange(event.target.value)}
+            placeholder="username, email, or user ID"
+            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          />
+        </label>
+      </div>
+    </div>
   );
 }
 

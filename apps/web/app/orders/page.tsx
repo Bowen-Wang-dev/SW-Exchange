@@ -8,11 +8,13 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { OrderEntry, OrderSide, OrderStatus } from "@/lib/api-types";
+import type { MarketSummary, OrderEntry, OrderSide, OrderStatus } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderEntry[]>([]);
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
+  const [marketFilter, setMarketFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,13 +22,18 @@ export default function OrdersPage() {
 
   useEffect(() => {
     void loadOrders();
-  }, []);
+  }, [marketFilter]);
 
   async function loadOrders() {
     try {
       setIsLoading(true);
-      const response = await apiRequest<OrderEntry[]>("/orders/me");
-      setOrders(response);
+      const query = marketFilter ? `?marketSymbol=${encodeURIComponent(marketFilter)}` : "";
+      const [orderResponse, marketResponse] = await Promise.all([
+        apiRequest<OrderEntry[]>(`/orders/me${query}`),
+        apiRequest<MarketSummary[]>("/markets/summary"),
+      ]);
+      setOrders(orderResponse);
+      setMarkets(marketResponse);
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof ApiError ? loadError.message : "Unable to load orders.");
@@ -60,8 +67,14 @@ export default function OrdersPage() {
           <PageHeader
             eyebrow="Orders"
             title="Order history"
-            description="Review SWL/SWC limit orders, filled amounts, remaining amounts, and cancel open or partially filled orders."
-            action={<StatusBadge label="v0.11 Live" tone="success" />}
+            description="Review limit orders, filled amounts, remaining amounts, and cancel open or partially filled orders."
+            action={<StatusBadge label="v0.12 Live" tone="success" />}
+          />
+
+          <MarketFilter
+            markets={markets}
+            value={marketFilter}
+            onChange={setMarketFilter}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -121,6 +134,36 @@ export default function OrdersPage() {
         </div>
       </AppShell>
     </ProtectedRoute>
+  );
+}
+
+function MarketFilter({
+  markets,
+  value,
+  onChange,
+}: {
+  markets: MarketSummary[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="panel rounded-3xl p-4">
+      <label className="grid max-w-xs gap-2 text-sm text-[var(--foreground-soft)]">
+        Market
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+        >
+          <option value="">All markets</option>
+          {markets.map((market) => (
+            <option key={market.marketSymbol} value={market.marketSymbol}>
+              {market.marketSymbol}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
   );
 }
 

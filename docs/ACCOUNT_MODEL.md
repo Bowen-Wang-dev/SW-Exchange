@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.11 Asset Metadata + Icon System`
+Current completed milestone: `v0.12 Multi-Market Foundation`
 
 ## Account Status
 
@@ -24,11 +24,11 @@ The admin user has:
 - `AIRDROP`: placeholder future airdrop source wallet
 - `HOT`: placeholder future chain hot wallet
 
-Fees go to the admin `FEE` wallet. Buyer fees are collected in `SWL`; seller fees are collected in `SWC`.
+Fees go to the admin `FEE` wallet. Buyer fees are collected in the traded base asset; seller fees are collected in the quote asset.
 
 Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP` wallet.
 
-v0.11 adds asset display metadata and icon fallbacks, but does not change the wallet bucket model or balance movement rules.
+v0.12 adds a second seeded demo market, but does not change the wallet bucket model or transfer rules.
 
 ## Asset Metadata
 
@@ -40,16 +40,16 @@ Assets may have optional display metadata:
 - sort order
 - description
 
-`SWC` and `SWL` remain internal simulation assets. Manual admin icon URLs can override fallback/mapped icons. Missing icons render as clean symbol avatars. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
+`SWC`, `SWL`, and `SWD` remain internal simulation assets. Manual admin icon URLs can override fallback/mapped icons. Missing icons render as clean symbol avatars. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
 
 ## Portfolio Valuation
 
 Portfolio valuation is informational only and does not move wallet balances.
 
 - `SWC` is valued at `1 SWC`
-- `SWL` is valued from the latest real `SWL/SWC` last price
+- Non-SWC assets are valued from their latest real `*/SWC` last price when available
 - Available and locked balances are both included in each asset total
-- If no SWL/SWC trade exists, SWL valuation remains pending and total equity is clearly SWC-only
+- If no market price exists for a non-SWC asset, that asset valuation remains pending and total equity excludes it
 - No fake prices are generated
 
 ## Transfers
@@ -79,7 +79,7 @@ Assets are either active or paused.
 - Paused assets cannot be transferred or airdropped
 - Paused assets cannot be used for new orders
 
-The `SWL/SWC` market is either `ACTIVE` or `PAUSED`.
+Markets such as `SWL/SWC` and `SWD/SWC` are either `ACTIVE` or `PAUSED`.
 
 - Paused markets block new orders and matching
 - Order book and trade history remain viewable

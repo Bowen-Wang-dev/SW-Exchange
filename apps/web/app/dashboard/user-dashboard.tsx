@@ -44,20 +44,21 @@ export function DashboardContent() {
   }, []);
 
   const swcAsset = valuation?.assets.find((asset) => asset.assetSymbol === "SWC");
-  const swlAsset = valuation?.assets.find((asset) => asset.assetSymbol === "SWL");
+  const nonQuoteAssets = valuation?.assets.filter((asset) => asset.assetSymbol !== "SWC") ?? [];
+  const primaryBaseAsset = nonQuoteAssets.find((asset) => asset.assetSymbol === "SWL") ?? nonQuoteAssets[0];
   const swcBalance = swcAsset?.total ?? "0";
   const swcValue = swcAsset?.valueInSWC ?? "0";
-  const swlBalance = swlAsset?.total ?? "0";
-  const swlValue = swlAsset?.valueInSWC;
+  const baseBalance = primaryBaseAsset?.total ?? "0";
+  const baseValue = primaryBaseAsset?.valueInSWC;
   const totalEquity = `${valuation?.totalEquity ?? "0"} SWC`;
-  const swlValuationPending = Boolean(swlAsset && swlAsset.priceInSWC === null);
+  const valuationPending = Boolean(valuation?.hasUnpricedAssets);
 
   return (
     <div className="space-y-4">
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.11 console shows live balances, asset icons, market ticker data, SWC portfolio valuation, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.12 console shows live balances, asset icons, market ticker data, SWC portfolio valuation, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
         action={
           <StatusBadge
             label={user?.status ?? "ACTIVE"}
@@ -72,8 +73,8 @@ export function DashboardContent() {
           badgeLabel="Live"
           value={totalEquity}
           hint={
-            swlValuationPending
-              ? "SWC-only total until SWL has a last traded price."
+            valuationPending
+              ? "SWC-only for any assets that do not have a last traded SWC price yet."
               : "SWC-denominated value including available and locked balances."
           }
           tone="info"
@@ -86,13 +87,13 @@ export function DashboardContent() {
           tone="success"
         />
         <StatCard
-          label="SWL Balance/Value"
-          badgeLabel={swlValuationPending ? "Pending" : "Live"}
-          value={`${swlBalance} SWL`}
+          label={`${primaryBaseAsset?.assetSymbol ?? "Base"} Balance/Value`}
+          badgeLabel={primaryBaseAsset?.priceInSWC === null ? "Pending" : "Live"}
+          value={`${baseBalance} ${primaryBaseAsset?.assetSymbol ?? ""}`.trim()}
           hint={
-            swlValuationPending
-              ? "SWL valuation pending until trades exist."
-              : `Estimated value: ${swlValue ?? "0"} SWC at last price ${swlAsset?.priceInSWC ?? "—"}.`
+            primaryBaseAsset?.priceInSWC === null
+              ? `${primaryBaseAsset.assetSymbol} valuation pending until trades exist.`
+              : `Estimated value: ${baseValue ?? "0"} SWC at last price ${primaryBaseAsset?.priceInSWC ?? "—"}.`
           }
           tone="warning"
         />
@@ -140,34 +141,38 @@ export function DashboardContent() {
         <DataTable
           columns={["Asset", "Total", "Price in SWC", "Value in SWC", "Note"]}
           rows={[
-            [
+            ...(swcAsset
+              ? [
+                  [
+                    <AssetIdentity
+                      key="swc-asset"
+                      symbol="SWC"
+                      name={swcAsset.assetName}
+                      displayName={swcAsset.displayName}
+                      iconUrl={swcAsset.iconUrl}
+                    />,
+                    `${swcAsset.total} SWC`,
+                    "1",
+                    `${swcAsset.valueInSWC ?? "0"} SWC`,
+                    "Quote asset; valued at 1 SWC.",
+                  ],
+                ]
+              : []),
+            ...nonQuoteAssets.map((asset) => [
               <AssetIdentity
-                key="swc-asset"
-                symbol="SWC"
-                name={swcAsset?.assetName}
-                displayName={swcAsset?.displayName}
-                iconUrl={swcAsset?.iconUrl}
+                key={`${asset.assetSymbol}-asset`}
+                symbol={asset.assetSymbol}
+                name={asset.assetName}
+                displayName={asset.displayName}
+                iconUrl={asset.iconUrl}
               />,
-              `${swcAsset?.total ?? "0"} SWC`,
-              "1",
-              `${swcAsset?.valueInSWC ?? "0"} SWC`,
-              "Quote asset; valued at 1 SWC.",
-            ],
-            [
-              <AssetIdentity
-                key="swl-asset"
-                symbol="SWL"
-                name={swlAsset?.assetName}
-                displayName={swlAsset?.displayName}
-                iconUrl={swlAsset?.iconUrl}
-              />,
-              `${swlAsset?.total ?? "0"} SWL`,
-              swlAsset?.priceInSWC ?? "—",
-              swlAsset?.valueInSWC ? `${swlAsset.valueInSWC} SWC` : "—",
-              swlValuationPending
-                ? "SWL valuation pending until trades exist."
-                : "Valued from the latest SWL/SWC trade.",
-            ],
+              `${asset.total} ${asset.assetSymbol}`,
+              asset.priceInSWC ?? "—",
+              asset.valueInSWC ? `${asset.valueInSWC} SWC` : "—",
+              asset.priceInSWC === null
+                ? `${asset.assetSymbol} valuation pending until trades exist.`
+                : "Valued from the latest market trade vs SWC.",
+            ]),
           ]}
         />
       </div>

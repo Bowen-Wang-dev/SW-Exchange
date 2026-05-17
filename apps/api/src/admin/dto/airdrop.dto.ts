@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
+import { IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class AirdropDto {
   @IsOptional()
@@ -16,8 +16,8 @@ export class AirdropDto {
   email?: string;
 
   @IsString()
-  @IsIn(["SWC", "SWL"])
-  assetSymbol!: "SWC" | "SWL";
+  @MaxLength(16)
+  assetSymbol!: string;
 
   @IsString()
   @MaxLength(128)

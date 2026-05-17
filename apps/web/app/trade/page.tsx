@@ -12,7 +12,7 @@ import { apiRequest, ApiError } from "@/lib/api-client";
 import type {
   OrderBook,
   OrderBookLevel,
-  MarketRow,
+  MarketSummary,
   MarketTicker,
   OrderEntry,
   OrderSide,
@@ -23,16 +23,17 @@ import type {
 import { formatDateTime, shortId } from "@/lib/format";
 import { TRADE_PAGE_COPY } from "@/lib/milestone-copy";
 
-const MARKET_SYMBOL = "SWL/SWC";
+const DEFAULT_MARKET_SYMBOL = "SWL/SWC";
 const MONEY_DECIMALS = 18;
 const POLL_INTERVAL_MS = 5000;
 
 export default function TradePage() {
+  const [selectedMarketSymbol, setSelectedMarketSymbol] = useState(DEFAULT_MARKET_SYMBOL);
   const [side, setSide] = useState<OrderSide>("BUY");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
-  const [marketStatus, setMarketStatus] = useState<MarketRow["status"]>("ACTIVE");
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
   const [ticker, setTicker] = useState<MarketTicker | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBook | null>(null);
   const [myOrders, setMyOrders] = useState<OrderEntry[]>([]);
@@ -43,10 +44,39 @@ export default function TradePage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const lockedAssetSymbol = side === "BUY" ? "SWC" : "SWL";
+  useEffect(() => {
+    const requestedMarket = new URLSearchParams(window.location.search)
+      .get("market")
+      ?.trim()
+      .toUpperCase();
+
+    if (requestedMarket) {
+      setSelectedMarketSymbol(requestedMarket);
+    }
+  }, []);
+
+  const selectedMarket = markets.find((market) => market.marketSymbol === selectedMarketSymbol) ?? null;
+  const baseSymbol =
+    ticker?.baseAssetSymbol ?? selectedMarket?.baseAssetSymbol ?? marketBaseSymbol(selectedMarketSymbol);
+  const quoteSymbol =
+    ticker?.quoteAssetSymbol ?? selectedMarket?.quoteAssetSymbol ?? marketQuoteSymbol(selectedMarketSymbol);
+  const baseName =
+    ticker?.baseAssetDisplayName ??
+    ticker?.baseAssetName ??
+    selectedMarket?.baseAssetDisplayName ??
+    selectedMarket?.baseAssetName ??
+    baseSymbol;
+  const quoteName =
+    ticker?.quoteAssetDisplayName ??
+    ticker?.quoteAssetName ??
+    selectedMarket?.quoteAssetDisplayName ??
+    selectedMarket?.quoteAssetName ??
+    quoteSymbol;
+  const baseIconUrl = ticker?.baseAssetIconUrl ?? selectedMarket?.baseAssetIconUrl ?? null;
+  const quoteIconUrl = ticker?.quoteAssetIconUrl ?? selectedMarket?.quoteAssetIconUrl ?? null;
+  const marketStatus = ticker?.status ?? selectedMarket?.status ?? "ACTIVE";
+  const lockedAssetSymbol = side === "BUY" ? quoteSymbol : baseSymbol;
   const selectedWallet = wallets.find((wallet) => wallet.asset === lockedAssetSymbol);
-  const baseWallet = wallets.find((wallet) => wallet.asset === "SWL");
-  const quoteWallet = wallets.find((wallet) => wallet.asset === "SWC");
   const totalPreview = useMemo(() => calculateTotalPreview(price, amount), [price, amount]);
 
   useEffect(() => {
@@ -56,7 +86,7 @@ export default function TradePage() {
     }, POLL_INTERVAL_MS);
 
     return () => window.clearInterval(intervalId);
-  }, []);
+  }, [selectedMarketSymbol]);
 
   async function loadTradeData(options: { silent?: boolean } = {}) {
     try {
@@ -64,20 +94,20 @@ export default function TradePage() {
         setIsLoading(true);
       }
 
-      const [bookResponse, ordersResponse, walletResponse, tradesResponse, marketsResponse, tickerResponse] =
+      const marketQuery = encodeURIComponent(selectedMarketSymbol);
+      const [bookResponse, ordersResponse, walletResponse, tradesResponse, summaryResponse, tickerResponse] =
         await Promise.all([
-          apiRequest<OrderBook>(`/order-book?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
-          apiRequest<OrderEntry[]>(`/orders/me?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
+          apiRequest<OrderBook>(`/order-book?marketSymbol=${marketQuery}`),
+          apiRequest<OrderEntry[]>(`/orders/me?marketSymbol=${marketQuery}`),
           apiRequest<WalletBalance[]>("/wallets/me"),
-          apiRequest<TradeEntry[]>(`/trades/recent?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
-          apiRequest<MarketRow[]>("/markets"),
-          apiRequest<MarketTicker>(`/markets/ticker?marketSymbol=${encodeURIComponent(MARKET_SYMBOL)}`),
+          apiRequest<TradeEntry[]>(`/trades/recent?marketSymbol=${marketQuery}`),
+          apiRequest<MarketSummary[]>("/markets/summary"),
+          apiRequest<MarketTicker>(`/markets/ticker?marketSymbol=${marketQuery}`),
         ]);
-      const currentMarket = marketsResponse.find((market) => market.symbol === MARKET_SYMBOL);
 
       setOrderBook(bookResponse);
-      setMarketStatus(currentMarket?.status ?? "ACTIVE");
       setTicker(tickerResponse);
+      setMarkets(summaryResponse);
       setMyOrders(
         ordersResponse.filter(
           (order) => isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n,
@@ -99,6 +129,17 @@ export default function TradePage() {
     }
   }
 
+  function handleMarketChange(nextMarketSymbol: string) {
+    setSelectedMarketSymbol(nextMarketSymbol);
+    setTicker(null);
+    setOrderBook(null);
+    setMyOrders([]);
+    setRecentTrades([]);
+    setAmount("");
+    setSuccess(null);
+    setError(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -109,7 +150,7 @@ export default function TradePage() {
       const order = await apiRequest<OrderEntry>("/orders", {
         method: "POST",
         body: {
-          marketSymbol: MARKET_SYMBOL,
+          marketSymbol: selectedMarketSymbol,
           side,
           price: price.trim(),
           amount: amount.trim(),
@@ -118,7 +159,7 @@ export default function TradePage() {
 
       setAmount("");
       setSuccess(
-        `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} SWL, remaining ${order.remainingAmount} SWL. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
+        `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, remaining ${order.remainingAmount} ${baseSymbol}. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
       );
       await loadTradeData();
     } catch (submitError) {
@@ -155,47 +196,49 @@ export default function TradePage() {
             title={
               <span className="inline-flex items-center gap-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 <span className="flex -space-x-2">
-                  <AssetIcon
-                    symbol="SWL"
-                    name={ticker?.baseAssetDisplayName ?? ticker?.baseAssetName ?? baseWallet?.displayName ?? "SW LUNA"}
-                    iconUrl={ticker?.baseAssetIconUrl ?? baseWallet?.iconUrl}
-                    size={34}
-                  />
-                  <AssetIcon
-                    symbol="SWC"
-                    name={ticker?.quoteAssetDisplayName ?? ticker?.quoteAssetName ?? quoteWallet?.displayName ?? "SW Cash"}
-                    iconUrl={ticker?.quoteAssetIconUrl ?? quoteWallet?.iconUrl}
-                    size={34}
-                  />
+                  <AssetIcon symbol={baseSymbol} name={baseName} iconUrl={baseIconUrl} size={34} />
+                  <AssetIcon symbol={quoteSymbol} name={quoteName} iconUrl={quoteIconUrl} size={34} />
                 </span>
-                <span>SWL/SWC spot terminal</span>
+                <span>{selectedMarketSymbol} spot terminal</span>
               </span>
             }
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.11 Live" tone="success" />}
+            action={<StatusBadge label="v0.12 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
           {success ? <Notice tone="success" message={success} /> : null}
-          {marketStatus === "PAUSED" ? (
-            <Notice tone="info" message="Market paused by admin." />
-          ) : null}
+          {marketStatus === "PAUSED" ? <Notice tone="info" message="Market paused by admin." /> : null}
           {isLoading ? <Notice tone="info" message="Loading trade data..." /> : null}
 
           <section className="panel rounded-3xl p-5">
-            <div className="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
-              <TickerMetric label="Market" value={ticker?.marketSymbol ?? MARKET_SYMBOL} />
-              <TickerMetric label="Last Price" value={formatTickerValue(ticker?.lastPrice, "SWC")} />
+            <div className="grid gap-4 md:grid-cols-[minmax(180px,1.2fr)_repeat(4,minmax(0,1fr))] xl:grid-cols-[minmax(200px,1.25fr)_repeat(8,minmax(0,1fr))]">
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Market
+                <select
+                  value={selectedMarketSymbol}
+                  onChange={(event) => handleMarketChange(event.target.value)}
+                  className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-[var(--accent)]"
+                >
+                  {buildMarketOptions(markets, selectedMarketSymbol).map((market) => (
+                    <option key={market} value={market}>
+                      {market}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <TickerMetric label="Last Price" value={formatTickerValue(ticker?.lastPrice, quoteSymbol)} />
               <TickerMetric
                 label="24h Change"
                 value={formatPercent(ticker?.change24hPercent)}
                 tone={changeTone(ticker?.change24hPercent)}
               />
-              <TickerMetric label="24h High" value={formatTickerValue(ticker?.high24h, "SWC")} />
-              <TickerMetric label="24h Low" value={formatTickerValue(ticker?.low24h, "SWC")} />
-              <TickerMetric label="24h Volume" value={formatTickerValue(ticker?.volume24h, "SWL")} />
-              <TickerMetric label="Best Bid" value={formatTickerValue(ticker?.bestBid, "SWC")} />
-              <TickerMetric label="Best Ask" value={formatTickerValue(ticker?.bestAsk, "SWC")} />
+              <TickerMetric label="24h High" value={formatTickerValue(ticker?.high24h, quoteSymbol)} />
+              <TickerMetric label="24h Low" value={formatTickerValue(ticker?.low24h, quoteSymbol)} />
+              <TickerMetric label="24h Volume" value={formatTickerValue(ticker?.volume24h, baseSymbol)} />
+              <TickerMetric label="Best Bid" value={formatTickerValue(ticker?.bestBid, quoteSymbol)} />
+              <TickerMetric label="Best Ask" value={formatTickerValue(ticker?.bestAsk, quoteSymbol)} />
+              <TickerMetric label="Status" value={marketStatus} />
             </div>
           </section>
 
@@ -204,35 +247,35 @@ export default function TradePage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="flex -space-x-2">
-                    <AssetIcon
-                      symbol="SWL"
-                      name={ticker?.baseAssetDisplayName ?? ticker?.baseAssetName ?? baseWallet?.displayName ?? "SW LUNA"}
-                      iconUrl={ticker?.baseAssetIconUrl ?? baseWallet?.iconUrl}
-                      size={28}
-                    />
-                    <AssetIcon
-                      symbol="SWC"
-                      name={ticker?.quoteAssetDisplayName ?? ticker?.quoteAssetName ?? quoteWallet?.displayName ?? "SW Cash"}
-                      iconUrl={ticker?.quoteAssetIconUrl ?? quoteWallet?.iconUrl}
-                      size={28}
-                    />
+                    <AssetIcon symbol={baseSymbol} name={baseName} iconUrl={baseIconUrl} size={28} />
+                    <AssetIcon symbol={quoteSymbol} name={quoteName} iconUrl={quoteIconUrl} size={28} />
                   </span>
                   <span>
-                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
-                    Market
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold text-white">{MARKET_SYMBOL}</h2>
+                    <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                      Market
+                    </p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">{selectedMarketSymbol}</h2>
                   </span>
                 </div>
                 <StatusBadge label="Spot" tone="info" />
               </div>
 
               <div className="mt-5 grid gap-5">
-                <OrderBookTable title="Asks" side="SELL" levels={orderBook?.asks ?? []} />
+                <OrderBookTable
+                  title="Asks"
+                  side="SELL"
+                  levels={orderBook?.asks ?? []}
+                  baseSymbol={baseSymbol}
+                />
                 <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-center text-sm font-semibold text-white">
-                  SWC per SWL
+                  {quoteSymbol} per {baseSymbol}
                 </div>
-                <OrderBookTable title="Bids" side="BUY" levels={orderBook?.bids ?? []} />
+                <OrderBookTable
+                  title="Bids"
+                  side="BUY"
+                  levels={orderBook?.bids ?? []}
+                  baseSymbol={baseSymbol}
+                />
               </div>
             </section>
 
@@ -262,7 +305,7 @@ export default function TradePage() {
               <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
                 <div className="grid gap-3 md:grid-cols-2">
                   <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                    Price
+                    Price in {quoteSymbol}
                     <input
                       value={price}
                       onChange={(event) => setPrice(event.target.value)}
@@ -272,7 +315,7 @@ export default function TradePage() {
                     />
                   </label>
                   <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                    Amount
+                    Amount in {baseSymbol}
                     <input
                       value={amount}
                       onChange={(event) => setAmount(event.target.value)}
@@ -284,7 +327,7 @@ export default function TradePage() {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-3">
-                  <BalanceTile label="Total" value={`${totalPreview ?? "-"} SWC`} />
+                  <BalanceTile label="Total" value={`${totalPreview ?? "-"} ${quoteSymbol}`} />
                   <BalanceTile
                     label={
                       <AssetBalanceLabel
@@ -323,8 +366,8 @@ export default function TradePage() {
                     : marketStatus === "PAUSED"
                       ? "Market paused"
                       : side === "BUY"
-                        ? "Buy SWL"
-                        : "Sell SWL"}
+                        ? `Buy ${baseSymbol}`
+                        : `Sell ${baseSymbol}`}
                 </button>
               </form>
             </section>
@@ -382,10 +425,12 @@ function OrderBookTable({
   title,
   side,
   levels,
+  baseSymbol,
 }: {
   title: string;
   side: OrderSide;
   levels: OrderBookLevel[];
+  baseSymbol: string;
 }) {
   const toneClass = side === "BUY" ? "text-emerald-300" : "text-rose-300";
 
@@ -393,7 +438,7 @@ function OrderBookTable({
     <div>
       <div className="grid grid-cols-[1fr_1fr_80px] gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-muted)]">
         <span>{title}</span>
-        <span>Amount SWL</span>
+        <span>Amount {baseSymbol}</span>
         <span className="text-right">Orders</span>
       </div>
       <div className="data-divider mt-2 overflow-hidden rounded-2xl border border-[var(--border)]">
@@ -441,7 +486,9 @@ function AssetBalanceLabel({
   return (
     <span className="inline-flex items-center gap-2">
       <AssetIcon symbol={symbol} name={name} iconUrl={iconUrl} size={20} />
-      <span>{symbol} {label}</span>
+      <span>
+        {symbol} {label}
+      </span>
     </span>
   );
 }
@@ -615,4 +662,21 @@ function formatUnits(value: bigint, decimals: number) {
   const fraction = (value % base).toString().padStart(decimals, "0").replace(/0+$/, "");
 
   return fraction ? `${whole.toString()}.${fraction}` : whole.toString();
+}
+
+function buildMarketOptions(markets: MarketSummary[], selectedMarketSymbol: string) {
+  const options = new Set<string>([DEFAULT_MARKET_SYMBOL, selectedMarketSymbol]);
+  for (const market of markets) {
+    options.add(market.marketSymbol);
+  }
+
+  return [...options];
+}
+
+function marketBaseSymbol(marketSymbol: string) {
+  return marketSymbol.split("/")[0] || "SWL";
+}
+
+function marketQuoteSymbol(marketSymbol: string) {
+  return marketSymbol.split("/")[1] || "SWC";
 }

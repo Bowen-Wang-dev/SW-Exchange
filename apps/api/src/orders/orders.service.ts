@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { aliasedTable } from "drizzle-orm/alias";
-import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import {
   calculateQuoteTotalMinimalUnits,
@@ -395,8 +395,44 @@ export class OrdersService {
     };
   }
 
-  async listAllForAdmin() {
+  async listAllForAdmin(
+    filters: {
+      status?: string;
+      marketSymbol?: string;
+      user?: string;
+    } = {},
+  ) {
+    const conditions: SQL[] = [];
+
+    if (filters.status?.trim()) {
+      conditions.push(eq(orders.status, this.normalizeStatus(filters.status)));
+    }
+
+    if (filters.marketSymbol?.trim()) {
+      conditions.push(eq(markets.symbol, this.normalizeMarketSymbol(filters.marketSymbol)));
+    }
+
+    if (filters.user?.trim()) {
+      const userFilter = filters.user.trim();
+      const userConditions: SQL[] = [eq(users.email, userFilter), eq(users.username, userFilter)];
+      if (this.isUuid(userFilter)) {
+        userConditions.push(eq(users.id, userFilter));
+      }
+
+      const matchingUsers = await this.db
+        .select({ id: users.id })
+        .from(users)
+        .where(or(...userConditions));
+
+      if (matchingUsers.length === 0) {
+        return [];
+      }
+
+      conditions.push(inArray(orders.userId, matchingUsers.map((user) => user.id)));
+    }
+
     const rows = await this.selectOrderRows()
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(orders.createdAt), desc(orders.id))
       .limit(500);
 
@@ -1035,8 +1071,12 @@ export class OrdersService {
   private normalizeMarketSymbol(input: string) {
     const symbol = input.trim().toUpperCase();
 
-    if (symbol !== SUPPORTED_MARKET_SYMBOL) {
-      throw new BadRequestException("Only SWL/SWC is supported.");
+    if (!symbol) {
+      throw new BadRequestException("marketSymbol is required.");
+    }
+
+    if (symbol.length > 32) {
+      throw new BadRequestException("marketSymbol is too long.");
     }
 
     return symbol;
@@ -1060,6 +1100,12 @@ export class OrdersService {
     }
 
     return status as OrderStatus;
+  }
+
+  private isUuid(input: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      input,
+    );
   }
 
   private parsePrice(input: string, decimals: number) {

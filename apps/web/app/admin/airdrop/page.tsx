@@ -1,22 +1,50 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { AirdropResponse } from "@/lib/api-types";
+import type { AirdropResponse, AssetRow } from "@/lib/api-types";
 import { shortId } from "@/lib/format";
 
 export default function AdminAirdropPage() {
   const [target, setTarget] = useState("");
-  const [assetSymbol, setAssetSymbol] = useState<"SWC" | "SWL">("SWC");
+  const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [assetSymbol, setAssetSymbol] = useState("SWC");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<AirdropResponse | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAssets() {
+      try {
+        const response = await apiRequest<AssetRow[]>("/assets");
+        if (active) {
+          const activeAssets = response.filter((asset) => asset.isActive);
+          setAssets(activeAssets);
+          if (!activeAssets.some((asset) => asset.symbol === assetSymbol)) {
+            setAssetSymbol(activeAssets[0]?.symbol ?? "SWC");
+          }
+        }
+      } catch {
+        if (active) {
+          setAssets([]);
+        }
+      }
+    }
+
+    void loadAssets();
+
+    return () => {
+      active = false;
+    };
+  }, [assetSymbol]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,7 +89,7 @@ export default function AdminAirdropPage() {
         <div className="space-y-4">
           <PageHeader
             eyebrow="Admin Airdrop"
-            title="Airdrop SWC or SWL"
+            title="Airdrop asset"
             description="Credit a user's available wallet balance. Every airdrop writes wallet, ledger, and admin audit records together."
             action={<StatusBadge label="Enabled" tone="warning" />}
           />
@@ -87,11 +115,14 @@ export default function AdminAirdropPage() {
                   Asset
                   <select
                     value={assetSymbol}
-                    onChange={(event) => setAssetSymbol(event.target.value as "SWC" | "SWL")}
+                    onChange={(event) => setAssetSymbol(event.target.value)}
                     className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
                   >
-                    <option value="SWC">SWC</option>
-                    <option value="SWL">SWL</option>
+                    {buildAssetOptions(assets, assetSymbol).map((asset) => (
+                      <option key={asset} value={asset}>
+                        {asset}
+                      </option>
+                    ))}
                   </select>
                 </label>
 
@@ -140,7 +171,7 @@ export default function AdminAirdropPage() {
               </p>
               <div className="data-divider mt-4 rounded-2xl border border-[var(--border)]">
                 {[
-                  "Only active SWC and SWL assets are allowed.",
+                  "Only active seeded assets are allowed.",
                   "Target users must be ACTIVE; FROZEN and BANNED accounts cannot receive airdrops.",
                   "Amounts must be positive plain decimal strings, never scientific notation.",
                   "Airdrops write wallet, ledger, and audit records in one transaction.",
@@ -157,6 +188,15 @@ export default function AdminAirdropPage() {
       </AppShell>
     </ProtectedRoute>
   );
+}
+
+function buildAssetOptions(assets: AssetRow[], selectedAsset: string) {
+  const options = new Set<string>([selectedAsset]);
+  for (const asset of assets) {
+    options.add(asset.symbol);
+  }
+
+  return [...options].filter(Boolean);
 }
 
 function buildTargetPayload(target: string) {

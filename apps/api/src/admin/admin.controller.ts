@@ -131,13 +131,17 @@ export class AdminController {
   }
 
   @Get("orders")
-  listOrders() {
-    return this.adminService.listOrders();
+  listOrders(
+    @Query("status") status?: string,
+    @Query("marketSymbol") marketSymbol?: string,
+    @Query("user") user?: string,
+  ) {
+    return this.adminService.listOrders({ status, marketSymbol, user });
   }
 
   @Get("trades")
-  listTrades() {
-    return this.adminService.listTrades();
+  listTrades(@Query("marketSymbol") marketSymbol?: string, @Query("user") user?: string) {
+    return this.adminService.listTrades({ marketSymbol, user });
   }
 
   @Get("fee-settings")

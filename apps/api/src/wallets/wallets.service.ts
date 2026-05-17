@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, asc, eq, inArray } from "drizzle-orm";
-import { DEFAULT_ASSETS } from "@sw-exchange/shared";
+import { and, asc, eq } from "drizzle-orm";
 import { formatMinimalUnitsToHuman } from "../common/money.js";
 import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
@@ -19,11 +18,10 @@ export class WalletsService {
   ) {}
 
   async ensureWalletsForUser(userId: string, db: DbLike = this.db) {
-    const activeSymbols = DEFAULT_ASSETS.map((asset) => asset.symbol);
     const assetRows = await db
       .select()
       .from(assets)
-      .where(and(eq(assets.isActive, true), inArray(assets.symbol, activeSymbols)));
+      .where(eq(assets.isActive, true));
 
     for (const asset of assetRows) {
       await db
@@ -40,11 +38,10 @@ export class WalletsService {
   }
 
   async ensureAdminBucketWallets(userId: string, db: DbLike = this.db) {
-    const activeSymbols = DEFAULT_ASSETS.map((asset) => asset.symbol);
     const assetRows = await db
       .select()
       .from(assets)
-      .where(and(eq(assets.isActive, true), inArray(assets.symbol, activeSymbols)));
+      .where(eq(assets.isActive, true));
 
     for (const asset of assetRows) {
       for (const walletType of walletTypeValues) {
@@ -103,7 +100,7 @@ export class WalletsService {
   async getValuationByUserId(userId: string) {
     await this.ensureWalletsForUser(userId);
 
-    const [walletRows, latestPrice] = await Promise.all([
+    const [walletRows, latestPrices] = await Promise.all([
       this.db
         .select({
           id: wallets.id,
@@ -124,28 +121,24 @@ export class WalletsService {
         .innerJoin(assets, eq(wallets.assetId, assets.id))
         .where(and(eq(wallets.userId, userId), eq(wallets.walletType, "MAIN")))
         .orderBy(asc(assets.symbol)),
-      this.marketsService.getLatestPrice("SWL/SWC"),
+      this.getLatestSwcPricesByAsset(),
     ]);
 
-    const quoteAssetDecimals = latestPrice.market.quoteAssetDecimals;
+    const quoteAssetDecimals = 18;
     let totalEquity = 0n;
     let hasUnpricedBalance = false;
 
     const valuationAssets = walletRows.map((wallet) => {
       const total = wallet.availableBalance + wallet.lockedBalance;
-      const priceInSwc = this.getAssetPriceInSwc(
-        wallet.symbol,
-        latestPrice.price,
-        quoteAssetDecimals,
-      );
+      const price = this.getAssetPriceInSwc(wallet.symbol, latestPrices, quoteAssetDecimals);
       const valueInSwc =
-        priceInSwc === null
+        price.priceInSwc === null
           ? null
           : this.calculateValueInQuoteUnits({
               amount: total,
-              price: priceInSwc,
+              price: price.priceInSwc,
               amountDecimals: wallet.decimals,
-              priceDecimals: wallet.symbol === "SWC" ? quoteAssetDecimals : latestPrice.priceDecimals,
+              priceDecimals: price.priceDecimals,
               quoteDecimals: quoteAssetDecimals,
             });
 
@@ -171,13 +164,10 @@ export class WalletsService {
         lockedRaw: wallet.lockedBalance.toString(),
         totalRaw: total.toString(),
         priceInSWC:
-          priceInSwc === null
+          price.priceInSwc === null
             ? null
-            : formatMinimalUnitsToHuman(
-                priceInSwc,
-                wallet.symbol === "SWC" ? quoteAssetDecimals : latestPrice.priceDecimals,
-              ),
-        priceInSWCRaw: priceInSwc?.toString() ?? null,
+            : formatMinimalUnitsToHuman(price.priceInSwc, price.priceDecimals),
+        priceInSWCRaw: price.priceInSwc?.toString() ?? null,
         valueInSWC:
           valueInSwc === null
             ? null
@@ -187,7 +177,7 @@ export class WalletsService {
     });
 
     return {
-      quoteAssetSymbol: latestPrice.market.quoteAssetSymbol,
+      quoteAssetSymbol: "SWC",
       totalEquity: formatMinimalUnitsToHuman(totalEquity, quoteAssetDecimals),
       totalEquityRaw: totalEquity.toString(),
       hasUnpricedAssets: hasUnpricedBalance,
@@ -235,20 +225,54 @@ export class WalletsService {
     };
   }
 
+  private async getLatestSwcPricesByAsset() {
+    const marketRows = await this.marketsService.findAll();
+    const prices = new Map<
+      string,
+      {
+        priceInSwc: bigint | null;
+        priceDecimals: number;
+        marketSymbol: string;
+        pricedAt: Date | null;
+      }
+    >();
+
+    for (const market of marketRows) {
+      if (market.quoteAssetSymbol !== "SWC") {
+        continue;
+      }
+
+      const latestPrice = await this.marketsService.getLatestPrice(market.symbol);
+      prices.set(market.baseAssetSymbol, {
+        priceInSwc: latestPrice.price,
+        priceDecimals: latestPrice.priceDecimals,
+        marketSymbol: market.symbol,
+        pricedAt: latestPrice.pricedAt,
+      });
+    }
+
+    return prices;
+  }
+
   private getAssetPriceInSwc(
     symbol: string,
-    latestSwlPrice: bigint | null,
+    latestPrices: Map<
+      string,
+      {
+        priceInSwc: bigint | null;
+        priceDecimals: number;
+      }
+    >,
     quoteAssetDecimals: number,
   ) {
     if (symbol === "SWC") {
-      return 10n ** BigInt(quoteAssetDecimals);
+      return {
+        priceInSwc: 10n ** BigInt(quoteAssetDecimals),
+        priceDecimals: quoteAssetDecimals,
+      };
     }
 
-    if (symbol === "SWL") {
-      return latestSwlPrice;
-    }
-
-    return null;
+    return latestPrices.get(symbol) ?? { priceInSwc: null, priceDecimals: quoteAssetDecimals };
   }
 
   private calculateValueInQuoteUnits(input: {

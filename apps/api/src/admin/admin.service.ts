@@ -113,7 +113,7 @@ export class AdminService {
       [pausedAssetCount],
       [pausedMarketCount],
       feeSettings,
-      marketTicker,
+      marketSummaries,
       recentTrades,
       recentTransfers,
       recentAuditLogs,
@@ -139,11 +139,16 @@ export class AdminService {
       this.db.select({ value: count() }).from(assets).where(eq(assets.isActive, false)),
       this.db.select({ value: count() }).from(markets).where(eq(markets.status, "PAUSED")),
       this.feesService.getAdminFeeSettings(),
-      this.marketsService.getTicker("SWL/SWC"),
+      this.marketsService.getSummary(),
       this.tradesService.listAllForAdmin(),
       this.transfersService.listAllForAdmin(),
       this.listAuditLogs(),
     ]);
+
+    const primaryMarketSummary =
+      marketSummaries.find((market) => market.marketSymbol === "SWL/SWC") ??
+      marketSummaries[0] ??
+      null;
 
     return {
       userCount: userCount?.value ?? 0,
@@ -158,14 +163,19 @@ export class AdminService {
       pausedAssetCount: pausedAssetCount?.value ?? 0,
       pausedMarketCount: pausedMarketCount?.value ?? 0,
       feeWalletBalances: feeSettings.feeWallet.balances,
-      marketSummary: {
-        marketSymbol: marketTicker.marketSymbol,
-        lastPrice: marketTicker.lastPrice,
-        volume24h: marketTicker.volume24h,
-        openOrderCount: marketTicker.openOrderCount,
-        totalTradeCount: marketTicker.totalTradeCount,
-        status: marketTicker.status,
-      },
+      marketSummary: primaryMarketSummary
+        ? {
+            marketSymbol: primaryMarketSummary.marketSymbol,
+            lastPrice: primaryMarketSummary.lastPrice,
+            volume24h: primaryMarketSummary.volume24h,
+            openOrderCount: primaryMarketSummary.openOrderCount,
+            totalTradeCount: primaryMarketSummary.totalTradeCount,
+            status: primaryMarketSummary.status,
+            baseAssetSymbol: primaryMarketSummary.baseAssetSymbol,
+            quoteAssetSymbol: primaryMarketSummary.quoteAssetSymbol,
+          }
+        : null,
+      marketSummaries,
       recentTrades: recentTrades.slice(0, 5),
       recentTransfers: recentTransfers.slice(0, 5),
       recentAuditLogs: recentAuditLogs.slice(0, 5),
@@ -381,8 +391,8 @@ export class AdminService {
     }
 
     const assetSymbol = dto.assetSymbol.trim().toUpperCase();
-    if (assetSymbol !== "SWC" && assetSymbol !== "SWL") {
-      throw new BadRequestException("assetSymbol must be SWC or SWL.");
+    if (!assetSymbol || assetSymbol.length > 16) {
+      throw new BadRequestException("assetSymbol is invalid.");
     }
 
     return this.db.transaction(async (tx) => {
@@ -589,8 +599,8 @@ export class AdminService {
     }
 
     const assetSymbol = dto.assetSymbol.trim().toUpperCase();
-    if (assetSymbol !== "SWC" && assetSymbol !== "SWL") {
-      throw new BadRequestException("assetSymbol must be SWC or SWL.");
+    if (!assetSymbol || assetSymbol.length > 16) {
+      throw new BadRequestException("assetSymbol is invalid.");
     }
 
     return this.db.transaction(async (tx) => {
@@ -739,12 +749,12 @@ export class AdminService {
     return this.transfersService.listAllForAdmin();
   }
 
-  listOrders() {
-    return this.ordersService.listAllForAdmin();
+  listOrders(filters: { status?: string; marketSymbol?: string; user?: string } = {}) {
+    return this.ordersService.listAllForAdmin(filters);
   }
 
-  listTrades() {
-    return this.tradesService.listAllForAdmin();
+  listTrades(filters: { marketSymbol?: string; user?: string } = {}) {
+    return this.tradesService.listAllForAdmin(filters);
   }
 
   getFeeSettings() {

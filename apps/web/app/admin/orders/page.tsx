@@ -8,11 +8,15 @@ import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { AdminOrderEntry, OrderSide, OrderStatus } from "@/lib/api-types";
+import type { AdminOrderEntry, MarketSummary, OrderSide, OrderStatus } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrderEntry[]>([]);
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
+  const [marketFilter, setMarketFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [userFilter, setUserFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,9 +26,24 @@ export default function AdminOrdersPage() {
     async function loadOrders() {
       try {
         setIsLoading(true);
-        const response = await apiRequest<AdminOrderEntry[]>("/admin/orders");
+        const params = new URLSearchParams();
+        if (marketFilter) {
+          params.set("marketSymbol", marketFilter);
+        }
+        if (statusFilter) {
+          params.set("status", statusFilter);
+        }
+        if (userFilter.trim()) {
+          params.set("user", userFilter.trim());
+        }
+        const query = params.toString() ? `?${params.toString()}` : "";
+        const [orderResponse, marketResponse] = await Promise.all([
+          apiRequest<AdminOrderEntry[]>(`/admin/orders${query}`),
+          apiRequest<MarketSummary[]>("/markets/summary"),
+        ]);
         if (active) {
-          setOrders(response);
+          setOrders(orderResponse);
+          setMarkets(marketResponse);
           setError(null);
         }
       } catch (loadError) {
@@ -43,7 +62,7 @@ export default function AdminOrdersPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [marketFilter, statusFilter, userFilter]);
 
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
@@ -52,8 +71,18 @@ export default function AdminOrdersPage() {
           <PageHeader
             eyebrow="Admin Orders"
             title="Order review"
-            description="Inspect all SWL/SWC limit orders, fills, remaining amounts, and cancellation states newest first."
-            action={<StatusBadge label="v0.11 Live" tone="success" />}
+            description="Inspect limit orders, fills, remaining amounts, and cancellation states newest first."
+            action={<StatusBadge label="v0.12 Live" tone="success" />}
+          />
+
+          <AdminOrderFilters
+            markets={markets}
+            marketFilter={marketFilter}
+            statusFilter={statusFilter}
+            userFilter={userFilter}
+            onMarketFilterChange={setMarketFilter}
+            onStatusFilterChange={setStatusFilter}
+            onUserFilterChange={setUserFilter}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -107,6 +136,70 @@ export default function AdminOrdersPage() {
         </div>
       </AppShell>
     </ProtectedRoute>
+  );
+}
+
+function AdminOrderFilters({
+  markets,
+  marketFilter,
+  statusFilter,
+  userFilter,
+  onMarketFilterChange,
+  onStatusFilterChange,
+  onUserFilterChange,
+}: {
+  markets: MarketSummary[];
+  marketFilter: string;
+  statusFilter: string;
+  userFilter: string;
+  onMarketFilterChange: (value: string) => void;
+  onStatusFilterChange: (value: string) => void;
+  onUserFilterChange: (value: string) => void;
+}) {
+  return (
+    <div className="panel rounded-3xl p-4">
+      <div className="grid gap-3 md:grid-cols-3">
+        <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+          Market
+          <select
+            value={marketFilter}
+            onChange={(event) => onMarketFilterChange(event.target.value)}
+            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          >
+            <option value="">All markets</option>
+            {markets.map((market) => (
+              <option key={market.marketSymbol} value={market.marketSymbol}>
+                {market.marketSymbol}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+          Status
+          <select
+            value={statusFilter}
+            onChange={(event) => onStatusFilterChange(event.target.value)}
+            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          >
+            <option value="">All statuses</option>
+            {["OPEN", "PARTIAL_FILLED", "FILLED", "CANCELLED", "REJECTED"].map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+          User
+          <input
+            value={userFilter}
+            onChange={(event) => onUserFilterChange(event.target.value)}
+            placeholder="username, email, or user ID"
+            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          />
+        </label>
+      </div>
+    </div>
   );
 }
 

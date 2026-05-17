@@ -67,7 +67,7 @@ export default function WalletPage() {
           <PageHeader
             eyebrow="Wallet"
             title="Internal asset balances"
-            description="View your live SWC and SWL balances. Internal transfers are live; deposit and withdraw stay disabled in v0.x."
+            description="View your live seeded asset balances. Internal transfers are live; deposit and withdraw stay disabled in v0.x."
             action={<StatusBadge label="Internal Only" tone="info" />}
           />
 
@@ -109,7 +109,7 @@ export default function WalletPage() {
           ) : null}
 
           <div className="rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
-            Deposit and withdraw are disabled in v0.x. Use internal transfer for free SWC/SWL
+            Deposit and withdraw are disabled in v0.x. Use internal transfer for free eligible asset
             movement between active users.
           </div>
         </div>

@@ -60,6 +60,8 @@ async function seed() {
       .where(eq(schema.assets.id, existingAsset.id));
   }
 
+  const refreshedAssetRows = await db.select().from(schema.assets);
+
   let [adminUser] = await db
     .select()
     .from(schema.users)
@@ -107,7 +109,7 @@ async function seed() {
     throw new Error("Failed to repair the admin user during seed.");
   }
 
-  const assetRows = await db.select().from(schema.assets);
+  const assetRows = refreshedAssetRows;
   for (const asset of assetRows) {
     for (const walletType of ADMIN_WALLET_TYPES) {
       await db
@@ -226,39 +228,52 @@ async function seed() {
     });
   }
 
-  const [swlSwcMarket] = await db
-    .select()
-    .from(schema.markets)
-    .where(eq(schema.markets.symbol, "SWL/SWC"))
-    .limit(1);
+  const seededMarkets = await db.select().from(schema.markets);
+  for (const market of seededMarkets) {
+    const [existingFeeSetting] = await db
+      .select()
+      .from(schema.feeSettings)
+      .where(eq(schema.feeSettings.marketSymbol, market.symbol))
+      .limit(1);
 
-  if (!swlSwcMarket) {
-    throw new Error("Missing SWL/SWC market for default fee setting.");
+    if (!existingFeeSetting) {
+      await db.insert(schema.feeSettings).values({
+        marketId: market.id,
+        marketSymbol: market.symbol,
+        buyerFeeRateBps: DEFAULT_FEE_RATE_BPS,
+        sellerFeeRateBps: DEFAULT_FEE_RATE_BPS,
+        isActive: true,
+      });
+    } else if (existingFeeSetting.marketId !== market.id || !existingFeeSetting.isActive) {
+      await db
+        .update(schema.feeSettings)
+        .set({
+          marketId: market.id,
+          isActive: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.feeSettings.id, existingFeeSetting.id));
+    }
   }
 
-  const [existingFeeSetting] = await db
-    .select()
-    .from(schema.feeSettings)
-    .where(eq(schema.feeSettings.marketSymbol, "SWL/SWC"))
-    .limit(1);
-
-  if (!existingFeeSetting) {
-    await db.insert(schema.feeSettings).values({
-      marketId: swlSwcMarket.id,
-      marketSymbol: swlSwcMarket.symbol,
-      buyerFeeRateBps: DEFAULT_FEE_RATE_BPS,
-      sellerFeeRateBps: DEFAULT_FEE_RATE_BPS,
-      isActive: true,
-    });
-  } else if (existingFeeSetting.marketId !== swlSwcMarket.id || !existingFeeSetting.isActive) {
-    await db
-      .update(schema.feeSettings)
-      .set({
-        marketId: swlSwcMarket.id,
-        isActive: true,
-        updatedAt: new Date(),
-      })
-      .where(eq(schema.feeSettings.id, existingFeeSetting.id));
+  const normalUsers = await db
+    .select({ id: schema.users.id })
+    .from(schema.users)
+    .where(eq(schema.users.isSystem, false));
+  const activeAssetRows = assetRows.filter((asset) => asset.isActive);
+  for (const user of normalUsers) {
+    for (const asset of activeAssetRows) {
+      await db
+        .insert(schema.wallets)
+        .values({
+          userId: user.id,
+          assetId: asset.id,
+          walletType: "MAIN",
+          availableBalance: 0n,
+          lockedBalance: 0n,
+        })
+        .onConflictDoNothing();
+    }
   }
 
   await pool.end();
