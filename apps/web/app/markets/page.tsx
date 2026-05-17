@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
@@ -53,11 +54,27 @@ export default function MarketsPage() {
         <DataTable
           columns={["Market", "Last Price", "24h Change", "24h Volume", "Best Bid", "Best Ask", "Status"]}
           rows={markets.length > 0 ? markets.map((market) => [
-              <div key={`${market.marketSymbol}-market`} className="space-y-1">
-                <p className="font-medium text-white">{market.marketSymbol}</p>
-                <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
-                  Spot
-                </p>
+              <div key={`${market.marketSymbol}-market`} className="flex items-center gap-2">
+                <span className="flex -space-x-2">
+                  <AssetIcon
+                    symbol={market.baseAssetSymbol}
+                    name={market.baseAssetDisplayName ?? market.baseAssetName}
+                    iconUrl={market.baseAssetIconUrl}
+                    size={28}
+                  />
+                  <AssetIcon
+                    symbol={market.quoteAssetSymbol}
+                    name={market.quoteAssetDisplayName ?? market.quoteAssetName}
+                    iconUrl={market.quoteAssetIconUrl}
+                    size={28}
+                  />
+                </span>
+                <span className="space-y-1">
+                  <span className="block font-medium text-white">{market.marketSymbol}</span>
+                  <span className="block text-xs uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                    Spot
+                  </span>
+                </span>
               </div>,
               formatValue(market.lastPrice, market.quoteAssetSymbol),
               <span
@@ -76,11 +93,17 @@ export default function MarketsPage() {
               />,
             ]) : [
               [
-                <div key="fallback-market" className="space-y-1">
-                  <p className="font-medium text-white">SWL/SWC</p>
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
-                    Spot
-                  </p>
+                <div key="fallback-market" className="flex items-center gap-2">
+                  <span className="flex -space-x-2">
+                    <AssetIcon symbol="SWL" name="SW LUNA" size={28} />
+                    <AssetIcon symbol="SWC" name="SW Cash" size={28} />
+                  </span>
+                  <span className="space-y-1">
+                    <span className="block font-medium text-white">SWL/SWC</span>
+                    <span className="block text-xs uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                      Spot
+                    </span>
+                  </span>
                 </div>,
                 "—",
                 "—",

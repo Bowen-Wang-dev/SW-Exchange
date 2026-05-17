@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -56,7 +57,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.10 console shows live balances, market ticker data, SWC portfolio valuation, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.11 console shows live balances, asset icons, market ticker data, SWC portfolio valuation, limit orders, matching, trades, fee settlement, and admin status controls. ${REAL_TIME_SYNC_COPY}`}
         action={
           <StatusBadge
             label={user?.status ?? "ACTIVE"}
@@ -140,14 +141,26 @@ export function DashboardContent() {
           columns={["Asset", "Total", "Price in SWC", "Value in SWC", "Note"]}
           rows={[
             [
-              "SWC",
+              <AssetIdentity
+                key="swc-asset"
+                symbol="SWC"
+                name={swcAsset?.assetName}
+                displayName={swcAsset?.displayName}
+                iconUrl={swcAsset?.iconUrl}
+              />,
               `${swcAsset?.total ?? "0"} SWC`,
               "1",
               `${swcAsset?.valueInSWC ?? "0"} SWC`,
               "Quote asset; valued at 1 SWC.",
             ],
             [
-              "SWL",
+              <AssetIdentity
+                key="swl-asset"
+                symbol="SWL"
+                name={swlAsset?.assetName}
+                displayName={swlAsset?.displayName}
+                iconUrl={swlAsset?.iconUrl}
+              />,
               `${swlAsset?.total ?? "0"} SWL`,
               swlAsset?.priceInSWC ?? "—",
               swlAsset?.valueInSWC ? `${swlAsset.valueInSWC} SWC` : "—",

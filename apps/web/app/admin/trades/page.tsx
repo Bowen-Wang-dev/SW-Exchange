@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -106,7 +107,7 @@ export default function AdminTradesPage() {
                 rows={trades.map((trade) => [
                   formatDateTime(trade.createdAt),
                   shortId(trade.id),
-                  trade.marketSymbol,
+                  <MarketCell key={`${trade.id}-market`} marketSymbol={trade.marketSymbol} />,
                   <UserCell key={`${trade.id}-buyer`} username={trade.buyer.username} email={trade.buyer.email} />,
                   <UserCell key={`${trade.id}-seller`} username={trade.seller.username} email={trade.seller.email} />,
                   trade.price,
@@ -132,6 +133,20 @@ function UserCell({ username, email }: { username: string; email: string }) {
       <p className="font-medium text-white">{username}</p>
       <p className="text-xs text-[var(--foreground-muted)]">{email}</p>
     </div>
+  );
+}
+
+function MarketCell({ marketSymbol }: { marketSymbol: string }) {
+  const [baseSymbol, quoteSymbol] = marketSymbol.split("/");
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex -space-x-2">
+        <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
+        <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
+      </span>
+      <span className="font-medium text-white">{marketSymbol}</span>
+    </span>
   );
 }
 

@@ -1,17 +1,50 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
+Current completed milestone: `v0.11 Asset Metadata + Icon System`
 
-Next milestone: `v0.11 Asset Metadata + Icon System`
+Next milestone: `v0.12 Multi-Market Foundation`
 
 ## Upcoming plan
 
-- `v0.11 Asset Metadata + Icon System`
 - `v0.12 Multi-Market Foundation`
 - `v0.13 Admin Asset / Market Creation`
 - `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.11 Asset Metadata + Icon System
+
+This milestone adds asset display metadata and reusable icon rendering while keeping exchange behavior unchanged.
+
+### Highlights
+
+- Asset metadata columns for display name, icon URL, icon source, sort order, and description
+- Seed/backfill metadata for `SWC` and `SWL`
+- Public `GET /api/assets` response includes metadata
+- Admin metadata update endpoint at `PATCH /api/admin/assets/:symbol/metadata`
+- `/admin/assets` shows icons and metadata and lets admins edit display name, icon URL, description, and sort order
+- Metadata changes create `UPDATE_ASSET_METADATA` admin audit logs
+- Shared web `AssetIcon` fallback/avatar component
+- Asset icons/fallbacks appear across wallet, dashboard, markets, trade, ledger, fees, and admin asset displays where practical
+- Known icon mapping is local/static; manual admin icon URLs override mapped/default behavior
+
+### Developer and operational notes
+
+- Migration `drizzle/0007_asset_metadata.sql` adds nullable metadata fields and backfills SWC/SWL metadata.
+- Existing balances, wallets, ledgers, orders, trades, fees, and markets are preserved.
+- Upload is intentionally deferred; v0.11 supports manual icon URLs first.
+- Matching price-time behavior, fee calculation, transfer rules, admin wallet bucket behavior, and user/asset/market status behavior were not changed.
+
+### Constraints kept in place
+
+- No multi-market trading
+- No admin asset creation
+- No admin market creation
+- No K-line chart
+- No market orders
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
 
 ## v0.10 Market Data + Portfolio Valuation
 

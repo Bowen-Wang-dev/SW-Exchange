@@ -1,5 +1,13 @@
 import type { UserRole, UserStatus } from "@sw-exchange/shared";
 
+export type AssetMetadataFields = {
+  displayName?: string | null;
+  iconUrl?: string | null;
+  iconSource?: "MANUAL" | "PUBLIC" | "FALLBACK" | string | null;
+  sortOrder?: number | null;
+  description?: string | null;
+};
+
 export type WalletBalance = {
   id?: string;
   userId?: string;
@@ -15,7 +23,7 @@ export type WalletBalance = {
   availableRaw: string;
   lockedRaw: string;
   totalRaw: string;
-};
+} & AssetMetadataFields;
 
 export type WalletType = "MAIN" | "FEE" | "TREASURY" | "AIRDROP" | "HOT";
 
@@ -87,7 +95,7 @@ export type AssetRow = {
   status?: AssetStatus;
   createdAt?: string;
   updatedAt?: string;
-};
+} & AssetMetadataFields;
 
 export type MarketStatus = "ACTIVE" | "PAUSED";
 
@@ -99,6 +107,14 @@ export type MarketRow = {
   quoteAssetId: string;
   baseAssetSymbol?: string;
   quoteAssetSymbol?: string;
+  baseAssetName?: string;
+  quoteAssetName?: string;
+  baseAssetDisplayName?: string | null;
+  quoteAssetDisplayName?: string | null;
+  baseAssetIconUrl?: string | null;
+  quoteAssetIconUrl?: string | null;
+  baseAssetIconSource?: string | null;
+  quoteAssetIconSource?: string | null;
   priceDecimals: number;
   amountDecimals: number;
   createdAt?: string;
@@ -109,6 +125,14 @@ export type MarketTicker = {
   marketSymbol: string;
   baseAssetSymbol: string;
   quoteAssetSymbol: string;
+  baseAssetName?: string;
+  quoteAssetName?: string;
+  baseAssetDisplayName?: string | null;
+  quoteAssetDisplayName?: string | null;
+  baseAssetIconUrl?: string | null;
+  quoteAssetIconUrl?: string | null;
+  baseAssetIconSource?: string | null;
+  quoteAssetIconSource?: string | null;
   lastPrice: string | null;
   bestBid: string | null;
   bestAsk: string | null;
@@ -129,6 +153,14 @@ export type MarketSummary = {
   marketSymbol: string;
   baseAssetSymbol: string;
   quoteAssetSymbol: string;
+  baseAssetName?: string;
+  quoteAssetName?: string;
+  baseAssetDisplayName?: string | null;
+  quoteAssetDisplayName?: string | null;
+  baseAssetIconUrl?: string | null;
+  quoteAssetIconUrl?: string | null;
+  baseAssetIconSource?: string | null;
+  quoteAssetIconSource?: string | null;
   lastPrice: string | null;
   bestBid: string | null;
   bestAsk: string | null;
@@ -143,6 +175,10 @@ export type PortfolioValuationAsset = {
   asset?: string;
   assetName: string;
   name?: string;
+  displayName?: string | null;
+  iconUrl?: string | null;
+  iconSource?: string | null;
+  description?: string | null;
   available: string;
   locked: string;
   total: string;
@@ -170,6 +206,12 @@ export type LedgerEntry = {
   asset: string;
   assetSymbol: string;
   assetName: string;
+  assetDisplayName?: string | null;
+  displayName?: string | null;
+  assetIconUrl?: string | null;
+  iconUrl?: string | null;
+  assetIconSource?: string | null;
+  iconSource?: string | null;
   type: string;
   amount: string;
   amountRaw: string;

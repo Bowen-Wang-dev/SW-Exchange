@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -78,10 +79,14 @@ export default function WalletPage() {
               <DataTable
                 columns={["Asset", "Name", "Available", "Locked", "Total", "Est. Value SWC", "Actions"]}
                 rows={wallets.map((wallet) => [
-                  <span key={`${wallet.asset}-asset`} className="font-medium text-white">
-                    {wallet.asset}
-                  </span>,
-                  wallet.name,
+                  <AssetIdentity
+                    key={`${wallet.asset}-asset`}
+                    symbol={wallet.asset}
+                    name={wallet.name}
+                    displayName={wallet.displayName}
+                    iconUrl={wallet.iconUrl}
+                  />,
+                  wallet.displayName ?? wallet.name,
                   wallet.available,
                   wallet.locked,
                   wallet.total,

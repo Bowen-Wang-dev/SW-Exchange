@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIcon, AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -14,6 +15,13 @@ export default function AdminAssetsPage() {
   const [markets, setMarkets] = useState<MarketRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+  const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null);
+  const [metadataForm, setMetadataForm] = useState({
+    displayName: "",
+    iconUrl: "",
+    description: "",
+    sortOrder: "",
+  });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -86,6 +94,67 @@ export default function AdminAssetsPage() {
     }
   }
 
+  function beginMetadataEdit(asset: AssetRow) {
+    setEditingAsset(asset);
+    setMetadataForm({
+      displayName: asset.displayName ?? "",
+      iconUrl: asset.iconUrl ?? "",
+      description: asset.description ?? "",
+      sortOrder: asset.sortOrder === null || asset.sortOrder === undefined ? "" : String(asset.sortOrder),
+    });
+    setError(null);
+    setSuccess(null);
+  }
+
+  async function updateAssetMetadata() {
+    if (!editingAsset) {
+      return;
+    }
+
+    const displayName = metadataForm.displayName.trim();
+    const iconUrl = metadataForm.iconUrl.trim();
+    const description = metadataForm.description.trim();
+    const sortOrderInput = metadataForm.sortOrder.trim();
+    const sortOrder = sortOrderInput ? Number.parseInt(sortOrderInput, 10) : null;
+
+    if (sortOrderInput && !/^-?\d+$/.test(sortOrderInput)) {
+      setError("Sort order must be a whole number.");
+      return;
+    }
+
+    try {
+      setUpdatingKey(`metadata:${editingAsset.symbol}`);
+      setError(null);
+      setSuccess(null);
+      const updatedAsset = await apiRequest<AssetRow>(
+        `/admin/assets/${editingAsset.symbol}/metadata`,
+        {
+          method: "PATCH",
+          body: {
+            displayName: displayName || null,
+            iconUrl: iconUrl || null,
+            description: description || null,
+            sortOrder,
+          },
+        },
+      );
+
+      setAssets((currentAssets) =>
+        currentAssets.map((currentAsset) =>
+          currentAsset.id === updatedAsset.id ? updatedAsset : currentAsset,
+        ),
+      );
+      setEditingAsset(null);
+      setSuccess(`${updatedAsset.symbol} metadata updated.`);
+    } catch (updateError) {
+      setError(
+        updateError instanceof ApiError ? updateError.message : "Unable to update asset metadata.",
+      );
+    } finally {
+      setUpdatingKey(null);
+    }
+  }
+
   async function updateMarketStatus(market: MarketRow, status: MarketStatus) {
     const noteInput = window.prompt(
       `Optional audit note for ${status.toLowerCase()} ${market.symbol}:`,
@@ -132,8 +201,8 @@ export default function AdminAssetsPage() {
           <PageHeader
             eyebrow="Admin Assets"
             title="Asset registry"
-            description="The seeded asset universe remains small in v0.x. Admins can pause assets and the SWL/SWC market from this existing operations page."
-            action={<StatusBadge label="v0.10 Controls" tone="warning" />}
+            description="The seeded asset universe remains small in v0.x. Admins can pause assets, edit display metadata, and manage the SWL/SWC market from this existing operations page."
+            action={<StatusBadge label="v0.11 Metadata" tone="warning" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -141,28 +210,134 @@ export default function AdminAssetsPage() {
           {isLoading ? <Notice tone="info" message="Loading asset controls..." /> : null}
 
           <DataTable
-            columns={["Symbol", "Name", "Decimals", "Status", "Action", "Notes"]}
+            columns={["Icon", "Symbol", "Name", "Display Name", "Decimals", "Status", "Actions"]}
             rows={assets.map((asset) => [
+              <AssetIcon
+                key={`${asset.symbol}-icon`}
+                symbol={asset.symbol}
+                name={asset.displayName ?? asset.name}
+                iconUrl={asset.iconUrl}
+              />,
               asset.symbol,
               asset.name,
+              asset.displayName ?? asset.name,
               String(asset.decimals),
               <StatusBadge
                 key={`${asset.symbol}-status`}
                 label={assetStatus(asset)}
                 tone={asset.isActive ? "success" : "warning"}
               />,
-              <StatusButton
-                key={`${asset.symbol}-action`}
-                label={asset.isActive ? "Pause" : "Resume"}
-                disabled={updatingKey === `asset:${asset.symbol}`}
-                tone={asset.isActive ? "warning" : "success"}
-                onClick={() => void updateAssetStatus(asset, asset.isActive ? "PAUSED" : "ACTIVE")}
-              />,
-              asset.symbol === "SWC"
-                ? "Simulated settlement unit, HKD reference only"
-                : "Virtual volatile token",
+              <div key={`${asset.symbol}-actions`} className="flex flex-wrap gap-2">
+                <StatusButton
+                  label="Edit metadata"
+                  disabled={updatingKey === `metadata:${asset.symbol}`}
+                  tone="info"
+                  onClick={() => beginMetadataEdit(asset)}
+                />
+                <StatusButton
+                  label={asset.isActive ? "Pause" : "Resume"}
+                  disabled={updatingKey === `asset:${asset.symbol}`}
+                  tone={asset.isActive ? "warning" : "success"}
+                  onClick={() => void updateAssetStatus(asset, asset.isActive ? "PAUSED" : "ACTIVE")}
+                />
+              </div>,
             ])}
           />
+
+          {editingAsset ? (
+            <section className="panel rounded-3xl p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                    Asset Metadata
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    Edit {editingAsset.symbol}
+                  </h2>
+                </div>
+                <AssetIdentity
+                  symbol={editingAsset.symbol}
+                  name={editingAsset.name}
+                  displayName={metadataForm.displayName || editingAsset.displayName}
+                  iconUrl={metadataForm.iconUrl || editingAsset.iconUrl}
+                  size={32}
+                />
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                  Display name
+                  <input
+                    value={metadataForm.displayName}
+                    onChange={(event) =>
+                      setMetadataForm((current) => ({
+                        ...current,
+                        displayName: event.target.value,
+                      }))
+                    }
+                    placeholder={editingAsset.name}
+                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                  Icon URL
+                  <input
+                    value={metadataForm.iconUrl}
+                    onChange={(event) =>
+                      setMetadataForm((current) => ({ ...current, iconUrl: event.target.value }))
+                    }
+                    placeholder="https://example.com/icon.png"
+                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                  Sort order
+                  <input
+                    value={metadataForm.sortOrder}
+                    onChange={(event) =>
+                      setMetadataForm((current) => ({ ...current, sortOrder: event.target.value }))
+                    }
+                    placeholder="10"
+                    inputMode="numeric"
+                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm text-[var(--foreground-soft)] md:col-span-2">
+                  Description
+                  <textarea
+                    value={metadataForm.description}
+                    onChange={(event) =>
+                      setMetadataForm((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <StatusButton
+                  label="Save metadata"
+                  disabled={updatingKey === `metadata:${editingAsset.symbol}`}
+                  tone="success"
+                  onClick={() => void updateAssetMetadata()}
+                />
+                <button
+                  type="button"
+                  onClick={() => setEditingAsset(null)}
+                  className="rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           <DataTable
             columns={["Market", "Status", "Action", "Notes"]}
@@ -203,13 +378,15 @@ function StatusButton({
 }: {
   label: string;
   disabled: boolean;
-  tone: "success" | "warning";
+  tone: "success" | "warning" | "info";
   onClick: () => void;
 }) {
   const classes =
     tone === "success"
       ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200 hover:border-emerald-200"
-      : "border-amber-300/30 bg-amber-300/10 text-amber-200 hover:border-amber-200";
+      : tone === "info"
+        ? "border-blue-300/30 bg-blue-300/10 text-blue-100 hover:border-blue-200"
+        : "border-amber-300/30 bg-amber-300/10 text-amber-200 hover:border-amber-200";
 
   return (
     <button

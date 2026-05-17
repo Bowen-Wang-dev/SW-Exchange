@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -108,9 +109,13 @@ export default function LedgerPage() {
                         label={entry.type}
                         tone={ledgerTypeTone(entry.type)}
                       />,
-                      <span key={`${entry.id}-asset`} className="font-medium text-white">
-                        {entry.asset}
-                      </span>,
+                      <AssetIdentity
+                        key={`${entry.id}-asset`}
+                        symbol={entry.asset}
+                        name={entry.assetName}
+                        displayName={entry.assetDisplayName ?? entry.displayName}
+                        iconUrl={entry.assetIconUrl ?? entry.iconUrl}
+                      />,
                       <AmountText key={`${entry.id}-amount`} value={entry.amount} />,
                       entry.availableAfter,
                       entry.lockedAfter,

@@ -25,6 +25,9 @@ export class LedgerService {
         createdAt: ledgerEntries.createdAt,
         assetSymbol: assets.symbol,
         assetName: assets.name,
+        assetDisplayName: assets.displayName,
+        assetIconUrl: assets.iconUrl,
+        assetIconSource: assets.iconSource,
         decimals: assets.decimals,
       })
       .from(ledgerEntries)
@@ -58,6 +61,9 @@ export class LedgerService {
         auditAfterValue: adminAuditLogs.afterValue,
         assetSymbol: assets.symbol,
         assetName: assets.name,
+        assetDisplayName: assets.displayName,
+        assetIconUrl: assets.iconUrl,
+        assetIconSource: assets.iconSource,
         decimals: assets.decimals,
       })
       .from(ledgerEntries)
@@ -112,6 +118,9 @@ export class LedgerService {
     createdAt: Date;
     assetSymbol: string;
     assetName: string;
+    assetDisplayName?: string | null;
+    assetIconUrl?: string | null;
+    assetIconSource?: string | null;
     decimals: number;
   }) {
     return {
@@ -122,6 +131,13 @@ export class LedgerService {
       asset: entry.assetSymbol,
       assetSymbol: entry.assetSymbol,
       assetName: entry.assetName,
+      assetDisplayName: entry.assetDisplayName ?? entry.assetName,
+      displayName: entry.assetDisplayName ?? entry.assetName,
+      assetIconUrl: entry.assetIconUrl ?? null,
+      iconUrl: entry.assetIconUrl ?? null,
+      assetIconSource:
+        entry.assetIconSource ?? (entry.assetIconUrl ? "MANUAL" : "FALLBACK"),
+      iconSource: entry.assetIconSource ?? (entry.assetIconUrl ? "MANUAL" : "FALLBACK"),
       amount: formatSignedMinimalUnitsToHuman(entry.amount, entry.decimals),
       amountRaw: entry.amount.toString(),
       availableAfter: formatMinimalUnitsToHuman(entry.balanceAvailableAfter, entry.decimals),

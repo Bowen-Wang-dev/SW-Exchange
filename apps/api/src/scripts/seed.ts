@@ -38,10 +38,26 @@ async function seed() {
       await db.insert(schema.assets).values({
         symbol: asset.symbol,
         name: asset.name,
+        displayName: asset.displayName,
         decimals: asset.decimals,
+        iconSource: asset.iconSource,
+        sortOrder: asset.sortOrder,
+        description: asset.description,
         isActive: true,
       });
+      continue;
     }
+
+    await db
+      .update(schema.assets)
+      .set({
+        displayName: sql`COALESCE(${schema.assets.displayName}, ${asset.displayName})`,
+        iconSource: sql`COALESCE(${schema.assets.iconSource}, ${asset.iconSource})`,
+        sortOrder: sql`COALESCE(${schema.assets.sortOrder}, ${asset.sortOrder})`,
+        description: sql`COALESCE(${schema.assets.description}, ${asset.description})`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.assets.id, existingAsset.id));
   }
 
   let [adminUser] = await db

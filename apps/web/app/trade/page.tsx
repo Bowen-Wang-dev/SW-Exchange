@@ -1,9 +1,11 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -43,6 +45,8 @@ export default function TradePage() {
 
   const lockedAssetSymbol = side === "BUY" ? "SWC" : "SWL";
   const selectedWallet = wallets.find((wallet) => wallet.asset === lockedAssetSymbol);
+  const baseWallet = wallets.find((wallet) => wallet.asset === "SWL");
+  const quoteWallet = wallets.find((wallet) => wallet.asset === "SWC");
   const totalPreview = useMemo(() => calculateTotalPreview(price, amount), [price, amount]);
 
   useEffect(() => {
@@ -148,9 +152,27 @@ export default function TradePage() {
         <div className="space-y-4">
           <PageHeader
             eyebrow="Trade"
-            title="SWL/SWC spot terminal"
+            title={
+              <span className="inline-flex items-center gap-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                <span className="flex -space-x-2">
+                  <AssetIcon
+                    symbol="SWL"
+                    name={ticker?.baseAssetDisplayName ?? ticker?.baseAssetName ?? baseWallet?.displayName ?? "SW LUNA"}
+                    iconUrl={ticker?.baseAssetIconUrl ?? baseWallet?.iconUrl}
+                    size={34}
+                  />
+                  <AssetIcon
+                    symbol="SWC"
+                    name={ticker?.quoteAssetDisplayName ?? ticker?.quoteAssetName ?? quoteWallet?.displayName ?? "SW Cash"}
+                    iconUrl={ticker?.quoteAssetIconUrl ?? quoteWallet?.iconUrl}
+                    size={34}
+                  />
+                </span>
+                <span>SWL/SWC spot terminal</span>
+              </span>
+            }
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.10 Live" tone="success" />}
+            action={<StatusBadge label="v0.11 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -180,11 +202,27 @@ export default function TradePage() {
           <div className="grid gap-4 xl:grid-cols-[0.9fr_1fr_0.85fr]">
             <section className="panel rounded-3xl p-5">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex items-center gap-3">
+                  <span className="flex -space-x-2">
+                    <AssetIcon
+                      symbol="SWL"
+                      name={ticker?.baseAssetDisplayName ?? ticker?.baseAssetName ?? baseWallet?.displayName ?? "SW LUNA"}
+                      iconUrl={ticker?.baseAssetIconUrl ?? baseWallet?.iconUrl}
+                      size={28}
+                    />
+                    <AssetIcon
+                      symbol="SWC"
+                      name={ticker?.quoteAssetDisplayName ?? ticker?.quoteAssetName ?? quoteWallet?.displayName ?? "SW Cash"}
+                      iconUrl={ticker?.quoteAssetIconUrl ?? quoteWallet?.iconUrl}
+                      size={28}
+                    />
+                  </span>
+                  <span>
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Market
                   </p>
                   <h2 className="mt-1 text-xl font-semibold text-white">{MARKET_SYMBOL}</h2>
+                  </span>
                 </div>
                 <StatusBadge label="Spot" tone="info" />
               </div>
@@ -248,11 +286,25 @@ export default function TradePage() {
                 <div className="grid gap-3 md:grid-cols-3">
                   <BalanceTile label="Total" value={`${totalPreview ?? "-"} SWC`} />
                   <BalanceTile
-                    label={`${lockedAssetSymbol} Available`}
+                    label={
+                      <AssetBalanceLabel
+                        symbol={lockedAssetSymbol}
+                        name={selectedWallet?.displayName ?? selectedWallet?.name}
+                        iconUrl={selectedWallet?.iconUrl}
+                        label="Available"
+                      />
+                    }
                     value={`${selectedWallet?.available ?? "0"} ${lockedAssetSymbol}`}
                   />
                   <BalanceTile
-                    label={`${lockedAssetSymbol} Locked`}
+                    label={
+                      <AssetBalanceLabel
+                        symbol={lockedAssetSymbol}
+                        name={selectedWallet?.displayName ?? selectedWallet?.name}
+                        iconUrl={selectedWallet?.iconUrl}
+                        label="Locked"
+                      />
+                    }
                     value={`${selectedWallet?.locked ?? "0"} ${lockedAssetSymbol}`}
                   />
                 </div>
@@ -364,14 +416,33 @@ function OrderBookTable({
   );
 }
 
-function BalanceTile({ label, value }: { label: string; value: string }) {
+function BalanceTile({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
-        {label}
-      </p>
+      <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+        {typeof label === "string" ? label : label}
+      </div>
       <p className="mt-1 break-words text-sm font-semibold text-white">{value}</p>
     </div>
+  );
+}
+
+function AssetBalanceLabel({
+  symbol,
+  name,
+  iconUrl,
+  label,
+}: {
+  symbol: string;
+  name?: string | null;
+  iconUrl?: string | null;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <AssetIcon symbol={symbol} name={name} iconUrl={iconUrl} size={20} />
+      <span>{symbol} {label}</span>
+    </span>
   );
 }
 

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -83,7 +84,7 @@ export default function AdminFeesPage() {
             eyebrow="Admin Fees"
             title="Trading fee control"
             description="Configure SWL/SWC buyer and seller fee rates. Fee changes apply only to future trades."
-            action={<StatusBadge label="v0.10 Live" tone="success" />}
+            action={<StatusBadge label="v0.11 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -202,7 +203,13 @@ export default function AdminFeesPage() {
               <DataTable
                 columns={["Asset", "Available", "Locked", "Total"]}
                 rows={feeBalances.map((balance) => [
-                  balance.asset,
+                  <AssetIdentity
+                    key={`${balance.asset}-fee-balance`}
+                    symbol={balance.asset}
+                    name={balance.name}
+                    displayName={balance.displayName}
+                    iconUrl={balance.iconUrl}
+                  />,
                   balance.available,
                   balance.locked,
                   balance.total,

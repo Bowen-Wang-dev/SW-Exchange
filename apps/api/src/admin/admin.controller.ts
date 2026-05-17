@@ -17,6 +17,7 @@ import { RolesGuard } from "../common/guards/roles.guard.js";
 import type { AuthenticatedRequest } from "../common/interfaces/authenticated-request.interface.js";
 import { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import { AirdropDto } from "./dto/airdrop.dto.js";
+import { UpdateAssetMetadataDto } from "./dto/update-asset-metadata.dto.js";
 import { UpdateAssetStatusDto } from "./dto/update-asset-status.dto.js";
 import { UpdateFeeSettingsDto } from "./dto/update-fee-settings.dto.js";
 import { UpdateMarketStatusDto } from "./dto/update-market-status.dto.js";
@@ -109,6 +110,15 @@ export class AdminController {
     @Body() dto: UpdateAssetStatusDto,
   ) {
     return this.adminService.updateAssetStatus(request.user.sub, symbol, dto);
+  }
+
+  @Patch("assets/:symbol/metadata")
+  updateAssetMetadata(
+    @Req() request: AuthenticatedRequest,
+    @Param("symbol") symbol: string,
+    @Body() dto: UpdateAssetMetadataDto,
+  ) {
+    return this.adminService.updateAssetMetadata(request.user.sub, symbol, dto);
   }
 
   @Patch("markets/:symbol/status")

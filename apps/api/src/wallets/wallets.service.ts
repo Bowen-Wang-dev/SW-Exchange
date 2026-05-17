@@ -86,6 +86,10 @@ export class WalletsService {
         lockedBalance: wallets.lockedBalance,
         symbol: assets.symbol,
         name: assets.name,
+        displayName: assets.displayName,
+        iconUrl: assets.iconUrl,
+        iconSource: assets.iconSource,
+        description: assets.description,
         decimals: assets.decimals,
       })
       .from(wallets)
@@ -110,6 +114,10 @@ export class WalletsService {
           lockedBalance: wallets.lockedBalance,
           symbol: assets.symbol,
           name: assets.name,
+          displayName: assets.displayName,
+          iconUrl: assets.iconUrl,
+          iconSource: assets.iconSource,
+          description: assets.description,
           decimals: assets.decimals,
         })
         .from(wallets)
@@ -152,6 +160,10 @@ export class WalletsService {
         asset: wallet.symbol,
         assetName: wallet.name,
         name: wallet.name,
+        displayName: wallet.displayName ?? wallet.name,
+        iconUrl: wallet.iconUrl,
+        iconSource: wallet.iconSource ?? (wallet.iconUrl ? "MANUAL" : "FALLBACK"),
+        description: wallet.description,
         available: formatMinimalUnitsToHuman(wallet.availableBalance, wallet.decimals),
         locked: formatMinimalUnitsToHuman(wallet.lockedBalance, wallet.decimals),
         total: formatMinimalUnitsToHuman(total, wallet.decimals),
@@ -193,6 +205,10 @@ export class WalletsService {
     lockedBalance: bigint;
     symbol: string;
     name: string;
+    displayName?: string | null;
+    iconUrl?: string | null;
+    iconSource?: string | null;
+    description?: string | null;
     decimals: number;
   }) {
     const total = wallet.availableBalance + wallet.lockedBalance;
@@ -205,6 +221,10 @@ export class WalletsService {
       asset: wallet.symbol,
       symbol: wallet.symbol,
       name: wallet.name,
+      displayName: wallet.displayName ?? wallet.name,
+      iconUrl: wallet.iconUrl ?? null,
+      iconSource: wallet.iconSource ?? (wallet.iconUrl ? "MANUAL" : "FALLBACK"),
+      description: wallet.description ?? null,
       decimals: wallet.decimals,
       available: formatMinimalUnitsToHuman(wallet.availableBalance, wallet.decimals),
       locked: formatMinimalUnitsToHuman(wallet.lockedBalance, wallet.decimals),

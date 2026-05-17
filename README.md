@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
+Current completed milestone: `v0.11 Asset Metadata + Icon System`
 
-Next milestone: `v0.11 Asset Metadata + Icon System`
+Next milestone: `v0.12 Multi-Market Foundation`
 
 This version is intentionally limited:
 
@@ -55,6 +55,10 @@ Current scope:
 - User portfolio valuation in `SWC` using real balances and latest SWL/SWC last price
 - Wallet estimated value column for priced assets
 - Admin market summary card for last price, 24h volume, open orders, and total trades
+- Asset metadata fields for display name, icon URL, icon source, sort order, and description
+- Clean fallback asset icons across user and admin asset displays
+- Admin asset metadata editing for display name, icon URL, description, and sort order
+- Admin audit logs for asset metadata changes
 
 ## Milestone status
 
@@ -69,13 +73,13 @@ Current scope:
 - `v0.8 Admin Controls + User Status Management` completed
 - `v0.9 Ledger / Audit / Reports Polish` completed
 - `v0.10 Market Data + Portfolio Valuation` completed
+- `v0.11 Asset Metadata + Icon System` completed
 
-- Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
-- Next milestone: `v0.11 Asset Metadata + Icon System`
+- Current completed milestone: `v0.11 Asset Metadata + Icon System`
+- Next milestone: `v0.12 Multi-Market Foundation`
 
 ## Planned milestones
 
-- `v0.11 Asset Metadata + Icon System`
 - `v0.12 Multi-Market Foundation`
 - `v0.13 Admin Asset / Market Creation`
 - `v0.14 K-line / Candlestick Chart`
@@ -83,6 +87,20 @@ Current scope:
 - `v1.x Chain Gateway`
 
 See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/VERSION_HISTORY.md](docs/VERSION_HISTORY.md), [docs/ACCOUNT_MODEL.md](docs/ACCOUNT_MODEL.md), and [docs/FUTURE_ROADMAP.md](docs/FUTURE_ROADMAP.md) for milestone planning, released history, the current wallet bucket model, and future product direction.
+
+## v0.11 Asset Metadata + Icon System
+
+v0.11 adds asset display metadata and reusable icon rendering without changing matching, fees, transfers, wallet buckets, or status-control rules.
+
+- Assets now support nullable `displayName`, `iconUrl`, `iconSource`, `sortOrder`, and `description` metadata
+- `GET /api/assets` includes metadata for frontend and admin use
+- `PATCH /api/admin/assets/:symbol/metadata` lets admins edit display name, icon URL, description, and sort order
+- Metadata edits write `UPDATE_ASSET_METADATA` admin audit logs
+- SWC and SWL are seeded/backfilled with display names and simulation descriptions without resetting balances
+- The web app uses a shared `AssetIcon` fallback/avatar component across wallet, dashboard, markets, trade, ledger, fees, and admin asset views
+- Known public icon mapping is local/static and admin `iconUrl` takes precedence
+- Upload is deferred as future polish; manual icon URL is the v0.11 control
+- No multi-market, K-line, market order, deposit, withdraw, blockchain, chain address, admin asset creation, or admin market creation behavior is implemented
 
 ## v0.10 Market Data + Portfolio Valuation
 

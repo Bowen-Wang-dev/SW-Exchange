@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -60,7 +61,7 @@ export default function OrdersPage() {
             eyebrow="Orders"
             title="Order history"
             description="Review SWL/SWC limit orders, filled amounts, remaining amounts, and cancel open or partially filled orders."
-            action={<StatusBadge label="v0.10 Live" tone="success" />}
+            action={<StatusBadge label="v0.11 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -86,7 +87,7 @@ export default function OrdersPage() {
                 rows={orders.map((order) => [
                   formatDateTime(order.createdAt),
                   shortId(order.id),
-                  order.marketSymbol,
+                  <MarketCell key={`${order.id}-market`} marketSymbol={order.marketSymbol} />,
                   <SideText key={`${order.id}-side`} side={order.side} />,
                   order.type,
                   order.price,
@@ -150,6 +151,20 @@ function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning"
 function SideText({ side }: { side: OrderSide }) {
   return (
     <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
+  );
+}
+
+function MarketCell({ marketSymbol }: { marketSymbol: string }) {
+  const [baseSymbol, quoteSymbol] = marketSymbol.split("/");
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex -space-x-2">
+        <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
+        <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
+      </span>
+      <span className="font-medium text-white">{marketSymbol}</span>
+    </span>
   );
 }
 

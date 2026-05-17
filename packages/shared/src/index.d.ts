@@ -5,13 +5,19 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 export declare const DEFAULT_ASSETS: readonly [{
     readonly symbol: "SWC";
     readonly name: "SW Cash";
+    readonly displayName: "SW Cash";
     readonly decimals: 18;
-    readonly description: "Internal simulated settlement unit with HKD reference pricing only.";
+    readonly iconSource: "FALLBACK";
+    readonly sortOrder: 10;
+    readonly description: "Simulated settlement unit referencing HKD display only, not redeemable.";
 }, {
     readonly symbol: "SWL";
     readonly name: "SW LUNA";
+    readonly displayName: "SW LUNA";
     readonly decimals: 18;
-    readonly description: "Internal volatile virtual asset for simulated spot trading.";
+    readonly iconSource: "FALLBACK";
+    readonly sortOrder: 20;
+    readonly description: "Virtual volatile token for simulation.";
 }];
 export declare const DEFAULT_MARKETS: readonly [{
     readonly symbol: "SWL/SWC";

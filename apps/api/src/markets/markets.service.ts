@@ -22,10 +22,16 @@ type MarketDetails = {
   baseAssetId: string;
   baseAssetSymbol: string;
   baseAssetName: string;
+  baseAssetDisplayName: string | null;
+  baseAssetIconUrl: string | null;
+  baseAssetIconSource: string | null;
   baseAssetDecimals: number;
   quoteAssetId: string;
   quoteAssetSymbol: string;
   quoteAssetName: string;
+  quoteAssetDisplayName: string | null;
+  quoteAssetIconUrl: string | null;
+  quoteAssetIconSource: string | null;
   quoteAssetDecimals: number;
 };
 
@@ -58,6 +64,14 @@ export class MarketsService {
         updatedAt: markets.updatedAt,
         baseAssetSymbol: baseAssets.symbol,
         quoteAssetSymbol: quoteAssets.symbol,
+        baseAssetName: baseAssets.name,
+        quoteAssetName: quoteAssets.name,
+        baseAssetDisplayName: baseAssets.displayName,
+        quoteAssetDisplayName: quoteAssets.displayName,
+        baseAssetIconUrl: baseAssets.iconUrl,
+        quoteAssetIconUrl: quoteAssets.iconUrl,
+        baseAssetIconSource: baseAssets.iconSource,
+        quoteAssetIconSource: quoteAssets.iconSource,
       })
       .from(markets)
       .innerJoin(baseAssets, eq(markets.baseAssetId, baseAssets.id))
@@ -170,6 +184,16 @@ export class MarketsService {
       marketSymbol: market.symbol,
       baseAssetSymbol: market.baseAssetSymbol,
       quoteAssetSymbol: market.quoteAssetSymbol,
+      baseAssetName: market.baseAssetName,
+      quoteAssetName: market.quoteAssetName,
+      baseAssetDisplayName: market.baseAssetDisplayName ?? market.baseAssetName,
+      quoteAssetDisplayName: market.quoteAssetDisplayName ?? market.quoteAssetName,
+      baseAssetIconUrl: market.baseAssetIconUrl,
+      quoteAssetIconUrl: market.quoteAssetIconUrl,
+      baseAssetIconSource:
+        market.baseAssetIconSource ?? (market.baseAssetIconUrl ? "MANUAL" : "FALLBACK"),
+      quoteAssetIconSource:
+        market.quoteAssetIconSource ?? (market.quoteAssetIconUrl ? "MANUAL" : "FALLBACK"),
       lastPrice: this.formatNullable(lastTrade?.price ?? null, market.priceDecimals),
       bestBid: this.formatNullable(bestBid, market.priceDecimals),
       bestAsk: this.formatNullable(bestAsk, market.priceDecimals),
@@ -205,6 +229,14 @@ export class MarketsService {
           marketSymbol: ticker.marketSymbol,
           baseAssetSymbol: ticker.baseAssetSymbol,
           quoteAssetSymbol: ticker.quoteAssetSymbol,
+          baseAssetName: ticker.baseAssetName,
+          quoteAssetName: ticker.quoteAssetName,
+          baseAssetDisplayName: ticker.baseAssetDisplayName,
+          quoteAssetDisplayName: ticker.quoteAssetDisplayName,
+          baseAssetIconUrl: ticker.baseAssetIconUrl,
+          quoteAssetIconUrl: ticker.quoteAssetIconUrl,
+          baseAssetIconSource: ticker.baseAssetIconSource,
+          quoteAssetIconSource: ticker.quoteAssetIconSource,
           lastPrice: ticker.lastPrice,
           bestBid: ticker.bestBid,
           bestAsk: ticker.bestAsk,
@@ -257,10 +289,16 @@ export class MarketsService {
         baseAssetId: markets.baseAssetId,
         baseAssetSymbol: baseAssets.symbol,
         baseAssetName: baseAssets.name,
+        baseAssetDisplayName: baseAssets.displayName,
+        baseAssetIconUrl: baseAssets.iconUrl,
+        baseAssetIconSource: baseAssets.iconSource,
         baseAssetDecimals: baseAssets.decimals,
         quoteAssetId: markets.quoteAssetId,
         quoteAssetSymbol: quoteAssets.symbol,
         quoteAssetName: quoteAssets.name,
+        quoteAssetDisplayName: quoteAssets.displayName,
+        quoteAssetIconUrl: quoteAssets.iconUrl,
+        quoteAssetIconSource: quoteAssets.iconSource,
         quoteAssetDecimals: quoteAssets.decimals,
       })
       .from(markets)

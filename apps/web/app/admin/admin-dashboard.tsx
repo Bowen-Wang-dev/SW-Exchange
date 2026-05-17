@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shell/page-header";
+import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -46,7 +47,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.10 Market Data + Portfolio Valuation. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.11 Asset Metadata + Icon System. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 
@@ -204,6 +205,7 @@ export function AdminDashboardContent() {
             ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled SWL/SWC trade review"],
             ["Fees", <StatusBadge key="fees" label="Live" tone="warning" />, "Admin fee settings and Fee Wallet balances"],
             ["Market Data", <StatusBadge key="market-data" label="v0.10" tone="info" />, "Ticker, 24h volume, open orders, and total trades"],
+            ["Asset Metadata", <StatusBadge key="asset-metadata" label="v0.11" tone="info" />, "Display names, icon URLs, and clean fallbacks"],
             ["Reports", <StatusBadge key="reports" label="v0.10" tone="info" />, "Summary cards and recent activity"],
             ["Audit", <StatusBadge key="audit" label="Live" tone="info" />, "Airdrop, fee, bucket, and status control audit trail"],
           ]}
@@ -214,7 +216,10 @@ export function AdminDashboardContent() {
         columns={["Market", "Last Price", "24h Volume", "Open Orders", "Total Trades", "Status"]}
         rows={[
           [
-            summary?.marketSummary?.marketSymbol ?? "SWL/SWC",
+            <MarketCell
+              key="admin-market-cell"
+              marketSymbol={summary?.marketSummary?.marketSymbol ?? "SWL/SWC"}
+            />,
             formatMarketValue(summary?.marketSummary?.lastPrice, "SWC"),
             formatMarketValue(summary?.marketSummary?.volume24h, "SWL"),
             formatCount(summary?.marketSummary?.openOrderCount),
@@ -246,7 +251,7 @@ function RecentTrades({ trades }: { trades: AdminTradeEntry[] }) {
           columns={["Time", "Market", "Price", "Amount"]}
           rows={trades.map((trade) => [
             formatDateTime(trade.createdAt),
-            trade.marketSymbol,
+            <MarketCell key={`${trade.id}-market`} marketSymbol={trade.marketSymbol} />,
             trade.price,
             `${trade.amount} SWL`,
           ])}
@@ -255,6 +260,20 @@ function RecentTrades({ trades }: { trades: AdminTradeEntry[] }) {
         <Notice message="No recent trades." />
       )}
     </section>
+  );
+}
+
+function MarketCell({ marketSymbol }: { marketSymbol: string }) {
+  const [baseSymbol, quoteSymbol] = marketSymbol.split("/");
+
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="flex -space-x-2">
+        <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
+        <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
+      </span>
+      <span className="font-medium text-white">{marketSymbol}</span>
+    </span>
   );
 }
 

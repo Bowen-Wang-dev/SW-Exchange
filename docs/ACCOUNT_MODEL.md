@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
+Current completed milestone: `v0.11 Asset Metadata + Icon System`
 
 ## Account Status
 
@@ -28,7 +28,19 @@ Fees go to the admin `FEE` wallet. Buyer fees are collected in `SWL`; seller fee
 
 Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP` wallet.
 
-v0.10 adds read-only SWC portfolio valuation for normal `MAIN` wallets, but does not change the wallet bucket model or balance movement rules.
+v0.11 adds asset display metadata and icon fallbacks, but does not change the wallet bucket model or balance movement rules.
+
+## Asset Metadata
+
+Assets may have optional display metadata:
+
+- display name
+- icon URL
+- icon source
+- sort order
+- description
+
+`SWC` and `SWL` remain internal simulation assets. Manual admin icon URLs can override fallback/mapped icons. Missing icons render as clean symbol avatars. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
 
 ## Portfolio Valuation
 

@@ -36,6 +36,7 @@ import { TransfersService } from "../transfers/transfers.service.js";
 import { WalletsService } from "../wallets/wallets.service.js";
 import type { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import type { AirdropDto } from "./dto/airdrop.dto.js";
+import type { UpdateAssetMetadataDto } from "./dto/update-asset-metadata.dto.js";
 import type { UpdateAssetStatusDto } from "./dto/update-asset-status.dto.js";
 import type { UpdateFeeSettingsDto } from "./dto/update-fee-settings.dto.js";
 import type { UpdateMarketStatusDto } from "./dto/update-market-status.dto.js";
@@ -312,6 +313,10 @@ export class AdminService {
         walletType: wallets.walletType,
         symbol: assets.symbol,
         name: assets.name,
+        displayName: assets.displayName,
+        iconUrl: assets.iconUrl,
+        iconSource: assets.iconSource,
+        description: assets.description,
         decimals: assets.decimals,
         availableBalance: wallets.availableBalance,
         lockedBalance: wallets.lockedBalance,
@@ -809,6 +814,52 @@ export class AdminService {
     });
   }
 
+  async updateAssetMetadata(adminUserId: string, symbol: string, dto: UpdateAssetMetadataDto) {
+    const assetSymbol = symbol.trim().toUpperCase();
+
+    return this.db.transaction(async (tx) => {
+      await this.assertActiveAdmin(tx, adminUserId);
+
+      const [asset] = await tx
+        .select()
+        .from(assets)
+        .where(eq(assets.symbol, assetSymbol))
+        .for("update")
+        .limit(1);
+
+      if (!asset) {
+        throw new NotFoundException(`Asset ${assetSymbol} was not found.`);
+      }
+
+      const beforeValue = this.assetMetadataAuditValue(asset);
+      const metadataUpdate = this.normalizeAssetMetadata(dto, asset);
+      const updatedAt = new Date();
+      const [updatedAsset] = await tx
+        .update(assets)
+        .set({
+          ...metadataUpdate,
+          updatedAt,
+        })
+        .where(eq(assets.id, asset.id))
+        .returning();
+
+      if (!updatedAsset) {
+        throw new Error("Failed to update asset metadata.");
+      }
+
+      await tx.insert(adminAuditLogs).values({
+        adminUserId,
+        action: "UPDATE_ASSET_METADATA",
+        targetType: "ASSET",
+        targetId: asset.id,
+        beforeValue,
+        afterValue: this.assetMetadataAuditValue(updatedAsset),
+      });
+
+      return this.formatAssetStatusResponse(updatedAsset);
+    });
+  }
+
   async updateMarketStatus(adminUserId: string, symbol: string, dto: UpdateMarketStatusDto) {
     const marketSymbol = symbol.trim().toUpperCase();
     const status = this.normalizeMarketStatus(dto.status);
@@ -954,6 +1005,10 @@ export class AdminService {
         lockedBalance: wallets.lockedBalance,
         symbol: assets.symbol,
         name: assets.name,
+        displayName: assets.displayName,
+        iconUrl: assets.iconUrl,
+        iconSource: assets.iconSource,
+        description: assets.description,
         decimals: assets.decimals,
       })
       .from(wallets)
@@ -1061,9 +1116,83 @@ export class AdminService {
   private formatAssetStatusResponse(asset: typeof assets.$inferSelect) {
     return {
       ...asset,
+      displayName: asset.displayName ?? asset.name,
+      display_name: asset.displayName ?? asset.name,
+      iconUrl: asset.iconUrl,
+      icon_url: asset.iconUrl,
+      iconSource: asset.iconSource ?? (asset.iconUrl ? "MANUAL" : "FALLBACK"),
+      icon_source: asset.iconSource ?? (asset.iconUrl ? "MANUAL" : "FALLBACK"),
+      sortOrder: asset.sortOrder,
+      sort_order: asset.sortOrder,
       status: asset.isActive ? "ACTIVE" : "PAUSED",
       created_at: asset.createdAt,
       updated_at: asset.updatedAt,
+    };
+  }
+
+  private normalizeAssetMetadata(
+    dto: UpdateAssetMetadataDto,
+    asset: typeof assets.$inferSelect,
+  ) {
+    const iconUrl =
+      dto.iconUrl === undefined ? asset.iconUrl : this.normalizeIconUrl(dto.iconUrl);
+
+    return {
+      displayName:
+        dto.displayName === undefined ? asset.displayName : this.trimToNull(dto.displayName),
+      iconUrl,
+      iconSource: iconUrl ? "MANUAL" : "FALLBACK",
+      sortOrder: dto.sortOrder === undefined ? asset.sortOrder : dto.sortOrder,
+      description:
+        dto.description === undefined ? asset.description : this.trimToNull(dto.description),
+    };
+  }
+
+  private normalizeIconUrl(input: string | null | undefined) {
+    const value = this.trimToNull(input);
+    if (!value) {
+      return null;
+    }
+
+    if (value.startsWith("/")) {
+      if (value.startsWith("//")) {
+        throw new BadRequestException("iconUrl must be an http(s) URL or a local absolute path.");
+      }
+
+      return value;
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      throw new BadRequestException("iconUrl must be a valid URL.");
+    }
+
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+      throw new BadRequestException("iconUrl must use http or https.");
+    }
+
+    return parsed.toString();
+  }
+
+  private trimToNull(input: string | null | undefined) {
+    if (input === null || input === undefined) {
+      return null;
+    }
+
+    const value = input.trim();
+    return value ? value : null;
+  }
+
+  private assetMetadataAuditValue(asset: typeof assets.$inferSelect) {
+    return {
+      symbol: asset.symbol,
+      displayName: asset.displayName,
+      iconUrl: asset.iconUrl,
+      iconSource: asset.iconSource,
+      sortOrder: asset.sortOrder,
+      description: asset.description,
     };
   }
 

@@ -1,15 +1,6 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.10 Market Data + Portfolio Valuation`. These items are not live until their milestone is implemented.
-
-## v0.11 Asset Metadata + Icon System
-
-- Asset icons
-- Default placeholder icons
-- Public icon source matching for known assets if feasible
-- Admin manual icon URL or upload
-- Icons displayed in wallet, markets, trade header, and admin assets
-- Public source icons can be overridden by admin
+This plan documents intended future work after `v0.11 Asset Metadata + Icon System`. These items are not live until their milestone is implemented.
 
 ## v0.12 Multi-Market Foundation
 
@@ -50,4 +41,4 @@ This plan documents intended future work after `v0.10 Market Data + Portfolio Va
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.10
+- No blockchain feature is implemented in v0.11

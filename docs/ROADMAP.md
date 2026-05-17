@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.10 Market Data + Portfolio Valuation`
+Current completed milestone: `v0.11 Asset Metadata + Icon System`
 
-Next milestone: `v0.11 Asset Metadata + Icon System`
+Next milestone: `v0.12 Multi-Market Foundation`
 
 ### v0.1 Foundation - Completed
 
@@ -143,14 +143,19 @@ Next milestone: `v0.11 Asset Metadata + Icon System`
 - `/trade`, `/markets`, `/dashboard`, `/wallet`, and `/admin` surface the new market data where appropriate
 - No K-line, market orders, multi-market creation, deposit, withdraw, blockchain integration, chain addresses, admin asset creation, or admin market creation is implemented
 
-### v0.11 Asset Metadata + Icon System - Planned
+### v0.11 Asset Metadata + Icon System - Completed
 
-- Asset icons
-- Default placeholder icons
-- Public icon source matching for known assets if feasible
-- Admin manual icon URL or upload
-- Icons displayed in wallet, markets, trade header, and admin assets
-- Public source icons can be overridden by admin
+- Asset metadata fields: display name, icon URL, icon source, sort order, and description
+- `GET /api/assets` includes metadata for frontend and admin use
+- Admin metadata endpoint at `PATCH /api/admin/assets/:symbol/metadata`
+- Admin can set or clear display name, icon URL, description, and sort order
+- Metadata updates write `UPDATE_ASSET_METADATA` audit logs
+- SWC and SWL seed/backfill metadata without resetting existing balances
+- Shared frontend `AssetIcon` fallback/avatar component
+- Icons/fallbacks appear in wallet, dashboard, markets, trade, ledger, fees, and admin asset views where practical
+- Known public icon mapping remains local/static; admin `iconUrl` overrides the mapping
+- Upload is deferred as future polish
+- No matching, fee, transfer, wallet bucket, or user/asset/market status rules changed
 
 ### v0.12 Multi-Market Foundation - Planned
 
@@ -191,4 +196,4 @@ Next milestone: `v0.11 Asset Metadata + Icon System`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.10
+- No blockchain feature is implemented in v0.11
