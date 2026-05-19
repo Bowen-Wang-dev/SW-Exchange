@@ -42,7 +42,7 @@ export default function AssetsPage() {
           eyebrow="Assets"
           title="Virtual asset directory"
           description="Admin-created simulation assets appear here with manual metadata only. No blockchain contract metadata, deposit, or withdraw behavior is connected in v0.x."
-          action={<StatusBadge label="v0.13 Live" tone="success" />}
+          action={<StatusBadge label="v0.14 Live" tone="success" />}
         />
 
         <DataTable

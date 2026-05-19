@@ -1,14 +1,45 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.13 Admin Asset / Market Creation`
+Current completed milestone: `v0.14 K-line / Candlestick Chart`
 
-Next milestone: `v0.14 K-line / Candlestick Chart`
+Next milestone: `v0.15 Market Orders / Taker Flow`
 
 ## Upcoming plan
 
-- `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.14 K-line / Candlestick Chart
+
+This milestone adds lightweight K-line/candlestick data and a compact chart for each market using existing settled trades.
+
+### Highlights
+
+- Candle endpoint at `GET /api/markets/candles?marketSymbol=SWL/SWC&interval=1m`
+- Supported candle intervals: `1m`, `5m`, `15m`, `1h`, and `1d`
+- Candle buckets include start time, end time, open, high, low, close, base volume, quote volume, and trade count
+- `/trade` shows a dark CEX-style candlestick chart for the selected market
+- Interval changes and market changes reload the chart
+- The chart uses the existing polling refresh path so executed trades appear after refresh/reload
+- Empty markets show the no-trades chart state
+
+### Developer and operational notes
+
+- Candles are computed on demand from the `trades` table; no candle table, migration, or background job was added
+- Aggregation uses settled trades for the selected market only
+- Price comparisons and volume sums use stored bigint minimal-unit values before formatting response decimals
+- Candle responses are sorted oldest to newest for chart rendering
+- `limit` defaults to `100` candles and is capped at `500`
+- Smoke coverage checks candle fields, daily OHLC/volume aggregation, empty-market behavior, invalid interval rejection, and invalid market rejection
+
+### Constraints kept in place
+
+- No fake K-line data
+- No market orders
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
+- No technical indicators or TradingView-level chart complexity
 
 ## v0.13 Admin Asset / Market Creation
 

@@ -80,7 +80,8 @@ async function main() {
   await testV06OrderFlow(auth);
   await testV10MarketDataAndValuation(auth);
   await testV08AdminControlsFlow(auth);
-  await testV13AdminAssetAndMarketCreation(auth);
+  const v13Context = await testV13AdminAssetAndMarketCreation(auth);
+  await testV14CandleFlow(auth, v13Context);
   await resetV08OperationalControls(auth.adminAccessToken);
   await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
   await testWebRoutes();
@@ -1324,6 +1325,161 @@ async function testV13AdminAssetAndMarketCreation(auth: {
   }
 
   console.log("PASS v0.13 admin asset creation, market creation, wallet coverage, and created-market trading flow");
+
+  return {
+    emptyMarketSymbol: `${pausedAssetSymbol}/SWC`,
+  };
+}
+
+async function testV14CandleFlow(
+  auth: {
+    userAccessToken: string;
+    receiverAccessToken: string;
+    adminAccessToken: string;
+    user: { email: string; username: string };
+    receiver: { email: string; username: string };
+  },
+  context: { emptyMarketSymbol: string },
+) {
+  const assetSymbol = `K${Date.now().toString().slice(-5)}`;
+  const marketSymbol = `${assetSymbol}/SWC`;
+  const marketQuery = encodeURIComponent(marketSymbol);
+
+  await postJson(
+    `${apiBaseUrl}/admin/assets`,
+    auth.adminAccessToken,
+    {
+      symbol: assetSymbol,
+      name: "Smoke Kline Asset",
+      decimals: 18,
+      status: "ACTIVE",
+      description: "Smoke v0.14 candle asset",
+    },
+    "create v0.14 candle asset",
+  );
+
+  await postJson(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: assetSymbol,
+      quoteAssetSymbol: "SWC",
+      status: "ACTIVE",
+      pricePrecision: 18,
+      amountPrecision: 18,
+      minOrderAmount: "0.1",
+      minNotional: "1",
+    },
+    "create v0.14 candle market",
+  );
+
+  const emptyCreatedMarketCandles = await fetchJson<unknown[]>(
+    `${apiBaseUrl}/markets/candles?marketSymbol=${marketQuery}&interval=1m`,
+    "load empty candles for new v0.14 market",
+  );
+  if (emptyCreatedMarketCandles.length !== 0) {
+    throw new Error("New v0.14 market should start with empty candles.");
+  }
+
+  await airdrop(auth.adminAccessToken, auth.receiver.username, assetSymbol, "30", "Smoke v0.14 candle seller funding");
+  await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "100", "Smoke v0.14 candle buyer funding");
+
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "3", "4");
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "3", "4");
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "4", "5");
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "4", "5");
+
+  const oneMinuteCandles = await getJson<
+    Array<{
+      marketSymbol: string;
+      interval: string;
+      startTime: string;
+      endTime: string;
+      open: string;
+      high: string;
+      low: string;
+      close: string;
+      volume: string;
+      quoteVolume: string;
+      tradeCount: number;
+    }>
+  >(
+    `${apiBaseUrl}/markets/candles?marketSymbol=${marketQuery}&interval=1m`,
+    auth.userAccessToken,
+    "load v0.14 one-minute candles",
+  );
+  const latestOneMinuteCandle = oneMinuteCandles[oneMinuteCandles.length - 1];
+  if (
+    !latestOneMinuteCandle ||
+    latestOneMinuteCandle.marketSymbol !== marketSymbol ||
+    latestOneMinuteCandle.interval !== "1m" ||
+    !latestOneMinuteCandle.startTime ||
+    !latestOneMinuteCandle.endTime ||
+    !latestOneMinuteCandle.open ||
+    !latestOneMinuteCandle.high ||
+    !latestOneMinuteCandle.low ||
+    !latestOneMinuteCandle.close ||
+    !latestOneMinuteCandle.volume ||
+    !latestOneMinuteCandle.quoteVolume ||
+    latestOneMinuteCandle.tradeCount <= 0
+  ) {
+    throw new Error(`Unexpected v0.14 one-minute candle payload: ${JSON.stringify(oneMinuteCandles)}`);
+  }
+
+  const dailyCandles = await getJson<
+    Array<{
+      marketSymbol: string;
+      interval: string;
+      open: string;
+      high: string;
+      low: string;
+      close: string;
+      volume: string;
+      quoteVolume: string;
+      tradeCount: number;
+    }>
+  >(
+    `${apiBaseUrl}/markets/candles?marketSymbol=${marketQuery}&interval=1d&limit=10`,
+    auth.userAccessToken,
+    "load v0.14 daily candles",
+  );
+  const latestDailyCandle = dailyCandles[dailyCandles.length - 1];
+  if (
+    !latestDailyCandle ||
+    latestDailyCandle.marketSymbol !== marketSymbol ||
+    latestDailyCandle.interval !== "1d" ||
+    latestDailyCandle.open !== "3" ||
+    latestDailyCandle.high !== "4" ||
+    latestDailyCandle.low !== "3" ||
+    latestDailyCandle.close !== "4" ||
+    latestDailyCandle.volume !== "9" ||
+    latestDailyCandle.quoteVolume !== "32" ||
+    latestDailyCandle.tradeCount !== 2
+  ) {
+    throw new Error(`Unexpected v0.14 daily candle aggregation: ${JSON.stringify(dailyCandles)}`);
+  }
+
+  const emptyMarketCandles = await getJson<unknown[]>(
+    `${apiBaseUrl}/markets/candles?marketSymbol=${encodeURIComponent(context.emptyMarketSymbol)}&interval=1m`,
+    auth.userAccessToken,
+    "load v0.14 empty-market candles",
+  );
+  if (emptyMarketCandles.length !== 0) {
+    throw new Error("Untraded market should not include candles from another market.");
+  }
+
+  await expectPublicGetRejected(
+    `${apiBaseUrl}/markets/candles?marketSymbol=${marketQuery}&interval=2m`,
+    400,
+    "invalid v0.14 candle interval",
+  );
+  await expectPublicGetRejected(
+    `${apiBaseUrl}/markets/candles?marketSymbol=${encodeURIComponent("NOPE/SWC")}&interval=1m`,
+    404,
+    "invalid v0.14 candle market",
+  );
+
+  console.log("PASS v0.14 candle endpoint validation, empty state, and aggregation");
 }
 
 async function testWebBuild() {
@@ -1418,6 +1574,18 @@ async function expectGetRejected(
   });
   if (response.status !== expectedStatus) {
     throw new Error(`${label} should fail with status ${expectedStatus}, got ${response.status}.`);
+  }
+}
+
+async function expectPublicGetRejected(url: string, expectedStatus: number, label: string) {
+  const response = await fetch(url);
+  if (response.status !== expectedStatus) {
+    throw new Error(`${label} should fail with status ${expectedStatus}, got ${response.status}.`);
+  }
+
+  const { hasStack } = await readErrorPayload(response);
+  if (hasStack) {
+    throw new Error(`${label} should not expose stack traces.`);
   }
 }
 

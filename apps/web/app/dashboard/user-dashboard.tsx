@@ -58,7 +58,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.13 console shows live balances, asset icons, market ticker data, SWC portfolio valuation, limit orders, matching, trades, fee settlement, admin status controls, and manual listing support. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your v0.14 console shows live balances, asset icons, market ticker data, K-line candles, SWC portfolio valuation, limit orders, matching, trades, fee settlement, admin status controls, and manual listing support. ${REAL_TIME_SYNC_COPY}`}
         action={
           <StatusBadge
             label={user?.status ?? "ACTIVE"}

@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.13 Admin Asset / Market Creation`
+Current completed milestone: `v0.14 K-line / Candlestick Chart`
 
 ## Account Status
 
@@ -30,6 +30,8 @@ Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP
 
 v0.13 adds admin-created asset and market listing without changing the wallet bucket model or transfer rules.
 New assets eagerly create zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
+
+v0.14 adds trade-derived K-line candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
 
 ## Asset Metadata
 

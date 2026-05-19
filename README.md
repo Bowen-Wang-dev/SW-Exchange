@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.13 Admin Asset / Market Creation`
+Current completed milestone: `v0.14 K-line / Candlestick Chart`
 
-Next milestone: `v0.14 K-line / Candlestick Chart`
+Next milestone: `v0.15 Market Orders / Taker Flow`
 
 This version is intentionally limited:
 
@@ -13,7 +13,6 @@ This version is intentionally limited:
 - No BSC integration
 - No KYC
 - No market orders
-- No candlestick / K-line chart
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
@@ -32,6 +31,7 @@ Current scope:
 - Market-aware automatic matching with price-time priority
 - Market-aware trade recording and trade history
 - Market-specific order book grouped by price
+- Trade-derived K-line / candlestick chart on `/trade`
 - User and admin order history
 - User and admin trade history
 - ORDER_LOCK and ORDER_UNLOCK ledger entries
@@ -83,15 +83,28 @@ Current scope:
 - `v0.11 Asset Metadata + Icon System` completed
 - `v0.12 Multi-Market Foundation` completed
 - `v0.13 Admin Asset / Market Creation` completed
+- `v0.14 K-line / Candlestick Chart` completed
 
-- Current completed milestone: `v0.13 Admin Asset / Market Creation`
-- Next milestone: `v0.14 K-line / Candlestick Chart`
+- Current completed milestone: `v0.14 K-line / Candlestick Chart`
+- Next milestone: `v0.15 Market Orders / Taker Flow`
 
 ## Planned milestones
 
-- `v0.14 K-line / Candlestick Chart`
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.14 K-line / Candlestick Chart
+
+v0.14 adds a lightweight K-line chart generated from existing settled trade records.
+
+- `GET /api/markets/candles?marketSymbol=SWL/SWC&interval=1m` returns OHLC candles for the selected market
+- Supported intervals are `1m`, `5m`, `15m`, `1h`, and `1d`
+- Candle open, high, low, close, base volume, quote volume, and trade count are computed from real trades
+- Candles are market-specific and do not mix trades from different markets
+- `/trade` includes a compact dark candlestick chart with interval controls
+- Markets with no trades show: `No trades yet. K-line data will appear after trades execute.`
+- No fake K-line data, fake prices, or seeded candles are generated
+- v0.14 does not add market orders, deposit, withdraw, blockchain integration, or chain addresses
 
 ## v0.13 Admin Asset / Market Creation
 
@@ -588,7 +601,6 @@ This scaffold does not yet implement:
 - Market order flow
 - Deposit / withdraw
 - Blockchain integration
-- K-line chart
 - Complex RBAC
 - Maker/taker tiers, VIP discounts, or withdrawal fee logic
 

@@ -155,6 +155,22 @@ export type MarketTicker = {
   updatedAt: string;
 };
 
+export type CandleInterval = "1m" | "5m" | "15m" | "1h" | "1d";
+
+export type MarketCandle = {
+  marketSymbol: string;
+  interval: CandleInterval;
+  startTime: string;
+  endTime: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  quoteVolume: string;
+  tradeCount: number;
+};
+
 export type MarketSummary = {
   marketSymbol: string;
   baseAsset?: {

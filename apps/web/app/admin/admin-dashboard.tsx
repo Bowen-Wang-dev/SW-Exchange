@@ -47,7 +47,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.13 Admin Asset / Market Creation. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: v0.14 K-line / Candlestick Chart. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 

@@ -5,11 +5,14 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { KlineChart } from "@/components/trade/kline-chart";
 import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type {
+  CandleInterval,
+  MarketCandle,
   OrderBook,
   OrderBookLevel,
   MarketSummary,
@@ -38,6 +41,10 @@ export default function TradePage() {
   const [orderBook, setOrderBook] = useState<OrderBook | null>(null);
   const [myOrders, setMyOrders] = useState<OrderEntry[]>([]);
   const [recentTrades, setRecentTrades] = useState<TradeEntry[]>([]);
+  const [candles, setCandles] = useState<MarketCandle[]>([]);
+  const [candleInterval, setCandleInterval] = useState<CandleInterval>("1m");
+  const [isCandlesLoading, setIsCandlesLoading] = useState(true);
+  const [candleError, setCandleError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -88,6 +95,15 @@ export default function TradePage() {
     return () => window.clearInterval(intervalId);
   }, [selectedMarketSymbol]);
 
+  useEffect(() => {
+    void loadCandles();
+    const intervalId = window.setInterval(() => {
+      void loadCandles({ silent: true });
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [selectedMarketSymbol, candleInterval]);
+
   async function loadTradeData(options: { silent?: boolean } = {}) {
     try {
       if (!options.silent) {
@@ -129,12 +145,41 @@ export default function TradePage() {
     }
   }
 
+  async function loadCandles(options: { silent?: boolean } = {}) {
+    try {
+      if (!options.silent) {
+        setIsCandlesLoading(true);
+      }
+
+      const marketQuery = encodeURIComponent(selectedMarketSymbol);
+      const candlesResponse = await apiRequest<MarketCandle[]>(
+        `/markets/candles?marketSymbol=${marketQuery}&interval=${candleInterval}&limit=100`,
+      );
+
+      setCandles(candlesResponse);
+      if (!options.silent) {
+        setCandleError(null);
+      }
+    } catch (loadError) {
+      if (!options.silent) {
+        setCandleError(loadError instanceof ApiError ? loadError.message : "Unable to load candles.");
+      }
+    } finally {
+      if (!options.silent) {
+        setIsCandlesLoading(false);
+      }
+    }
+  }
+
   function handleMarketChange(nextMarketSymbol: string) {
     setSelectedMarketSymbol(nextMarketSymbol);
     setTicker(null);
     setOrderBook(null);
     setMyOrders([]);
     setRecentTrades([]);
+    setCandles([]);
+    setCandleError(null);
+    setIsCandlesLoading(true);
     setAmount("");
     setSuccess(null);
     setError(null);
@@ -161,7 +206,7 @@ export default function TradePage() {
       setSuccess(
         `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, remaining ${order.remainingAmount} ${baseSymbol}. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
       );
-      await loadTradeData();
+      await Promise.all([loadTradeData(), loadCandles()]);
     } catch (submitError) {
       setError(submitError instanceof ApiError ? submitError.message : "Unable to place order.");
     } finally {
@@ -179,7 +224,7 @@ export default function TradePage() {
         method: "POST",
       });
       setSuccess(`Order ${shortId(order.id)} cancelled.`);
-      await loadTradeData();
+      await Promise.all([loadTradeData(), loadCandles()]);
     } catch (cancelError) {
       setError(cancelError instanceof ApiError ? cancelError.message : "Unable to cancel order.");
     } finally {
@@ -203,7 +248,7 @@ export default function TradePage() {
               </span>
             }
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.13 Live" tone="success" />}
+            action={<StatusBadge label="v0.14 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -241,6 +286,20 @@ export default function TradePage() {
               <TickerMetric label="Status" value={marketStatus} />
             </div>
           </section>
+
+          <KlineChart
+            marketSymbol={selectedMarketSymbol}
+            baseSymbol={baseSymbol}
+            quoteSymbol={quoteSymbol}
+            candles={candles}
+            interval={candleInterval}
+            isLoading={isCandlesLoading}
+            error={candleError}
+            onIntervalChange={(nextInterval) => {
+              setCandleInterval(nextInterval);
+              setCandleError(null);
+            }}
+          />
 
           <div className="grid gap-4 xl:grid-cols-[0.9fr_1fr_0.85fr]">
             <section className="panel rounded-3xl p-5">

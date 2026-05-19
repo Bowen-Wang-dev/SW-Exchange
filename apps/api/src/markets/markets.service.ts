@@ -12,6 +12,17 @@ import { assets, markets, orders, trades } from "../db/schema/index.js";
 const SUPPORTED_MARKET_SYMBOL = "SWL/SWC";
 const OPEN_ORDER_STATUSES = ["OPEN", "PARTIAL_FILLED"] as const;
 const PERCENT_DECIMALS = 4;
+const DEFAULT_CANDLE_LIMIT = 100;
+const MAX_CANDLE_LIMIT = 500;
+const CANDLE_INTERVALS = {
+  "1m": 60 * 1000,
+  "5m": 5 * 60 * 1000,
+  "15m": 15 * 60 * 1000,
+  "1h": 60 * 60 * 1000,
+  "1d": 24 * 60 * 60 * 1000,
+} as const;
+
+type CandleInterval = keyof typeof CANDLE_INTERVALS;
 
 type MarketDetails = {
   id: string;
@@ -45,6 +56,20 @@ type TradePriceRow = {
   amount: bigint;
   quoteAmount: bigint;
   createdAt: Date;
+};
+
+type CandleAccumulator = {
+  marketSymbol: string;
+  interval: CandleInterval;
+  startMs: number;
+  endMs: number;
+  open: bigint;
+  high: bigint;
+  low: bigint;
+  close: bigint;
+  volume: bigint;
+  quoteVolume: bigint;
+  tradeCount: number;
 };
 
 @Injectable()
@@ -241,6 +266,73 @@ export class MarketsService {
     );
   }
 
+  async getCandles(
+    marketSymbolInput: string | undefined,
+    intervalInput: string | undefined,
+    limitInput?: string,
+  ) {
+    const marketSymbol = this.normalizeRequiredMarketSymbol(marketSymbolInput);
+    const interval = this.normalizeCandleInterval(intervalInput);
+    const limit = this.normalizeCandleLimit(limitInput);
+    const market = await this.findMarketDetails(marketSymbol);
+
+    if (!market) {
+      throw new NotFoundException(`Market ${marketSymbol} was not found.`);
+    }
+
+    const rows = await this.db
+      .select({
+        id: trades.id,
+        price: trades.price,
+        amount: trades.amount,
+        quoteAmount: trades.quoteAmount,
+        createdAt: trades.createdAt,
+      })
+      .from(trades)
+      .where(and(eq(trades.marketId, market.id), eq(trades.status, "SETTLED")))
+      .orderBy(asc(trades.createdAt), asc(trades.id));
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const intervalMs = CANDLE_INTERVALS[interval];
+    const candles = new Map<number, CandleAccumulator>();
+
+    for (const row of rows as TradePriceRow[]) {
+      const startMs = Math.floor(row.createdAt.getTime() / intervalMs) * intervalMs;
+      const existing = candles.get(startMs);
+
+      if (!existing) {
+        candles.set(startMs, {
+          marketSymbol: market.symbol,
+          interval,
+          startMs,
+          endMs: startMs + intervalMs,
+          open: row.price,
+          high: row.price,
+          low: row.price,
+          close: row.price,
+          volume: row.amount,
+          quoteVolume: row.quoteAmount,
+          tradeCount: 1,
+        });
+        continue;
+      }
+
+      existing.high = row.price > existing.high ? row.price : existing.high;
+      existing.low = row.price < existing.low ? row.price : existing.low;
+      existing.close = row.price;
+      existing.volume += row.amount;
+      existing.quoteVolume += row.quoteAmount;
+      existing.tradeCount += 1;
+    }
+
+    return [...candles.values()]
+      .slice(-limit)
+      .map((candle) => this.formatCandle(candle, market));
+  }
+
   async getLatestPrice(marketSymbolInput = SUPPORTED_MARKET_SYMBOL) {
     const marketSymbol = this.normalizeMarketSymbol(marketSymbolInput);
     const market = await this.findMarketDetails(marketSymbol);
@@ -383,6 +475,50 @@ export class MarketsService {
     return symbol;
   }
 
+  private normalizeRequiredMarketSymbol(input: string | undefined) {
+    if (!input?.trim()) {
+      throw new BadRequestException("marketSymbol is required.");
+    }
+
+    return this.normalizeMarketSymbol(input);
+  }
+
+  private normalizeCandleInterval(input: string | undefined): CandleInterval {
+    const interval = input?.trim().toLowerCase();
+
+    if (!interval) {
+      throw new BadRequestException("interval is required.");
+    }
+
+    if (!this.isSupportedCandleInterval(interval)) {
+      throw new BadRequestException("Unsupported interval. Supported intervals: 1m, 5m, 15m, 1h, 1d.");
+    }
+
+    return interval;
+  }
+
+  private isSupportedCandleInterval(interval: string): interval is CandleInterval {
+    return Object.prototype.hasOwnProperty.call(CANDLE_INTERVALS, interval);
+  }
+
+  private normalizeCandleLimit(input: string | undefined) {
+    if (!input?.trim()) {
+      return DEFAULT_CANDLE_LIMIT;
+    }
+
+    const limitText = input.trim();
+    if (!/^\d+$/.test(limitText)) {
+      throw new BadRequestException("limit must be a positive integer.");
+    }
+
+    const limit = Number(limitText);
+    if (!Number.isSafeInteger(limit) || limit <= 0) {
+      throw new BadRequestException("limit must be a positive integer.");
+    }
+
+    return Math.min(limit, MAX_CANDLE_LIMIT);
+  }
+
   private calculate24hStats(rows: TradePriceRow[]) {
     let high: bigint | null = null;
     let low: bigint | null = null;
@@ -424,6 +560,22 @@ export class MarketsService {
 
   private formatNullable(value: bigint | null, decimals: number) {
     return value === null ? null : formatMinimalUnitsToHuman(value, decimals);
+  }
+
+  private formatCandle(candle: CandleAccumulator, market: MarketDetails) {
+    return {
+      marketSymbol: candle.marketSymbol,
+      interval: candle.interval,
+      startTime: new Date(candle.startMs).toISOString(),
+      endTime: new Date(candle.endMs).toISOString(),
+      open: formatMinimalUnitsToHuman(candle.open, market.priceDecimals),
+      high: formatMinimalUnitsToHuman(candle.high, market.priceDecimals),
+      low: formatMinimalUnitsToHuman(candle.low, market.priceDecimals),
+      close: formatMinimalUnitsToHuman(candle.close, market.priceDecimals),
+      volume: formatMinimalUnitsToHuman(candle.volume, market.baseAssetDecimals),
+      quoteVolume: formatMinimalUnitsToHuman(candle.quoteVolume, market.quoteAssetDecimals),
+      tradeCount: candle.tradeCount,
+    };
   }
 
   private formatSignedPercent(change: bigint, reference: bigint) {

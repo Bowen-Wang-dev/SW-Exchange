@@ -19,7 +19,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Market data, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Market data, K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -57,7 +57,7 @@ export default function HomePage() {
             label="Listing Mode"
             badgeLabel="Admin"
             value="Manual"
-            hint="Seeded pairs remain, and admins can create new assets and markets in v0.13."
+            hint="Seeded pairs remain, and admins can create new assets and markets."
             tone="success"
           />
           <StatCard
@@ -86,7 +86,7 @@ export default function HomePage() {
                 "Free internal transfer for active users",
                 "Limit spot trading only",
                 "No futures, no market orders",
-                "No K-line and no blockchain flows",
+                "No deposit, withdraw, or blockchain flows",
               ].map((item) => (
                 <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
                   {item}
@@ -102,7 +102,7 @@ export default function HomePage() {
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances and SWC valuation"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin asset funding is enabled for active assets"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
-              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, ticker data, fee settlement, trade history, and the order book are live."],
+              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, ticker data, K-line candles, fee settlement, trade history, and the order book are live."],
             ]}
           />
         </div>

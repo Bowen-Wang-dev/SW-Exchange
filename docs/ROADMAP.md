@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.13 Admin Asset / Market Creation`
+Current completed milestone: `v0.14 K-line / Candlestick Chart`
 
-Next milestone: `v0.14 K-line / Candlestick Chart`
+Next milestone: `v0.15 Market Orders / Taker Flow`
 
 ### v0.1 Foundation - Completed
 
@@ -187,12 +187,16 @@ Next milestone: `v0.14 K-line / Candlestick Chart`
 - `/assets`, `/markets`, `/trade`, ticker, order book, trades, matching, fees, and SWC valuation all include admin-created listings using the existing foundation
 - No fake trades/order book, K-line, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
-### v0.14 K-line / Candlestick Chart - Planned
+### v0.14 K-line / Candlestick Chart - Completed
 
-- OHLC data from trades
-- Intervals such as `1m`, `5m`, `15m`, `1h`, and `1d`
-- Lightweight chart first
-- No TradingView-level complexity required initially
+- `GET /api/markets/candles?marketSymbol=...&interval=...`
+- Candles are generated on demand from existing settled trades
+- Supported intervals are `1m`, `5m`, `15m`, `1h`, and `1d`
+- Candle buckets include open, high, low, close, base volume, quote volume, trade count, start time, and end time
+- Aggregation is market-specific and does not mix trades across markets
+- `/trade` shows a compact dark candlestick chart for the selected market
+- Empty markets show a clear no-trades chart state
+- No fake K-line data, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
 ### v0.15 Market Orders / Taker Flow - Planned
 
@@ -212,4 +216,4 @@ Next milestone: `v0.14 K-line / Candlestick Chart`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.13
+- No blockchain feature is implemented in v0.14

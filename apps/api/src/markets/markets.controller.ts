@@ -19,6 +19,16 @@ export class MarketsController {
   }
 
   @Public()
+  @Get("candles")
+  getCandles(
+    @Query("marketSymbol") marketSymbol?: string,
+    @Query("interval") interval?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.marketsService.getCandles(marketSymbol, interval, limit);
+  }
+
+  @Public()
   @Get("summary")
   getSummary() {
     return this.marketsService.getSummary();
