@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
+import { MarketSelector } from "@/components/trade/market-selector";
+import { OrderConfirmationDialog, type OrderConfirmationView } from "@/components/trade/order-confirmation-dialog";
 import { KlineChart } from "@/components/trade/kline-chart";
 import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
@@ -15,12 +17,14 @@ import type {
   MarketCandle,
   OrderBook,
   OrderBookLevel,
+  LimitOrderPreview,
   MarketOrderPreview,
   MarketSummary,
   MarketTicker,
   OrderEntry,
   OrderSide,
   OrderStatus,
+  OrderPreview,
   OrderType,
   TradeEntry,
   WalletBalance,
@@ -32,6 +36,40 @@ const DEFAULT_MARKET_SYMBOL = "SWL/SWC";
 const MONEY_DECIMALS = 18;
 const POLL_INTERVAL_MS = 5000;
 
+type OrderSubmissionBody =
+  | {
+      marketSymbol: string;
+      side: OrderSide;
+      type: "LIMIT";
+      price: string;
+      amount: string;
+    }
+  | {
+      marketSymbol: string;
+      side: OrderSide;
+      type: "MARKET";
+      amount?: string;
+      quoteAmount?: string;
+      spendAmount?: string;
+    };
+
+type MarketSelectorEntry = Pick<
+  MarketSummary,
+  | "marketSymbol"
+  | "baseAssetSymbol"
+  | "quoteAssetSymbol"
+  | "baseAssetName"
+  | "quoteAssetName"
+  | "baseAssetDisplayName"
+  | "quoteAssetDisplayName"
+  | "baseAssetIconUrl"
+  | "quoteAssetIconUrl"
+  | "lastPrice"
+  | "volume24h"
+  | "change24hPercent"
+  | "status"
+>;
+
 export default function TradePage() {
   const [selectedMarketSymbol, setSelectedMarketSymbol] = useState(DEFAULT_MARKET_SYMBOL);
   const [orderType, setOrderType] = useState<OrderType>("LIMIT");
@@ -42,6 +80,8 @@ export default function TradePage() {
   const [marketPreview, setMarketPreview] = useState<MarketOrderPreview | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<OrderConfirmationView | null>(null);
+  const [pendingOrderBody, setPendingOrderBody] = useState<OrderSubmissionBody | null>(null);
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
   const [ticker, setTicker] = useState<MarketTicker | null>(null);
@@ -57,6 +97,7 @@ export default function TradePage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [lastExecutionOrder, setLastExecutionOrder] = useState<OrderEntry | null>(null);
 
   useEffect(() => {
     const requestedMarket = new URLSearchParams(window.location.search)
@@ -92,6 +133,25 @@ export default function TradePage() {
   const lockedAssetSymbol = side === "BUY" ? quoteSymbol : baseSymbol;
   const selectedWallet = wallets.find((wallet) => wallet.asset === lockedAssetSymbol);
   const totalPreview = useMemo(() => calculateTotalPreview(price, amount), [price, amount]);
+  const marketSelectorSelection: MarketSelectorEntry | null = selectedMarket
+    ? selectedMarket
+    : ticker
+      ? {
+          marketSymbol: ticker.marketSymbol,
+          baseAssetSymbol: ticker.baseAssetSymbol,
+          quoteAssetSymbol: ticker.quoteAssetSymbol,
+          baseAssetName: ticker.baseAssetName,
+          quoteAssetName: ticker.quoteAssetName,
+          baseAssetDisplayName: ticker.baseAssetDisplayName,
+          quoteAssetDisplayName: ticker.quoteAssetDisplayName,
+          baseAssetIconUrl: ticker.baseAssetIconUrl,
+          quoteAssetIconUrl: ticker.quoteAssetIconUrl,
+          lastPrice: ticker.lastPrice,
+          volume24h: ticker.volume24h,
+          change24hPercent: ticker.change24hPercent,
+          status: ticker.status ?? "ACTIVE",
+        }
+      : null;
 
   useEffect(() => {
     void loadTradeData();
@@ -129,6 +189,18 @@ export default function TradePage() {
       window.clearTimeout(timeoutId);
     };
   }, [orderType, side, marketInput, selectedMarketSymbol]);
+
+  useEffect(() => {
+    if (markets.length === 0) {
+      return;
+    }
+
+    if (markets.some((market) => market.marketSymbol === selectedMarketSymbol)) {
+      return;
+    }
+
+    handleMarketChange(DEFAULT_MARKET_SYMBOL);
+  }, [markets, selectedMarketSymbol]);
 
   async function loadTradeData(options: { silent?: boolean } = {}) {
     try {
@@ -238,7 +310,8 @@ export default function TradePage() {
   }
 
   function handleMarketChange(nextMarketSymbol: string) {
-    setSelectedMarketSymbol(nextMarketSymbol);
+    const normalizedMarketSymbol = nextMarketSymbol.trim().toUpperCase();
+    setSelectedMarketSymbol(normalizedMarketSymbol);
     setTicker(null);
     setOrderBook(null);
     setMyOrders([]);
@@ -246,22 +319,56 @@ export default function TradePage() {
     setCandles([]);
     setCandleError(null);
     setIsCandlesLoading(true);
+    setPrice("");
     setAmount("");
     setMarketInput("");
     setMarketPreview(null);
     setPreviewError(null);
     setSuccess(null);
     setError(null);
+    setLastExecutionOrder(null);
+    setPendingConfirmation(null);
+    setPendingOrderBody(null);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("market", normalizedMarketSymbol);
+    window.history.replaceState({}, "", `${url.pathname}?${url.searchParams.toString()}${url.hash}`);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+    setLastExecutionOrder(null);
 
     try {
-      setIsSubmitting(true);
-      const orderBody =
+      const previewResponse = await apiRequest<OrderPreview>("/orders/preview", {
+        method: "POST",
+        body:
+          orderType === "MARKET"
+            ? side === "BUY"
+              ? {
+                  marketSymbol: selectedMarketSymbol,
+                  side,
+                  type: "MARKET",
+                  quoteAmount: marketInput.trim(),
+                }
+              : {
+                  marketSymbol: selectedMarketSymbol,
+                  side,
+                  type: "MARKET",
+                  amount: marketInput.trim(),
+                }
+            : {
+                marketSymbol: selectedMarketSymbol,
+                side,
+                type: "LIMIT",
+                price: price.trim(),
+                amount: amount.trim(),
+              },
+      });
+
+      const orderBody: OrderSubmissionBody =
         orderType === "MARKET"
           ? side === "BUY"
             ? {
@@ -283,32 +390,102 @@ export default function TradePage() {
               price: price.trim(),
               amount: amount.trim(),
             };
-      const order = await apiRequest<OrderEntry>("/orders", {
-        method: "POST",
-        body: orderBody,
-      });
 
-      if (orderType === "MARKET") {
-        setMarketInput("");
-        setMarketPreview(null);
-        setSuccess(formatMarketOrderSuccess(order, baseSymbol, quoteSymbol));
+      if (previewResponse.type === "MARKET") {
+        if (previewResponse.liquidityStatus === "NONE") {
+          setError("No available liquidity for this market order.");
+          return;
+        }
+
+        setPendingConfirmation(
+          buildMarketConfirmation(
+            previewResponse,
+            orderBody as Extract<OrderSubmissionBody, { type: "MARKET" }>,
+            baseSymbol,
+            quoteSymbol,
+          ),
+        );
       } else {
-        setAmount("");
-        setSuccess(
-          `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, remaining ${order.remainingAmount} ${baseSymbol}. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
+        setPendingConfirmation(
+          buildLimitConfirmation(
+            previewResponse,
+            orderBody as Extract<OrderSubmissionBody, { type: "LIMIT" }>,
+            baseSymbol,
+            quoteSymbol,
+          ),
         );
       }
+
+      setPendingOrderBody(orderBody);
+    } catch (submitError) {
+      setError(submitError instanceof ApiError ? submitError.message : "Unable to review order.");
+    }
+  }
+
+  async function confirmOrder() {
+    if (!pendingOrderBody) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      const order = await apiRequest<OrderEntry>("/orders", {
+        method: "POST",
+        body: pendingOrderBody,
+      });
+
+      setLastExecutionOrder(order);
+      if (order.type === "MARKET") {
+        setMarketInput("");
+        setMarketPreview(null);
+        setSuccess("Market order executed and data refreshed.");
+      } else {
+        setAmount("");
+        setPrice("");
+        setSuccess("Limit order placed and data refreshed.");
+      }
+      setPendingConfirmation(null);
+      setPendingOrderBody(null);
       await Promise.all([loadTradeData(), loadCandles()]);
     } catch (submitError) {
       const message =
         submitError instanceof ApiError ? submitError.message : "Unable to place order.";
-      setError(
-        message === "NO_LIQUIDITY"
-          ? "No available liquidity for this market order."
-          : message,
-      );
+      setError(message === "NO_LIQUIDITY" ? "No available liquidity for this market order." : message);
+      setPendingConfirmation(null);
+      setPendingOrderBody(null);
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function applyLimitQuickFill(percent: number) {
+    if (!selectedWallet) {
+      return;
+    }
+
+    if (side === "BUY") {
+      const nextAmount = calculateLimitBuyQuickAmount(selectedWallet.available, price, percent);
+      if (nextAmount) {
+        setAmount(nextAmount);
+      }
+      return;
+    }
+
+    const nextAmount = calculatePercentageFromDisplayValue(selectedWallet.available, percent);
+    if (nextAmount) {
+      setAmount(nextAmount);
+    }
+  }
+
+  function applyMarketQuickFill(percent: number) {
+    if (!selectedWallet) {
+      return;
+    }
+
+    const nextValue = calculatePercentageFromDisplayValue(selectedWallet.available, percent);
+    if (nextValue) {
+      setMarketInput(nextValue);
     }
   }
 
@@ -336,49 +513,53 @@ export default function TradePage() {
         <div className="space-y-4">
           <PageHeader
             eyebrow="Trade"
-            title={
-              <span className="inline-flex items-center gap-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-                <span className="flex -space-x-2">
-                  <AssetIcon symbol={baseSymbol} name={baseName} iconUrl={baseIconUrl} size={34} />
-                  <AssetIcon symbol={quoteSymbol} name={quoteName} iconUrl={quoteIconUrl} size={34} />
-                </span>
-                <span>{selectedMarketSymbol} spot terminal</span>
-              </span>
-            }
+            title="Spot terminal"
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.15 Live" tone="success" />}
+            action={
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <StatusBadge label="v0.16 Live" tone="success" />
+                <MarketSelector
+                  markets={markets}
+                  selectedMarketSymbol={selectedMarketSymbol}
+                  selectedMarket={marketSelectorSelection}
+                  onSelect={handleMarketChange}
+                />
+              </div>
+            }
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
           {success ? <Notice tone="success" message={success} /> : null}
           {marketStatus === "PAUSED" ? <Notice tone="info" message="Market paused by admin." /> : null}
           {isLoading ? <Notice tone="info" message="Loading trade data..." /> : null}
+          {lastExecutionOrder ? (
+            <ExecutionSummaryPanel
+              order={lastExecutionOrder}
+              baseSymbol={baseSymbol}
+              quoteSymbol={quoteSymbol}
+            />
+          ) : null}
 
           <section className="panel rounded-3xl p-5">
-            <div className="grid gap-4 md:grid-cols-[minmax(180px,1.2fr)_repeat(4,minmax(0,1fr))] xl:grid-cols-[minmax(200px,1.25fr)_repeat(8,minmax(0,1fr))]">
-              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                Market
-                <select
-                  value={selectedMarketSymbol}
-                  onChange={(event) => handleMarketChange(event.target.value)}
-                  className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-[var(--accent)]"
-                >
-                  {buildMarketOptions(markets, selectedMarketSymbol).map((market) => (
-                    <option key={market} value={market}>
-                      {market}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <TickerMetric label="Last Price" value={formatTickerValue(ticker?.lastPrice, quoteSymbol)} />
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <TickerMetric
+                label="Last Price"
+                value={formatTickerValue(ticker?.lastPrice, quoteSymbol)}
+              />
               <TickerMetric
                 label="24h Change"
                 value={formatPercent(ticker?.change24hPercent)}
                 tone={changeTone(ticker?.change24hPercent)}
               />
-              <TickerMetric label="24h High" value={formatTickerValue(ticker?.high24h, quoteSymbol)} />
+              <TickerMetric
+                label="24h High"
+                value={formatTickerValue(ticker?.high24h, quoteSymbol)}
+              />
               <TickerMetric label="24h Low" value={formatTickerValue(ticker?.low24h, quoteSymbol)} />
-              <TickerMetric label="24h Volume" value={formatTickerValue(ticker?.volume24h, baseSymbol)} />
+              <TickerMetric
+                label="24h Volume"
+                value={formatTickerValue(ticker?.volume24h, baseSymbol)}
+              />
               <TickerMetric label="Best Bid" value={formatTickerValue(ticker?.bestBid, quoteSymbol)} />
               <TickerMetric label="Best Ask" value={formatTickerValue(ticker?.bestAsk, quoteSymbol)} />
               <TickerMetric label="Status" value={marketStatus} />
@@ -506,7 +687,12 @@ export default function TradePage() {
                       </label>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-3">
+                    <QuickFillControls
+                      disabled={!selectedWallet}
+                      onFill={(pct) => applyLimitQuickFill(pct)}
+                    />
+
+                    <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-4">
                       <BalanceTile label="Total" value={`${totalPreview ?? "-"} ${quoteSymbol}`} />
                       <BalanceTile
                         label={
@@ -530,6 +716,14 @@ export default function TradePage() {
                         }
                         value={`${selectedWallet?.locked ?? "0"} ${lockedAssetSymbol}`}
                       />
+                      <BalanceTile
+                        label="Estimated fee"
+                        value={
+                          selectedWallet && price.trim() && amount.trim() && totalPreview
+                            ? "Shown in confirm step"
+                            : "-"
+                        }
+                      />
                     </div>
                   </>
                 ) : (
@@ -541,11 +735,16 @@ export default function TradePage() {
                         onChange={(event) => setMarketInput(event.target.value)}
                         placeholder={side === "BUY" ? "100" : "50"}
                         inputMode="decimal"
-                        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
-                      />
+                          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                        />
                     </label>
 
-                    <div className="grid gap-3 md:grid-cols-3">
+                    <QuickFillControls
+                      disabled={!selectedWallet}
+                      onFill={(pct) => applyMarketQuickFill(pct)}
+                    />
+
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       <BalanceTile
                         label={side === "BUY" ? `Est. receive ${baseSymbol}` : `Est. receive ${quoteSymbol}`}
                         value={
@@ -565,6 +764,10 @@ export default function TradePage() {
                             ? `${marketPreview?.estimatedBuyerFee ?? "-"} ${baseSymbol}`
                             : `${marketPreview?.estimatedSellerFee ?? "-"} ${quoteSymbol}`
                         }
+                      />
+                      <BalanceTile
+                        label="Est. trade count"
+                        value={isPreviewLoading ? "Estimating..." : `${marketPreview?.estimatedTradeCount ?? "-"}`}
                       />
                     </div>
 
@@ -591,10 +794,16 @@ export default function TradePage() {
                     </div>
 
                     {previewError ? <Notice tone="danger" message={previewError} /> : null}
-                    {marketPreview?.warning ? (
+                    {marketPreview ? (
                       <Notice
-                        tone={marketPreview.liquidityStatus === "NONE" ? "danger" : "info"}
-                        message={marketPreview.warning}
+                        tone={
+                          marketPreview.liquidityStatus === "FULL"
+                            ? "success"
+                            : marketPreview.liquidityStatus === "PARTIAL"
+                              ? "info"
+                              : "danger"
+                        }
+                        message={marketPreviewNotice(marketPreview)}
                       />
                     ) : null}
                   </>
@@ -602,7 +811,16 @@ export default function TradePage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || marketStatus === "PAUSED"}
+                  disabled={
+                    isSubmitting ||
+                    marketStatus === "PAUSED" ||
+                    (orderType === "MARKET" &&
+                      (isPreviewLoading ||
+                        !marketInput.trim() ||
+                        previewError !== null ||
+                        marketPreview?.liquidityStatus === "NONE")) ||
+                    (orderType === "LIMIT" && (!price.trim() || !amount.trim()))
+                  }
                   className={`rounded-2xl px-4 py-3 text-sm font-semibold text-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     side === "BUY"
                       ? "bg-[var(--success)] hover:bg-emerald-300"
@@ -613,13 +831,7 @@ export default function TradePage() {
                     ? "Submitting..."
                     : marketStatus === "PAUSED"
                       ? "Market paused"
-                      : orderType === "MARKET"
-                        ? side === "BUY"
-                          ? `Market Buy ${baseSymbol}`
-                          : `Market Sell ${baseSymbol}`
-                        : side === "BUY"
-                          ? `Buy ${baseSymbol}`
-                          : `Sell ${baseSymbol}`}
+                      : `Review ${orderType.toLowerCase()} order`}
                 </button>
               </form>
             </section>
@@ -669,6 +881,15 @@ export default function TradePage() {
           ) : null}
         </div>
       </AppShell>
+      <OrderConfirmationDialog
+        confirmation={pendingConfirmation}
+        isSubmitting={isSubmitting}
+        onCancel={() => {
+          setPendingConfirmation(null);
+          setPendingOrderBody(null);
+        }}
+        onConfirm={() => void confirmOrder()}
+      />
     </ProtectedRoute>
   );
 }
@@ -807,6 +1028,220 @@ function RecentTradesTable({ trades }: { trades: TradeEntry[] }) {
   );
 }
 
+function ExecutionSummaryPanel({
+  order,
+  baseSymbol,
+  quoteSymbol,
+}: {
+  order: OrderEntry;
+  baseSymbol: string;
+  quoteSymbol: string;
+}) {
+  const isMarket = order.type === "MARKET";
+  const feeText = order.feeSummary
+    ? order.side === "BUY"
+      ? `${order.feeSummary.buyerFee} ${order.feeSummary.buyerFeeAssetSymbol}`
+      : `${order.feeSummary.sellerFee} ${order.feeSummary.sellerFeeAssetSymbol}`
+    : "—";
+
+  return (
+    <section className="panel rounded-3xl p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+            Execution summary
+          </p>
+          <h2 className="mt-1 text-lg font-semibold text-white">{order.marketSymbol}</h2>
+        </div>
+        <StatusBadge label={order.status} tone={orderStatusTone(order.status)} />
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <BalanceTile label="Side" value={order.side} />
+        <BalanceTile label="Type" value={order.type} />
+        <BalanceTile
+          label={isMarket ? "Average price" : "Limit price"}
+          value={isMarket ? maybePrice(order.averagePrice, quoteSymbol) : `${order.price} ${quoteSymbol}`}
+        />
+        <BalanceTile label="Filled" value={`${order.filledAmount} ${baseSymbol}`} />
+        <BalanceTile
+          label={isMarket ? "Quote flow" : "Remaining"}
+          value={
+            isMarket
+              ? order.side === "BUY"
+                ? `${order.spentQuoteAmount} ${quoteSymbol} spent`
+                : `${order.receivedQuoteAmount ?? "0"} ${quoteSymbol} received`
+              : `${order.remainingAmount} ${baseSymbol}`
+          }
+        />
+        <BalanceTile label="Fee" value={feeText} />
+        <BalanceTile label="Status" value={order.status} />
+        <BalanceTile label="Locked" value={`${order.lockedAmount} ${order.lockedAssetSymbol}`} />
+      </div>
+
+      {isMarket && order.tradeCount !== undefined ? (
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <BalanceTile label="Trade count" value={String(order.tradeCount)} />
+          <BalanceTile
+            label="Cancelled remainder"
+            value={
+              order.side === "BUY"
+                ? `${order.cancelledQuoteAmount ?? "0"} ${quoteSymbol}`
+                : `${order.cancelledAmount ?? "0"} ${baseSymbol}`
+            }
+          />
+        </div>
+      ) : null}
+
+      {order.warning ? <Notice tone="info" message={order.warning} /> : null}
+    </section>
+  );
+}
+
+function QuickFillControls({
+  disabled,
+  onFill,
+}: {
+  disabled?: boolean;
+  onFill: (percent: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {[25, 50, 75, 100].map((percent) => (
+        <button
+          key={percent}
+          type="button"
+          disabled={disabled}
+          onClick={() => onFill(percent)}
+          className="rounded-full border border-[var(--border)] bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--accent)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {percent}%
+        </button>
+      ))}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onFill(100)}
+        className="rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-strong)] transition hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Max
+      </button>
+    </div>
+  );
+}
+
+function buildLimitConfirmation(
+  preview: LimitOrderPreview,
+  orderBody: Extract<OrderSubmissionBody, { type: "LIMIT" }>,
+  baseSymbol: string,
+  quoteSymbol: string,
+): OrderConfirmationView {
+  return {
+    marketSymbol: preview.marketSymbol,
+    side: preview.side,
+    type: "LIMIT",
+    fields: [
+      { label: "Market", value: preview.marketSymbol },
+      { label: "Side", value: preview.side },
+      { label: "Type", value: "LIMIT" },
+      { label: "Price", value: `${orderBody.price} ${quoteSymbol}` },
+      { label: "Amount", value: `${orderBody.amount} ${baseSymbol}` },
+      { label: "Total", value: `${preview.total} ${quoteSymbol}` },
+      { label: "Estimated fee", value: `${preview.estimatedFee} ${preview.estimatedFeeAssetSymbol}` },
+      { label: "Immediate match", value: preview.mayMatchImmediately ? "Yes" : "No" },
+    ],
+    warning: preview.warning,
+    helperText: "Review the limit order carefully before it is submitted.",
+  };
+}
+
+function buildMarketConfirmation(
+  preview: MarketOrderPreview,
+  orderBody: Extract<OrderSubmissionBody, { type: "MARKET" }>,
+  baseSymbol: string,
+  quoteSymbol: string,
+): OrderConfirmationView {
+  const isBuy = preview.side === "BUY";
+  return {
+    marketSymbol: preview.marketSymbol,
+    side: preview.side,
+    type: "MARKET",
+    liquidityStatus: preview.liquidityStatus,
+    fields: [
+      { label: "Market", value: preview.marketSymbol },
+      { label: "Side", value: preview.side },
+      { label: "Type", value: "MARKET" },
+      {
+        label: isBuy ? "Spend amount" : "Sell amount",
+        value: isBuy
+          ? `${orderBody.quoteAmount ?? "0"} ${quoteSymbol}`
+          : `${orderBody.amount ?? "0"} ${baseSymbol}`,
+      },
+      { label: "Estimated filled", value: `${preview.estimatedFilledAmount} ${baseSymbol}` },
+      {
+        label: isBuy ? "Estimated receive" : "Estimated received",
+        value: isBuy
+          ? `${preview.estimatedReceiveAmount ?? "0"} ${baseSymbol}`
+          : `${preview.estimatedReceivedQuote ?? "0"} ${quoteSymbol}`,
+      },
+      { label: "Estimated average", value: maybePrice(preview.estimatedAveragePrice, quoteSymbol) },
+      {
+        label: "Estimated fee",
+        value: isBuy
+          ? `${preview.estimatedBuyerFee} ${preview.estimatedBuyerFeeAssetSymbol}`
+          : `${preview.estimatedSellerFee} ${preview.estimatedSellerFeeAssetSymbol}`,
+      },
+      { label: "Trade count", value: String(preview.estimatedTradeCount) },
+      { label: "Liquidity", value: preview.liquidityStatus },
+    ],
+    warning:
+      preview.liquidityStatus === "PARTIAL"
+        ? "Available liquidity may not fully fill this order. Any unfilled remainder will be cancelled."
+        : null,
+    helperText: "Market orders execute immediately against available liquidity.",
+  };
+}
+
+function marketPreviewNotice(preview: MarketOrderPreview) {
+  if (preview.liquidityStatus === "FULL") {
+    return `Estimated to fill fully across ${preview.estimatedTradeCount} trade levels.`;
+  }
+
+  if (preview.liquidityStatus === "PARTIAL") {
+    return "Available liquidity may not fully fill this order. Any unfilled remainder will be cancelled.";
+  }
+
+  return "No available liquidity for this market order.";
+}
+
+function calculatePercentageFromDisplayValue(value: string, percent: number) {
+  const parsed = parseDecimalToUnits(value, MONEY_DECIMALS);
+  if (parsed === null) {
+    return null;
+  }
+
+  const result = (parsed * BigInt(percent)) / 100n;
+  return result > 0n ? formatUnits(result, MONEY_DECIMALS) : null;
+}
+
+function calculateLimitBuyQuickAmount(availableQuote: string, price: string, percent: number) {
+  const quoteUnits = parseDecimalToUnits(availableQuote, MONEY_DECIMALS);
+  const priceUnits = parseDecimalToUnits(price, MONEY_DECIMALS);
+
+  if (quoteUnits === null || priceUnits === null || priceUnits <= 0n) {
+    return null;
+  }
+
+  const spendUnits = (quoteUnits * BigInt(percent)) / 100n;
+  const amountUnits = (spendUnits * 10n ** BigInt(MONEY_DECIMALS)) / priceUnits;
+
+  return amountUnits > 0n ? formatUnits(amountUnits, MONEY_DECIMALS) : null;
+}
+
+function maybePrice(value: string | null, suffix: string) {
+  return value ? `${value} ${suffix}` : "—";
+}
+
 function isOpenOrder(status: OrderStatus) {
   return status === "OPEN" || status === "PARTIAL_FILLED";
 }
@@ -853,21 +1288,6 @@ function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning"
   }
 
   return "neutral";
-}
-
-function formatMarketOrderSuccess(order: OrderEntry, baseSymbol: string, quoteSymbol: string) {
-  const average = order.averagePrice ?? "-";
-  const fee =
-    order.side === "BUY"
-      ? `${order.feeSummary?.buyerFee ?? "0"} ${order.feeSummary?.buyerFeeAssetSymbol ?? baseSymbol}`
-      : `${order.feeSummary?.sellerFee ?? "0"} ${order.feeSummary?.sellerFeeAssetSymbol ?? quoteSymbol}`;
-  const quoteText =
-    order.side === "BUY"
-      ? `spent ${order.spentQuoteAmount} ${quoteSymbol}`
-      : `received ${order.receivedQuoteAmount ?? "0"} ${quoteSymbol}`;
-  const warning = order.warning ? ` ${order.warning}` : "";
-
-  return `Market ${order.side} ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, ${quoteText}, average ${average} ${quoteSymbol}, fee ${fee}.${warning}`;
 }
 
 function Notice({
@@ -929,15 +1349,6 @@ function formatUnits(value: bigint, decimals: number) {
   const fraction = (value % base).toString().padStart(decimals, "0").replace(/0+$/, "");
 
   return fraction ? `${whole.toString()}.${fraction}` : whole.toString();
-}
-
-function buildMarketOptions(markets: MarketSummary[], selectedMarketSymbol: string) {
-  const options = new Set<string>([DEFAULT_MARKET_SYMBOL, selectedMarketSymbol]);
-  for (const market of markets) {
-    options.add(market.marketSymbol);
-  }
-
-  return [...options];
 }
 
 function marketBaseSymbol(marketSymbol: string) {

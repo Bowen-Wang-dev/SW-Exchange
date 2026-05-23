@@ -2,7 +2,7 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.15 Market Orders / Taker Flow`
+Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
 
 Next milestone: `Future scope remains uncommitted`
 
@@ -60,7 +60,7 @@ Current scope:
 - Admin asset metadata editing for display name, icon URL, description, and sort order
 - Admin audit logs for asset metadata changes
 - Seeded demo market `SWD/SWC` alongside existing `SWL/SWC`
-- Market selector on `/trade`
+- Exchange-style market selector on `/trade`
 - Market summary list includes all seeded markets
 - Admin asset creation endpoint and `/admin/assets` form
 - Admin market creation endpoint and `/admin/markets` form
@@ -69,6 +69,10 @@ Current scope:
 - Public `/assets` directory for listed simulation assets
 - Market Buy uses quote spend input and never locks unspent quote long-term
 - Market Sell uses base amount input and only deducts executed sold base
+- LIMIT and MARKET order confirmation with risk summary before placement
+- Market-order liquidity status, warning, and execution summary polish
+- Quick-fill percentage and Max controls on `/trade`
+- Clearer user/admin order-history display for LIMIT vs MARKET execution outcomes
 
 ## Milestone status
 
@@ -89,8 +93,9 @@ Current scope:
 - `v0.14 K-line / Candlestick Chart` completed
 - `v0.14.1 Exchange-style K-line Chart` completed
 - `v0.15 Market Orders / Taker Flow` completed
+- `v0.16 Trading UX / Order Safety Polish` completed
 
-- Current completed milestone: `v0.15 Market Orders / Taker Flow`
+- Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
 - Next milestone: `Future scope remains uncommitted`
 
 ## Planned milestones
@@ -128,6 +133,19 @@ SW_EXCHANGE_ALLOW_SIMULATED_TRADES=local-demo-only corepack pnpm exec tsx script
 ```
 
 This helper is not part of normal `db:seed`, only runs with explicit opt-in, and refuses non-local database hosts.
+
+## v0.16 Trading UX / Order Safety Polish
+
+v0.16 keeps the existing spot-matching, fee, and wallet model intact while making `/trade` safer and more exchange-like.
+
+- The native market select is replaced with a searchable exchange-style selector opened from the trade header
+- LIMIT and MARKET orders now go through a lightweight confirmation step before submission
+- `POST /api/orders/preview` also supports LIMIT-order confirmation metadata without mutating balances
+- Market orders show `FULL`, `PARTIAL`, or `NONE` liquidity status with clearer receive, average-price, fee, and trade-count estimates
+- No-liquidity market orders are blocked earlier in the `/trade` flow
+- Quick-fill `25%`, `50%`, `75%`, `100%`, and `Max` controls help size limit and market orders from displayed balances
+- User and admin order-history tables now make LIMIT vs MARKET outcomes, average price, quote flow, and cancelled remainder easier to read
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
 
 ## v0.15 Market Orders / Taker Flow
 

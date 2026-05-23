@@ -500,6 +500,26 @@ export type MarketOrderPreview = {
   warning: string | null;
 };
 
+export type LimitOrderPreview = {
+  marketSymbol: string;
+  market: string;
+  side: OrderSide;
+  type: "LIMIT";
+  price: string;
+  priceRaw: string;
+  amount: string;
+  amountRaw: string;
+  total: string;
+  totalRaw: string;
+  estimatedFee: string;
+  estimatedFeeRaw: string;
+  estimatedFeeAssetSymbol: string;
+  mayMatchImmediately: boolean;
+  warning: string | null;
+};
+
+export type OrderPreview = MarketOrderPreview | LimitOrderPreview;
+
 export type AdminOrderEntry = OrderEntry & {
   user: {
     id: string;

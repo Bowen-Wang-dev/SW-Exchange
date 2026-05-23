@@ -3,12 +3,18 @@
 import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
+import {
+  MarketCell,
+  OrderExecutionCell,
+  OrderIdentityCell,
+  OrderPricingCell,
+  orderStatusTone,
+} from "@/components/trade/order-history-cells";
 import { PageHeader } from "@/components/shell/page-header";
-import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { MarketSummary, OrderEntry, OrderSide, OrderStatus } from "@/lib/api-types";
+import type { MarketSummary, OrderEntry, OrderStatus } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
 
 export default function OrdersPage() {
@@ -67,8 +73,8 @@ export default function OrdersPage() {
           <PageHeader
             eyebrow="Orders"
             title="Order history"
-            description="Review limit and market orders, filled amounts, cancelled remainders, and cancel open limit orders."
-            action={<StatusBadge label="v0.15 Live" tone="success" />}
+            description="Review market and limit spot orders with clearer execution summaries, cancelled remainders, and open-limit cancel controls."
+            action={<StatusBadge label="v0.16 Live" tone="success" />}
           />
 
           <MarketFilter
@@ -86,29 +92,19 @@ export default function OrdersPage() {
               <DataTable
                 columns={[
                   "Time",
-                  "Order ID",
+                  "Order",
                   "Market",
-                  "Side",
-                  "Type",
-                  "Price / Avg",
-                  "Amount",
-                  "Filled",
-                  "Remaining",
+                  "Pricing",
+                  "Execution",
                   "Status",
                   "Action",
                 ]}
                 rows={orders.map((order) => [
                   formatDateTime(order.createdAt),
-                  shortId(order.id),
+                  <OrderIdentityCell key={`${order.id}-identity`} order={order} />,
                   <MarketCell key={`${order.id}-market`} marketSymbol={order.marketSymbol} />,
-                  <SideText key={`${order.id}-side`} side={order.side} />,
-                  order.type,
-                  order.type === "MARKET" ? order.averagePrice ?? "Market" : order.price,
-                  order.amount,
-                  order.filledAmount,
-                  order.type === "MARKET" && order.cancelledQuoteAmount
-                    ? `${order.cancelledQuoteAmount} quote cancelled`
-                    : order.remainingAmount,
+                  <OrderPricingCell key={`${order.id}-pricing`} order={order} />,
+                  <OrderExecutionCell key={`${order.id}-execution`} order={order} />,
                   <StatusBadge
                     key={`${order.id}-status`}
                     label={order.status}
@@ -125,7 +121,9 @@ export default function OrdersPage() {
                       {cancellingId === order.id ? "Cancelling..." : "Cancel"}
                     </button>
                   ) : (
-                    "-"
+                    <span className="text-xs text-[var(--foreground-muted)]">
+                      {order.type === "MARKET" ? "No cancel" : "Closed"}
+                    </span>
                   ),
                 ])}
               />
@@ -171,46 +169,6 @@ function MarketFilter({
 
 function isOpenOrder(status: OrderStatus) {
   return status === "OPEN" || status === "PARTIAL_FILLED";
-}
-
-function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (status === "OPEN" || status === "PARTIAL_FILLED") {
-    return "info";
-  }
-
-  if (status === "CANCELLED" || status === "PARTIAL_FILLED_CANCELLED") {
-    return "warning";
-  }
-
-  if (status === "FILLED") {
-    return "success";
-  }
-
-  if (status === "REJECTED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-function SideText({ side }: { side: OrderSide }) {
-  return (
-    <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
-  );
-}
-
-function MarketCell({ marketSymbol }: { marketSymbol: string }) {
-  const [baseSymbol, quoteSymbol] = marketSymbol.split("/");
-
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="flex -space-x-2">
-        <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
-        <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
-      </span>
-      <span className="font-medium text-white">{marketSymbol}</span>
-    </span>
-  );
 }
 
 function Notice({

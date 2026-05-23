@@ -1,12 +1,39 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.15 Market Orders / Taker Flow`
+Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
 
 Next milestone: `Future scope remains uncommitted`
 
 ## Upcoming plan
 
 - `v1.x Chain Gateway`
+
+## v0.16 Trading UX / Order Safety Polish
+
+This milestone keeps market-order matching, settlement, fees, and wallet behavior unchanged while making the trading terminal safer and easier to use.
+
+### Highlights
+
+- `/trade` replaces the native market select with an exchange-style searchable market selector in the header
+- LIMIT and MARKET orders now use a confirmation step before placement
+- `POST /api/orders/preview` now supports LIMIT-order confirmation metadata in addition to MARKET preview
+- Market-order preview and confirmation now surface clearer `FULL`, `PARTIAL`, and `NONE` liquidity messaging
+- Market orders now show clearer estimated receive, average price, fee, trade count, and execution-summary copy
+- Quick-fill `25%`, `50%`, `75%`, `100%`, and `Max` controls help users size both limit and market orders
+- User and admin order-history tables now show clearer MARKET vs LIMIT execution outcomes
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.16
+- Matching logic, fee calculation, transfer rules, admin wallet buckets, and admin asset/market creation behavior are intentionally unchanged
+- This milestone is primarily a frontend/user-flow polish pass with a small preview API extension for LIMIT-order confirmation
+
+### Constraints kept in place
+
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
+- No stop-loss, take-profit, post-only, leverage, futures, or contracts
 
 ## v0.15 Market Orders / Taker Flow
 

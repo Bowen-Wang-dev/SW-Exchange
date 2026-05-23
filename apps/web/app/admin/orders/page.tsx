@@ -3,13 +3,19 @@
 import { useEffect, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
+import {
+  MarketCell,
+  OrderExecutionCell,
+  OrderIdentityCell,
+  OrderPricingCell,
+  orderStatusTone,
+} from "@/components/trade/order-history-cells";
 import { PageHeader } from "@/components/shell/page-header";
-import { AssetIcon } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
-import type { AdminOrderEntry, MarketSummary, OrderSide, OrderStatus } from "@/lib/api-types";
-import { formatDateTime, shortId } from "@/lib/format";
+import type { AdminOrderEntry, MarketSummary, OrderStatus } from "@/lib/api-types";
+import { formatDateTime } from "@/lib/format";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrderEntry[]>([]);
@@ -71,8 +77,8 @@ export default function AdminOrdersPage() {
           <PageHeader
             eyebrow="Admin Orders"
             title="Order review"
-            description="Inspect limit and market orders, fills, cancelled remainders, and final states newest first."
-            action={<StatusBadge label="v0.15 Live" tone="success" />}
+            description="Inspect market and limit orders with clearer execution details, cancelled remainders, and final states newest first."
+            action={<StatusBadge label="v0.16 Live" tone="success" />}
           />
 
           <AdminOrderFilters
@@ -93,35 +99,25 @@ export default function AdminOrdersPage() {
               <DataTable
                 columns={[
                   "Time",
-                  "Order ID",
+                  "Order",
                   "User",
                   "Market",
-                  "Side",
-                  "Type",
-                  "Price / Avg",
-                  "Amount",
-                  "Filled",
-                  "Remaining",
+                  "Pricing",
+                  "Execution",
                   "Status",
                   "Locked",
                   "Cancelled",
                 ]}
                 rows={orders.map((order) => [
                   formatDateTime(order.createdAt),
-                  shortId(order.id),
+                  <OrderIdentityCell key={`${order.id}-identity`} order={order} />,
                   <div key={`${order.id}-user`} className="space-y-1">
                     <p className="font-medium text-white">{order.user.username}</p>
                     <p className="text-xs text-[var(--foreground-muted)]">{order.user.email}</p>
                   </div>,
                   <MarketCell key={`${order.id}-market`} marketSymbol={order.marketSymbol} />,
-                  <SideText key={`${order.id}-side`} side={order.side} />,
-                  order.type,
-                  order.type === "MARKET" ? order.averagePrice ?? "Market" : order.price,
-                  order.amount,
-                  order.filledAmount,
-                  order.type === "MARKET" && order.cancelledQuoteAmount
-                    ? `${order.cancelledQuoteAmount} quote cancelled`
-                    : order.remainingAmount,
+                  <OrderPricingCell key={`${order.id}-pricing`} order={order} />,
+                  <OrderExecutionCell key={`${order.id}-execution`} order={order} />,
                   <StatusBadge
                     key={`${order.id}-status`}
                     label={order.status}
@@ -202,46 +198,6 @@ function AdminOrderFilters({
         </label>
       </div>
     </div>
-  );
-}
-
-function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (status === "OPEN" || status === "PARTIAL_FILLED") {
-    return "info";
-  }
-
-  if (status === "CANCELLED" || status === "PARTIAL_FILLED_CANCELLED") {
-    return "warning";
-  }
-
-  if (status === "FILLED") {
-    return "success";
-  }
-
-  if (status === "REJECTED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-function MarketCell({ marketSymbol }: { marketSymbol: string }) {
-  const [baseSymbol, quoteSymbol] = marketSymbol.split("/");
-
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="flex -space-x-2">
-        <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
-        <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
-      </span>
-      <span className="font-medium text-white">{marketSymbol}</span>
-    </span>
-  );
-}
-
-function SideText({ side }: { side: OrderSide }) {
-  return (
-    <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
   );
 }
 

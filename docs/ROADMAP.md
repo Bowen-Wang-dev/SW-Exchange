@@ -4,7 +4,7 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.15 Market Orders / Taker Flow`
+Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
 
 Next milestone: `Future scope remains uncommitted`
 
@@ -222,6 +222,18 @@ Next milestone: `Future scope remains uncommitted`
 - No-liquidity market orders return `NO_LIQUIDITY` without balance or trade mutation
 - No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts are implemented
 
+### v0.16 Trading UX / Order Safety Polish - Completed
+
+- `/trade` replaces the native market select with a searchable exchange-style market selector opened from the header
+- The selector shows icons, market symbol, last price, 24h change, 24h volume, and market status
+- LIMIT and MARKET orders now use a lightweight confirmation step before submission
+- `POST /api/orders/preview` also supports LIMIT-order fee and immediate-match confirmation metadata
+- Market-order preview messaging now highlights `FULL`, `PARTIAL`, and `NONE` liquidity states more clearly
+- No-liquidity market orders are blocked earlier in the web flow
+- Quick-fill `25%`, `50%`, `75%`, `100%`, and `Max` controls help size limit and market orders from displayed balances
+- User and admin order-history tables now make LIMIT vs MARKET execution details easier to read
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are implemented
+
 ### v1.x Chain Gateway - Planned
 
 - BSC deposit and withdraw planning
@@ -231,4 +243,4 @@ Next milestone: `Future scope remains uncommitted`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.15
+- No blockchain feature is implemented in v0.16

@@ -8,7 +8,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
 import type { PortfolioValuation } from "@/lib/api-types";
-import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
+import { CURRENT_MILESTONE_VERSION, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardContent() {
@@ -58,7 +58,7 @@ export function DashboardContent() {
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}
-        description={`Your v0.15 console shows live balances, asset icons, market ticker data, interactive K-line candles, SWC portfolio valuation, limit and market orders, matching, trades, fee settlement, admin status controls, and manual listing support. ${REAL_TIME_SYNC_COPY}`}
+        description={`Your ${CURRENT_MILESTONE_VERSION} console shows live balances, asset icons, market ticker data, interactive K-line candles, SWC portfolio valuation, limit and market orders, safer confirmations, refreshed trade UX, fee settlement, admin status controls, and manual listing support. ${REAL_TIME_SYNC_COPY}`}
         action={
           <StatusBadge
             label={user?.status ?? "ACTIVE"}

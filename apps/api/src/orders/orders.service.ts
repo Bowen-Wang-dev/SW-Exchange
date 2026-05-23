@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { aliasedTable } from "drizzle-orm/alias";
-import { and, asc, count, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import {
   calculateQuoteTotalMinimalUnits,
@@ -164,10 +164,6 @@ export class OrdersService {
 
   async previewOrder(userId: string, dto: CreateOrderDto) {
     const type = this.normalizeOrderType(dto.type ?? "LIMIT");
-    if (type !== "MARKET") {
-      throw new BadRequestException("Preview is only available for MARKET orders.");
-    }
-
     const marketSymbol = this.normalizeMarketSymbol(dto.marketSymbol);
     const side = this.normalizeSide(dto.side);
 
@@ -201,10 +197,25 @@ export class OrdersService {
       throw new BadRequestException("ASSET_PAUSED");
     }
 
-    const request = this.parseMarketOrderRequest(dto, market, side);
-    const summary = await this.previewMarketOrder(this.db, userId, market, side, request);
+    if (type === "MARKET") {
+      const request = this.parseMarketOrderRequest(dto, market, side);
+      const summary = await this.previewMarketOrder(this.db, userId, market, side, request);
+      return this.formatMarketPreview(market, side, summary);
+    }
 
-    return this.formatMarketPreview(market, side, summary);
+    const price = this.parsePrice(this.requireString(dto.price, "price"), market.priceDecimals);
+    const amount = this.parseAmount(this.requireString(dto.amount, "amount"), market.baseAssetDecimals);
+    const quoteTotal = this.calculateQuoteTotalMinimalUnits(
+      price,
+      amount,
+      market.priceDecimals,
+      market.baseAssetDecimals,
+      market.quoteAssetDecimals,
+    );
+
+    this.assertOrderMinimums(market, amount, quoteTotal);
+
+    return this.previewLimitOrder(this.db, userId, market, side, price, amount, quoteTotal);
   }
 
   async createLimitOrder(userId: string, dto: CreateOrderDto) {
@@ -1285,6 +1296,39 @@ export class OrdersService {
     };
   }
 
+  private async previewLimitOrder(
+    db: Database | Transaction,
+    userId: string,
+    market: MarketDetails,
+    side: "BUY" | "SELL",
+    price: bigint,
+    amount: bigint,
+    quoteTotal: bigint,
+  ) {
+    const feeConfig = await this.getFeeRatesForPreview(db, market.id);
+    const estimatedFee =
+      side === "BUY"
+        ? this.feesService.calculateFee(amount, feeConfig.buyerFeeRateBps)
+        : this.feesService.calculateFee(quoteTotal, feeConfig.sellerFeeRateBps);
+    const mayMatchImmediately = await this.limitOrderMayMatchImmediately(
+      db,
+      market.id,
+      userId,
+      side,
+      price,
+    );
+
+    return this.formatLimitPreview(
+      market,
+      side,
+      price,
+      amount,
+      quoteTotal,
+      estimatedFee,
+      mayMatchImmediately,
+    );
+  }
+
   private async settleBuyerSide(
     tx: Transaction,
     input: {
@@ -1990,6 +2034,40 @@ export class OrdersService {
     return "type" in order && order.type === "MARKET";
   }
 
+  private async limitOrderMayMatchImmediately(
+    db: Database | Transaction,
+    marketId: string,
+    userId: string,
+    side: "BUY" | "SELL",
+    price: bigint,
+  ) {
+    const oppositeSide = side === "BUY" ? "SELL" : "BUY";
+    const priceCondition =
+      side === "BUY" ? sql`${orders.price} <= ${price}` : sql`${orders.price} >= ${price}`;
+
+    const [match] = await db
+      .select({
+        id: orders.id,
+      })
+      .from(orders)
+      .innerJoin(users, eq(orders.userId, users.id))
+      .where(
+        and(
+          eq(orders.marketId, marketId),
+          eq(orders.side, oppositeSide),
+          eq(orders.type, "LIMIT"),
+          eq(users.status, "ACTIVE"),
+          inArray(orders.status, OPEN_ORDER_STATUSES),
+          sql`${orders.remainingAmount} > 0`,
+          ne(orders.userId, userId),
+          priceCondition,
+        ),
+      )
+      .limit(1);
+
+    return Boolean(match);
+  }
+
   private async getFeeRatesForPreview(db: Database | Transaction, marketId: string) {
     const [setting] = await db
       .select({
@@ -2264,6 +2342,39 @@ export class OrdersService {
           : summary.status === "PARTIAL_FILLED_CANCELLED"
             ? PARTIAL_MARKET_WARNING
             : null,
+    };
+  }
+
+  private formatLimitPreview(
+    market: MarketDetails,
+    side: "BUY" | "SELL",
+    price: bigint,
+    amount: bigint,
+    quoteTotal: bigint,
+    estimatedFee: bigint,
+    mayMatchImmediately: boolean,
+  ) {
+    return {
+      marketSymbol: market.symbol,
+      market: market.symbol,
+      side,
+      type: "LIMIT" as const,
+      price: formatMinimalUnitsToHuman(price, market.priceDecimals),
+      priceRaw: price.toString(),
+      amount: formatMinimalUnitsToHuman(amount, market.baseAssetDecimals),
+      amountRaw: amount.toString(),
+      total: formatMinimalUnitsToHuman(quoteTotal, market.quoteAssetDecimals),
+      totalRaw: quoteTotal.toString(),
+      estimatedFee: formatMinimalUnitsToHuman(
+        estimatedFee,
+        side === "BUY" ? market.baseAssetDecimals : market.quoteAssetDecimals,
+      ),
+      estimatedFeeRaw: estimatedFee.toString(),
+      estimatedFeeAssetSymbol: side === "BUY" ? market.baseAssetSymbol : market.quoteAssetSymbol,
+      mayMatchImmediately,
+      warning: mayMatchImmediately
+        ? "This limit order may immediately match against resting liquidity."
+        : null,
     };
   }
 

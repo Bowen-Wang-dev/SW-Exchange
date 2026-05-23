@@ -1,13 +1,13 @@
-export const CURRENT_MILESTONE_VERSION = "v0.15";
-export const CURRENT_MILESTONE_TITLE = "Market Orders / Taker Flow";
+export const CURRENT_MILESTONE_VERSION = "v0.16";
+export const CURRENT_MILESTONE_TITLE = "Trading UX / Order Safety Polish";
 export const NEXT_MILESTONE_VERSION = "Future";
 export const NEXT_MILESTONE_TITLE = "Future scope remains uncommitted";
 
 export const REAL_TIME_SYNC_COPY =
-  "Admin-created virtual assets and markets now plug into the same multi-market matching, market-order taker flow, trades, ticker, interactive K-line, portfolio valuation, fee settlement, wallet bucket, ledger, audit, report, and status-control foundation.";
+  "Admin-created virtual assets and markets now plug into the same multi-market matching, market-order taker flow, trades, ticker, interactive K-line, portfolio valuation, fee settlement, wallet bucket, ledger, audit, report, status-control, and refreshed trade-flow foundation.";
 
 export const TRADE_PAGE_COPY =
-  "Limit and market spot orders are live. Market orders execute immediately against available opposite-side liquidity, use maker prices, and cancel any unfilled remainder without resting on the book.";
+  "Exchange-style market selection, order confirmation, market-order liquidity warnings, quick-fill controls, and clearer execution summaries are live on the trading terminal.";
 
 export const TRADE_HISTORY_COPY =
   "Review your settled fills across available spot markets. Historical trades keep the fee amounts charged at execution time.";

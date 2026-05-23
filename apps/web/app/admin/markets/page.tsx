@@ -184,7 +184,7 @@ export default function AdminMarketsPage() {
             eyebrow="Admin Markets"
             title="Market registry"
             description="Create spot markets from listed base and quote assets. New pairs start empty and inherit the existing matching, fee, ticker, and valuation foundation."
-            action={<StatusBadge label="v0.15 Live" tone="success" />}
+            action={<StatusBadge label="v0.16 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

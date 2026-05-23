@@ -123,7 +123,7 @@ export default function AdminFeesPage() {
             eyebrow="Admin Fees"
             title="Trading fee control"
             description="Configure buyer and seller fee rates per market. New admin-created markets start with the current default rates until you update them."
-            action={<StatusBadge label="v0.15 Live" tone="success" />}
+            action={<StatusBadge label="v0.16 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}

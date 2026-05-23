@@ -9,7 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
 import type { AdminAuditLog, AdminReportsSummary, AdminTradeEntry, AdminTransferEntry } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
-import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
+import { CURRENT_MILESTONE_TITLE, CURRENT_MILESTONE_VERSION, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
 export function AdminDashboardContent() {
@@ -47,7 +47,7 @@ export function AdminDashboardContent() {
       <PageHeader
         eyebrow="Admin Dashboard"
         title={`Admin console: ${user?.username ?? "admin"}`}
-        description={`Current milestone: v0.15 Market Orders / Taker Flow. ${REAL_TIME_SYNC_COPY}`}
+        description={`Current milestone: ${CURRENT_MILESTONE_VERSION} ${CURRENT_MILESTONE_TITLE}. ${REAL_TIME_SYNC_COPY}`}
         action={<StatusBadge label="Admin Mode" tone="warning" />}
       />
 

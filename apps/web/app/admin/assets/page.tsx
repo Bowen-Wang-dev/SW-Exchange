@@ -220,7 +220,7 @@ export default function AdminAssetsPage() {
             description="Create virtual assets, manage manual metadata, and control whether an asset is active for airdrop and new order flows."
             action={
               <div className="flex flex-wrap gap-2">
-                <StatusBadge label="v0.15 Live" tone="success" />
+                <StatusBadge label="v0.16 Live" tone="success" />
                 <Link
                   href="/admin/markets"
                   className="rounded-2xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white"
