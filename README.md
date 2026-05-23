@@ -2,7 +2,7 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.14 K-line / Candlestick Chart`
+Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
 
 Next milestone: `v0.15 Market Orders / Taker Flow`
 
@@ -31,7 +31,7 @@ Current scope:
 - Market-aware automatic matching with price-time priority
 - Market-aware trade recording and trade history
 - Market-specific order book grouped by price
-- Trade-derived K-line / candlestick chart on `/trade`
+- Interactive trade-derived K-line / candlestick chart on `/trade`
 - User and admin order history
 - User and admin trade history
 - ORDER_LOCK and ORDER_UNLOCK ledger entries
@@ -84,8 +84,9 @@ Current scope:
 - `v0.12 Multi-Market Foundation` completed
 - `v0.13 Admin Asset / Market Creation` completed
 - `v0.14 K-line / Candlestick Chart` completed
+- `v0.14.1 Exchange-style K-line Chart` completed
 
-- Current completed milestone: `v0.14 K-line / Candlestick Chart`
+- Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
 - Next milestone: `v0.15 Market Orders / Taker Flow`
 
 ## Planned milestones
@@ -105,6 +106,25 @@ v0.14 adds a lightweight K-line chart generated from existing settled trade reco
 - Markets with no trades show: `No trades yet. K-line data will appear after trades execute.`
 - No fake K-line data, fake prices, or seeded candles are generated
 - v0.14 does not add market orders, deposit, withdraw, blockchain integration, or chain addresses
+
+## v0.14.1 Exchange-style K-line Chart
+
+v0.14.1 keeps the existing candle API and upgrades `/trade` to a desktop-first exchange-style interactive chart.
+
+- Candles render with `lightweight-charts` instead of the earlier generated SVG-style chart
+- The chart includes crosshair hover, right-side price scale, bottom time scale, and a lower volume pane
+- Hover/default OHLC panel shows time, open, high, low, close, change, change %, volume, quote volume, and trade count
+- Market and interval changes reload the same `/api/markets/candles` data path
+- Empty markets still show: `No trades yet. K-line data will appear after trades execute.`
+- No technical indicators, depth chart, market orders, deposit, withdraw, blockchain integration, or chain addresses are added
+
+Optional local demo helper:
+
+```bash
+SW_EXCHANGE_ALLOW_SIMULATED_TRADES=local-demo-only corepack pnpm exec tsx scripts/seed-simulated-trades.ts
+```
+
+This helper is not part of normal `db:seed`, only runs with explicit opt-in, and refuses non-local database hosts.
 
 ## v0.13 Admin Asset / Market Creation
 

@@ -1,6 +1,6 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.14 K-line / Candlestick Chart`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v0.14.1 Exchange-style K-line Chart`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
@@ -8,8 +8,9 @@ This plan documents intended future work after `v0.14 K-line / Candlestick Chart
 - `v0.12 Multi-Market Foundation` is completed.
 - `v0.13 Admin Asset / Market Creation` is completed.
 - `v0.14 K-line / Candlestick Chart` is completed.
+- `v0.14.1 Exchange-style K-line Chart` is completed.
 - Multiple internal markets are supported, including admin-created listings.
-- K-line candles are generated from existing trades with no fake chart data.
+- K-line candles are generated from existing trades with no fake chart data, and `/trade` now has an interactive exchange-style chart with hover OHLC and volume.
 - Market orders, deposit, withdraw, and blockchain features are not live.
 
 ## v0.15 Market Orders / Taker Flow
@@ -31,4 +32,4 @@ This plan documents intended future work after `v0.14 K-line / Candlestick Chart
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.14
+- No blockchain feature is implemented in v0.14.1

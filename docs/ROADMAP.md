@@ -4,7 +4,7 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.14 K-line / Candlestick Chart`
+Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
 
 Next milestone: `v0.15 Market Orders / Taker Flow`
 
@@ -198,6 +198,16 @@ Next milestone: `v0.15 Market Orders / Taker Flow`
 - Empty markets show a clear no-trades chart state
 - No fake K-line data, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
+### v0.14.1 Exchange-style K-line Chart - Completed
+
+- `/trade` upgrades the chart area from the basic generated SVG-style K-line into an interactive exchange-style candlestick chart
+- `lightweight-charts` renders real candles with a right-side price scale and bottom time scale
+- A lower volume pane shows per-candle base volume
+- Desktop hover shows crosshair plus an OHLC panel with time, open, high, low, close, change, change %, volume, quote volume, and trade count
+- Market and interval switching continue to use the existing `/api/markets/candles` endpoint
+- Empty markets still show the no-trades K-line state
+- No technical indicators, depth chart, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
+
 ### v0.15 Market Orders / Taker Flow - Planned
 
 - Market buy
@@ -216,4 +226,4 @@ Next milestone: `v0.15 Market Orders / Taker Flow`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.14
+- No blockchain feature is implemented in v0.14.1

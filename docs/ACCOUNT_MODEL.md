@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.14 K-line / Candlestick Chart`
+Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
 
 ## Account Status
 
@@ -32,6 +32,7 @@ v0.13 adds admin-created asset and market listing without changing the wallet bu
 New assets eagerly create zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
 
 v0.14 adds trade-derived K-line candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
+v0.14.1 upgrades the chart UI for those candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
 
 ## Asset Metadata
 

@@ -1,6 +1,6 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.14 K-line / Candlestick Chart`
+Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
 
 Next milestone: `v0.15 Market Orders / Taker Flow`
 
@@ -8,6 +8,34 @@ Next milestone: `v0.15 Market Orders / Taker Flow`
 
 - `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.14.1 Exchange-style K-line Chart
+
+This patch keeps the v0.14 candle API and upgrades the `/trade` chart area into a desktop-first exchange-style interactive K-line.
+
+### Highlights
+
+- `lightweight-charts` renders real candlesticks instead of the earlier generated SVG-style chart
+- Lower volume pane uses the same candle response volume data
+- Right-side price scale, bottom time scale, and crosshair hover are enabled
+- Hover/default OHLC panel shows time, open, high, low, close, change, change %, volume, quote volume, and trade count
+- Market and interval changes reload through the existing `/api/markets/candles` endpoint
+- The no-trades empty state remains unchanged
+
+### Developer and operational notes
+
+- No API fields, schema, matching behavior, fee calculation, transfer rules, or admin listing behavior changed
+- Decimal strings are parsed into numbers only for browser chart rendering and display
+- Optional `scripts/seed-simulated-trades.ts` remains a local demo helper only; it is not part of normal `db:seed` and requires explicit opt-in
+
+### Constraints kept in place
+
+- No technical indicators
+- No depth chart
+- No market orders
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
 
 ## v0.14 K-line / Candlestick Chart
 

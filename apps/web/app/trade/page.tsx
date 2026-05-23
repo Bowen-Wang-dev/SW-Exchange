@@ -248,7 +248,7 @@ export default function TradePage() {
               </span>
             }
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.14 Live" tone="success" />}
+            action={<StatusBadge label="v0.14.1 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -297,6 +297,8 @@ export default function TradePage() {
             error={candleError}
             onIntervalChange={(nextInterval) => {
               setCandleInterval(nextInterval);
+              setCandles([]);
+              setIsCandlesLoading(true);
               setCandleError(null);
             }}
           />
