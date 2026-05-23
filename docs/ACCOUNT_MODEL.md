@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
+Current completed milestone: `v0.15 Market Orders / Taker Flow`
 
 ## Account Status
 
@@ -33,6 +33,7 @@ New assets eagerly create zero-balance `MAIN` wallets for existing users and zer
 
 v0.14 adds trade-derived K-line candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
 v0.14.1 upgrades the chart UI for those candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
+v0.15 adds market-order taker flow without changing wallet buckets, transfer rules, admin bucket behavior, or fee-asset rules. Market orders spend or sell only the executed amount and cancel any unfilled remainder without resting on the order book.
 
 ## Asset Metadata
 

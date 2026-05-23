@@ -155,6 +155,7 @@ export class MarketsService {
           .where(
             and(
               eq(orders.marketId, market.id),
+              eq(orders.type, "LIMIT"),
               inArray(orders.status, OPEN_ORDER_STATUSES),
               sql`${orders.remainingAmount} > 0`,
             ),

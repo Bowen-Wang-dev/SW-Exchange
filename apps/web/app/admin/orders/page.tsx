@@ -71,8 +71,8 @@ export default function AdminOrdersPage() {
           <PageHeader
             eyebrow="Admin Orders"
             title="Order review"
-            description="Inspect limit orders, fills, remaining amounts, and cancellation states newest first."
-            action={<StatusBadge label="v0.14.1 Live" tone="success" />}
+            description="Inspect limit and market orders, fills, cancelled remainders, and final states newest first."
+            action={<StatusBadge label="v0.15 Live" tone="success" />}
           />
 
           <AdminOrderFilters
@@ -98,7 +98,7 @@ export default function AdminOrdersPage() {
                   "Market",
                   "Side",
                   "Type",
-                  "Price",
+                  "Price / Avg",
                   "Amount",
                   "Filled",
                   "Remaining",
@@ -116,10 +116,12 @@ export default function AdminOrdersPage() {
                   <MarketCell key={`${order.id}-market`} marketSymbol={order.marketSymbol} />,
                   <SideText key={`${order.id}-side`} side={order.side} />,
                   order.type,
-                  order.price,
+                  order.type === "MARKET" ? order.averagePrice ?? "Market" : order.price,
                   order.amount,
                   order.filledAmount,
-                  order.remainingAmount,
+                  order.type === "MARKET" && order.cancelledQuoteAmount
+                    ? `${order.cancelledQuoteAmount} quote cancelled`
+                    : order.remainingAmount,
                   <StatusBadge
                     key={`${order.id}-status`}
                     label={order.status}
@@ -182,7 +184,7 @@ function AdminOrderFilters({
             className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
           >
             <option value="">All statuses</option>
-            {["OPEN", "PARTIAL_FILLED", "FILLED", "CANCELLED", "REJECTED"].map((status) => (
+            {["OPEN", "PARTIAL_FILLED", "FILLED", "PARTIAL_FILLED_CANCELLED", "CANCELLED", "REJECTED"].map((status) => (
               <option key={status} value={status}>
                 {status}
               </option>
@@ -208,7 +210,7 @@ function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning"
     return "info";
   }
 
-  if (status === "CANCELLED") {
+  if (status === "CANCELLED" || status === "PARTIAL_FILLED_CANCELLED") {
     return "warning";
   }
 

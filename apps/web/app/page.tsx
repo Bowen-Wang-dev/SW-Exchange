@@ -19,7 +19,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Market data, interactive K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Market data, market orders, interactive K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -84,8 +84,8 @@ export default function HomePage() {
               {[
                 "Internal wallet only",
                 "Free internal transfer for active users",
-                "Limit spot trading only",
-                "No futures, no market orders",
+                "Limit and market spot trading",
+                "No futures or advanced order types",
                 "No deposit, withdraw, or blockchain flows",
               ].map((item) => (
                 <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
@@ -102,7 +102,7 @@ export default function HomePage() {
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances and SWC valuation"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin asset funding is enabled for active assets"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
-              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, maker-price matching, ticker data, interactive K-line candles, fee settlement, trade history, and the order book are live."],
+              ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, market-order taker flow, maker-price matching, ticker data, interactive K-line candles, fee settlement, trade history, and the order book are live."],
             ]}
           />
         </div>

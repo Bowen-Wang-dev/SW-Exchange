@@ -1,13 +1,45 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
+Current completed milestone: `v0.15 Market Orders / Taker Flow`
 
-Next milestone: `v0.15 Market Orders / Taker Flow`
+Next milestone: `Future scope remains uncommitted`
 
 ## Upcoming plan
 
-- `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
+
+## v0.15 Market Orders / Taker Flow
+
+This milestone adds exchange-style market orders and taker flow while keeping the simulated spot exchange scope narrow.
+
+### Highlights
+
+- `POST /api/orders` now accepts `type: LIMIT | MARKET`
+- Market Buy uses quote spend input and walks the lowest asks first
+- Market Sell uses base amount input and walks the highest bids first
+- Same-price fills keep earliest-created order priority
+- Trade price uses the resting maker order price
+- Market orders never rest on the order book and never appear as open/cancellable orders
+- Fully executed market orders end as `FILLED`
+- Partial market orders keep executed fills and end as `PARTIAL_FILLED_CANCELLED`
+- No-liquidity market orders return `NO_LIQUIDITY` without balance or trade mutation
+- `POST /api/orders/preview` estimates fills, average price, fees, trade count, and `FULL`/`PARTIAL`/`NONE` liquidity status
+
+### Developer and operational notes
+
+- Migration `drizzle/0009_tough_rogue.sql` adds the `MARKET` order type, `PARTIAL_FILLED_CANCELLED` status, and market-order quote/average-price fields on `orders`
+- Market-order matching and settlement run in one database transaction
+- Buyer fees remain charged in base asset and seller fees remain charged in quote asset
+- Market Buy deducts only actual quote spent; unspent quote remains available
+- Market Sell deducts only actual sold base; unsold base remains available
+- Smoke coverage includes full fill, partial fill/remainder cancel, no liquidity, fee collection, and market isolation
+
+### Constraints kept in place
+
+- No deposit or withdraw
+- No blockchain integration
+- No chain addresses
+- No stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts
 
 ## v0.14.1 Exchange-style K-line Chart
 

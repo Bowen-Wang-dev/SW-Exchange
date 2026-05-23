@@ -413,8 +413,14 @@ export type AdminTransferEntry = {
 };
 
 export type OrderSide = "BUY" | "SELL";
-export type OrderType = "LIMIT";
-export type OrderStatus = "OPEN" | "PARTIAL_FILLED" | "FILLED" | "CANCELLED" | "REJECTED";
+export type OrderType = "LIMIT" | "MARKET";
+export type OrderStatus =
+  | "OPEN"
+  | "PARTIAL_FILLED"
+  | "FILLED"
+  | "PARTIAL_FILLED_CANCELLED"
+  | "CANCELLED"
+  | "REJECTED";
 
 export type OrderEntry = {
   id: string;
@@ -432,6 +438,28 @@ export type OrderEntry = {
   filledAmountRaw: string;
   remainingAmount: string;
   remainingAmountRaw: string;
+  requestedQuoteAmount: string | null;
+  requestedQuoteAmountRaw: string | null;
+  spentQuoteAmount: string;
+  spentQuoteAmountRaw: string;
+  receivedQuoteAmount?: string | null;
+  receivedQuoteAmountRaw?: string | null;
+  averagePrice: string | null;
+  averagePriceRaw: string | null;
+  cancelledQuoteAmount: string | null;
+  cancelledQuoteAmountRaw: string | null;
+  cancelledAmount?: string | null;
+  cancelledAmountRaw?: string | null;
+  tradeCount?: number;
+  feeSummary?: {
+    buyerFee: string;
+    buyerFeeRaw: string;
+    buyerFeeAssetSymbol: string;
+    sellerFee: string;
+    sellerFeeRaw: string;
+    sellerFeeAssetSymbol: string;
+  };
+  warning?: string | null;
   status: OrderStatus;
   lockedAssetId: string;
   lockedAssetSymbol: string;
@@ -444,6 +472,32 @@ export type OrderEntry = {
   createdAt: string;
   updatedAt: string;
   cancelledAt: string | null;
+};
+
+export type MarketOrderPreview = {
+  marketSymbol: string;
+  market: string;
+  side: OrderSide;
+  type: "MARKET";
+  estimatedFilledAmount: string;
+  estimatedFilledAmountRaw: string;
+  estimatedReceiveAmount: string | null;
+  estimatedReceiveAmountRaw: string | null;
+  estimatedSpentQuote: string;
+  estimatedSpentQuoteRaw: string;
+  estimatedReceivedQuote: string | null;
+  estimatedReceivedQuoteRaw: string | null;
+  estimatedAveragePrice: string | null;
+  estimatedAveragePriceRaw: string | null;
+  estimatedBuyerFee: string;
+  estimatedBuyerFeeRaw: string;
+  estimatedBuyerFeeAssetSymbol: string;
+  estimatedSellerFee: string;
+  estimatedSellerFeeRaw: string;
+  estimatedSellerFeeAssetSymbol: string;
+  estimatedTradeCount: number;
+  liquidityStatus: "FULL" | "PARTIAL" | "NONE";
+  warning: string | null;
 };
 
 export type AdminOrderEntry = OrderEntry & {

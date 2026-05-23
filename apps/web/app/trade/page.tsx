@@ -15,11 +15,13 @@ import type {
   MarketCandle,
   OrderBook,
   OrderBookLevel,
+  MarketOrderPreview,
   MarketSummary,
   MarketTicker,
   OrderEntry,
   OrderSide,
   OrderStatus,
+  OrderType,
   TradeEntry,
   WalletBalance,
 } from "@/lib/api-types";
@@ -32,9 +34,14 @@ const POLL_INTERVAL_MS = 5000;
 
 export default function TradePage() {
   const [selectedMarketSymbol, setSelectedMarketSymbol] = useState(DEFAULT_MARKET_SYMBOL);
+  const [orderType, setOrderType] = useState<OrderType>("LIMIT");
   const [side, setSide] = useState<OrderSide>("BUY");
   const [price, setPrice] = useState("");
   const [amount, setAmount] = useState("");
+  const [marketInput, setMarketInput] = useState("");
+  const [marketPreview, setMarketPreview] = useState<MarketOrderPreview | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<WalletBalance[]>([]);
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
   const [ticker, setTicker] = useState<MarketTicker | null>(null);
@@ -104,6 +111,25 @@ export default function TradePage() {
     return () => window.clearInterval(intervalId);
   }, [selectedMarketSymbol, candleInterval]);
 
+  useEffect(() => {
+    if (orderType !== "MARKET" || !marketInput.trim()) {
+      setMarketPreview(null);
+      setPreviewError(null);
+      setIsPreviewLoading(false);
+      return;
+    }
+
+    let active = true;
+    const timeoutId = window.setTimeout(() => {
+      void loadMarketPreview(() => active);
+    }, 250);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [orderType, side, marketInput, selectedMarketSymbol]);
+
   async function loadTradeData(options: { silent?: boolean } = {}) {
     try {
       if (!options.silent) {
@@ -171,6 +197,46 @@ export default function TradePage() {
     }
   }
 
+  async function loadMarketPreview(isActive: () => boolean) {
+    try {
+      setIsPreviewLoading(true);
+      const body =
+        side === "BUY"
+          ? {
+              marketSymbol: selectedMarketSymbol,
+              side,
+              type: "MARKET",
+              quoteAmount: marketInput.trim(),
+            }
+          : {
+              marketSymbol: selectedMarketSymbol,
+              side,
+              type: "MARKET",
+              amount: marketInput.trim(),
+            };
+      const preview = await apiRequest<MarketOrderPreview>("/orders/preview", {
+        method: "POST",
+        body,
+      });
+
+      if (isActive()) {
+        setMarketPreview(preview);
+        setPreviewError(null);
+      }
+    } catch (loadError) {
+      if (isActive()) {
+        setMarketPreview(null);
+        setPreviewError(
+          loadError instanceof ApiError ? loadError.message : "Unable to estimate market order.",
+        );
+      }
+    } finally {
+      if (isActive()) {
+        setIsPreviewLoading(false);
+      }
+    }
+  }
+
   function handleMarketChange(nextMarketSymbol: string) {
     setSelectedMarketSymbol(nextMarketSymbol);
     setTicker(null);
@@ -181,6 +247,9 @@ export default function TradePage() {
     setCandleError(null);
     setIsCandlesLoading(true);
     setAmount("");
+    setMarketInput("");
+    setMarketPreview(null);
+    setPreviewError(null);
     setSuccess(null);
     setError(null);
   }
@@ -192,23 +261,52 @@ export default function TradePage() {
 
     try {
       setIsSubmitting(true);
+      const orderBody =
+        orderType === "MARKET"
+          ? side === "BUY"
+            ? {
+                marketSymbol: selectedMarketSymbol,
+                side,
+                type: "MARKET",
+                quoteAmount: marketInput.trim(),
+              }
+            : {
+                marketSymbol: selectedMarketSymbol,
+                side,
+                type: "MARKET",
+                amount: marketInput.trim(),
+              }
+          : {
+              marketSymbol: selectedMarketSymbol,
+              side,
+              type: "LIMIT",
+              price: price.trim(),
+              amount: amount.trim(),
+            };
       const order = await apiRequest<OrderEntry>("/orders", {
         method: "POST",
-        body: {
-          marketSymbol: selectedMarketSymbol,
-          side,
-          price: price.trim(),
-          amount: amount.trim(),
-        },
+        body: orderBody,
       });
 
-      setAmount("");
-      setSuccess(
-        `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, remaining ${order.remainingAmount} ${baseSymbol}. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
-      );
+      if (orderType === "MARKET") {
+        setMarketInput("");
+        setMarketPreview(null);
+        setSuccess(formatMarketOrderSuccess(order, baseSymbol, quoteSymbol));
+      } else {
+        setAmount("");
+        setSuccess(
+          `${order.side} order ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, remaining ${order.remainingAmount} ${baseSymbol}. Locked ${order.lockedAmount} ${order.lockedAssetSymbol}.`,
+        );
+      }
       await Promise.all([loadTradeData(), loadCandles()]);
     } catch (submitError) {
-      setError(submitError instanceof ApiError ? submitError.message : "Unable to place order.");
+      const message =
+        submitError instanceof ApiError ? submitError.message : "Unable to place order.";
+      setError(
+        message === "NO_LIQUIDITY"
+          ? "No available liquidity for this market order."
+          : message,
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -248,7 +346,7 @@ export default function TradePage() {
               </span>
             }
             description={TRADE_PAGE_COPY}
-            action={<StatusBadge label="v0.14.1 Live" tone="success" />}
+            action={<StatusBadge label="v0.15 Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -342,7 +440,26 @@ export default function TradePage() {
 
             <section className="panel rounded-3xl p-5">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-semibold text-white">Limit Order</h2>
+                <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-1">
+                  {(["LIMIT", "MARKET"] as const).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => {
+                        setOrderType(option);
+                        setSuccess(null);
+                        setError(null);
+                      }}
+                      className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+                        orderType === option
+                          ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                          : "text-[var(--foreground-muted)] hover:text-white"
+                      }`}
+                    >
+                      {option === "LIMIT" ? "Limit" : "Market"}
+                    </button>
+                  ))}
+                </div>
                 <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-1">
                   {(["BUY", "SELL"] as const).map((option) => (
                     <button
@@ -364,54 +481,124 @@ export default function TradePage() {
               </div>
 
               <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                    Price in {quoteSymbol}
-                    <input
-                      value={price}
-                      onChange={(event) => setPrice(event.target.value)}
-                      placeholder="2"
-                      inputMode="decimal"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
-                    />
-                  </label>
-                  <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                    Amount in {baseSymbol}
-                    <input
-                      value={amount}
-                      onChange={(event) => setAmount(event.target.value)}
-                      placeholder="10"
-                      inputMode="decimal"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
-                    />
-                  </label>
-                </div>
+                {orderType === "LIMIT" ? (
+                  <>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                        Price in {quoteSymbol}
+                        <input
+                          value={price}
+                          onChange={(event) => setPrice(event.target.value)}
+                          placeholder="2"
+                          inputMode="decimal"
+                          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                        />
+                      </label>
+                      <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                        Amount in {baseSymbol}
+                        <input
+                          value={amount}
+                          onChange={(event) => setAmount(event.target.value)}
+                          placeholder="10"
+                          inputMode="decimal"
+                          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                        />
+                      </label>
+                    </div>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                  <BalanceTile label="Total" value={`${totalPreview ?? "-"} ${quoteSymbol}`} />
-                  <BalanceTile
-                    label={
-                      <AssetBalanceLabel
-                        symbol={lockedAssetSymbol}
-                        name={selectedWallet?.displayName ?? selectedWallet?.name}
-                        iconUrl={selectedWallet?.iconUrl}
-                        label="Available"
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <BalanceTile label="Total" value={`${totalPreview ?? "-"} ${quoteSymbol}`} />
+                      <BalanceTile
+                        label={
+                          <AssetBalanceLabel
+                            symbol={lockedAssetSymbol}
+                            name={selectedWallet?.displayName ?? selectedWallet?.name}
+                            iconUrl={selectedWallet?.iconUrl}
+                            label="Available"
+                          />
+                        }
+                        value={`${selectedWallet?.available ?? "0"} ${lockedAssetSymbol}`}
                       />
-                    }
-                    value={`${selectedWallet?.available ?? "0"} ${lockedAssetSymbol}`}
-                  />
-                  <BalanceTile
-                    label={
-                      <AssetBalanceLabel
-                        symbol={lockedAssetSymbol}
-                        name={selectedWallet?.displayName ?? selectedWallet?.name}
-                        iconUrl={selectedWallet?.iconUrl}
-                        label="Locked"
+                      <BalanceTile
+                        label={
+                          <AssetBalanceLabel
+                            symbol={lockedAssetSymbol}
+                            name={selectedWallet?.displayName ?? selectedWallet?.name}
+                            iconUrl={selectedWallet?.iconUrl}
+                            label="Locked"
+                          />
+                        }
+                        value={`${selectedWallet?.locked ?? "0"} ${lockedAssetSymbol}`}
                       />
-                    }
-                    value={`${selectedWallet?.locked ?? "0"} ${lockedAssetSymbol}`}
-                  />
-                </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                      {side === "BUY" ? `Spend ${quoteSymbol}` : `Sell ${baseSymbol}`}
+                      <input
+                        value={marketInput}
+                        onChange={(event) => setMarketInput(event.target.value)}
+                        placeholder={side === "BUY" ? "100" : "50"}
+                        inputMode="decimal"
+                        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      />
+                    </label>
+
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <BalanceTile
+                        label={side === "BUY" ? `Est. receive ${baseSymbol}` : `Est. receive ${quoteSymbol}`}
+                        value={
+                          side === "BUY"
+                            ? `${marketPreview?.estimatedReceiveAmount ?? "-"} ${baseSymbol}`
+                            : `${marketPreview?.estimatedReceivedQuote ?? "-"} ${quoteSymbol}`
+                        }
+                      />
+                      <BalanceTile
+                        label="Est. average"
+                        value={`${marketPreview?.estimatedAveragePrice ?? "-"} ${quoteSymbol}`}
+                      />
+                      <BalanceTile
+                        label="Est. fee"
+                        value={
+                          side === "BUY"
+                            ? `${marketPreview?.estimatedBuyerFee ?? "-"} ${baseSymbol}`
+                            : `${marketPreview?.estimatedSellerFee ?? "-"} ${quoteSymbol}`
+                        }
+                      />
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <BalanceTile
+                        label={
+                          <AssetBalanceLabel
+                            symbol={lockedAssetSymbol}
+                            name={selectedWallet?.displayName ?? selectedWallet?.name}
+                            iconUrl={selectedWallet?.iconUrl}
+                            label="Available"
+                          />
+                        }
+                        value={`${selectedWallet?.available ?? "0"} ${lockedAssetSymbol}`}
+                      />
+                      <BalanceTile
+                        label="Liquidity"
+                        value={
+                          isPreviewLoading
+                            ? "Estimating..."
+                            : marketPreview?.liquidityStatus ?? "-"
+                        }
+                      />
+                    </div>
+
+                    {previewError ? <Notice tone="danger" message={previewError} /> : null}
+                    {marketPreview?.warning ? (
+                      <Notice
+                        tone={marketPreview.liquidityStatus === "NONE" ? "danger" : "info"}
+                        message={marketPreview.warning}
+                      />
+                    ) : null}
+                  </>
+                )}
 
                 <button
                   type="submit"
@@ -426,9 +613,13 @@ export default function TradePage() {
                     ? "Submitting..."
                     : marketStatus === "PAUSED"
                       ? "Market paused"
-                      : side === "BUY"
-                        ? `Buy ${baseSymbol}`
-                        : `Sell ${baseSymbol}`}
+                      : orderType === "MARKET"
+                        ? side === "BUY"
+                          ? `Market Buy ${baseSymbol}`
+                          : `Market Sell ${baseSymbol}`
+                        : side === "BUY"
+                          ? `Buy ${baseSymbol}`
+                          : `Sell ${baseSymbol}`}
                 </button>
               </form>
             </section>
@@ -458,7 +649,7 @@ export default function TradePage() {
                   label={order.status}
                   tone={orderStatusTone(order.status)}
                 />,
-                isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n ? (
+                order.type === "LIMIT" && isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n ? (
                   <button
                     key={`${order.id}-cancel`}
                     type="button"
@@ -649,7 +840,7 @@ function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning"
     return "info";
   }
 
-  if (status === "CANCELLED") {
+  if (status === "CANCELLED" || status === "PARTIAL_FILLED_CANCELLED") {
     return "warning";
   }
 
@@ -662,6 +853,21 @@ function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning"
   }
 
   return "neutral";
+}
+
+function formatMarketOrderSuccess(order: OrderEntry, baseSymbol: string, quoteSymbol: string) {
+  const average = order.averagePrice ?? "-";
+  const fee =
+    order.side === "BUY"
+      ? `${order.feeSummary?.buyerFee ?? "0"} ${order.feeSummary?.buyerFeeAssetSymbol ?? baseSymbol}`
+      : `${order.feeSummary?.sellerFee ?? "0"} ${order.feeSummary?.sellerFeeAssetSymbol ?? quoteSymbol}`;
+  const quoteText =
+    order.side === "BUY"
+      ? `spent ${order.spentQuoteAmount} ${quoteSymbol}`
+      : `received ${order.receivedQuoteAmount ?? "0"} ${quoteSymbol}`;
+  const warning = order.warning ? ` ${order.warning}` : "";
+
+  return `Market ${order.side} ${shortId(order.id)} is ${order.status}. Filled ${order.filledAmount} ${baseSymbol}, ${quoteText}, average ${average} ${quoteSymbol}, fee ${fee}.${warning}`;
 }
 
 function Notice({

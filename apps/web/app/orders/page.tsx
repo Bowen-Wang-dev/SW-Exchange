@@ -67,8 +67,8 @@ export default function OrdersPage() {
           <PageHeader
             eyebrow="Orders"
             title="Order history"
-            description="Review limit orders, filled amounts, remaining amounts, and cancel open or partially filled orders."
-            action={<StatusBadge label="v0.14.1 Live" tone="success" />}
+            description="Review limit and market orders, filled amounts, cancelled remainders, and cancel open limit orders."
+            action={<StatusBadge label="v0.15 Live" tone="success" />}
           />
 
           <MarketFilter
@@ -90,7 +90,7 @@ export default function OrdersPage() {
                   "Market",
                   "Side",
                   "Type",
-                  "Price",
+                  "Price / Avg",
                   "Amount",
                   "Filled",
                   "Remaining",
@@ -103,16 +103,18 @@ export default function OrdersPage() {
                   <MarketCell key={`${order.id}-market`} marketSymbol={order.marketSymbol} />,
                   <SideText key={`${order.id}-side`} side={order.side} />,
                   order.type,
-                  order.price,
+                  order.type === "MARKET" ? order.averagePrice ?? "Market" : order.price,
                   order.amount,
                   order.filledAmount,
-                  order.remainingAmount,
+                  order.type === "MARKET" && order.cancelledQuoteAmount
+                    ? `${order.cancelledQuoteAmount} quote cancelled`
+                    : order.remainingAmount,
                   <StatusBadge
                     key={`${order.id}-status`}
                     label={order.status}
                     tone={orderStatusTone(order.status)}
                   />,
-                  isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n ? (
+                  order.type === "LIMIT" && isOpenOrder(order.status) && BigInt(order.remainingAmountRaw) > 0n ? (
                     <button
                       key={`${order.id}-cancel`}
                       type="button"
@@ -176,7 +178,7 @@ function orderStatusTone(status: OrderStatus): "neutral" | "success" | "warning"
     return "info";
   }
 
-  if (status === "CANCELLED") {
+  if (status === "CANCELLED" || status === "PARTIAL_FILLED_CANCELLED") {
     return "warning";
   }
 

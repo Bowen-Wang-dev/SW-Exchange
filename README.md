@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
+Current completed milestone: `v0.15 Market Orders / Taker Flow`
 
-Next milestone: `v0.15 Market Orders / Taker Flow`
+Next milestone: `Future scope remains uncommitted`
 
 This version is intentionally limited:
 
@@ -12,7 +12,7 @@ This version is intentionally limited:
 - No deposit or withdraw
 - No BSC integration
 - No KYC
-- No market orders
+- No stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
@@ -28,6 +28,7 @@ Current scope:
 - User and admin transfer history
 - Admin ledger and audit log viewer
 - Market-aware limit order placement and cancellation
+- Market order taker flow for immediate BUY/SELL execution
 - Market-aware automatic matching with price-time priority
 - Market-aware trade recording and trade history
 - Market-specific order book grouped by price
@@ -66,6 +67,8 @@ Current scope:
 - Eager zero-balance wallet coverage for new assets across existing users and admin buckets
 - Default fee-setting bootstrap for newly created markets
 - Public `/assets` directory for listed simulation assets
+- Market Buy uses quote spend input and never locks unspent quote long-term
+- Market Sell uses base amount input and only deducts executed sold base
 
 ## Milestone status
 
@@ -85,13 +88,13 @@ Current scope:
 - `v0.13 Admin Asset / Market Creation` completed
 - `v0.14 K-line / Candlestick Chart` completed
 - `v0.14.1 Exchange-style K-line Chart` completed
+- `v0.15 Market Orders / Taker Flow` completed
 
-- Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
-- Next milestone: `v0.15 Market Orders / Taker Flow`
+- Current completed milestone: `v0.15 Market Orders / Taker Flow`
+- Next milestone: `Future scope remains uncommitted`
 
 ## Planned milestones
 
-- `v0.15 Market Orders / Taker Flow`
 - `v1.x Chain Gateway`
 
 ## v0.14 K-line / Candlestick Chart
@@ -125,6 +128,22 @@ SW_EXCHANGE_ALLOW_SIMULATED_TRADES=local-demo-only corepack pnpm exec tsx script
 ```
 
 This helper is not part of normal `db:seed`, only runs with explicit opt-in, and refuses non-local database hosts.
+
+## v0.15 Market Orders / Taker Flow
+
+v0.15 adds exchange-style market orders for all seeded and admin-created spot markets.
+
+- `POST /api/orders` accepts `type: "LIMIT" | "MARKET"`
+- `POST /api/orders/preview` estimates market-order fills from the current order book without mutating balances
+- Market Buy uses a quote spend input such as `quoteAmount: "100"` and consumes the lowest asks first
+- Market Sell uses a base amount input such as `amount: "50"` and consumes the highest bids first
+- Same-price liquidity follows earliest-created order priority
+- Trade price is always the resting maker order price
+- Market orders execute immediately, keep executed fills, cancel any unfilled remainder, and never rest on the order book
+- Partial market fills end as `PARTIAL_FILLED_CANCELLED`
+- No-liquidity market orders return `NO_LIQUIDITY` without balance or trade mutation
+- Buyer fees remain charged in base asset and seller fees remain charged in quote asset
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts are added
 
 ## v0.13 Admin Asset / Market Creation
 

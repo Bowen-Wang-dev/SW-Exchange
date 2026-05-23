@@ -84,6 +84,9 @@ async function main() {
   await testV14CandleFlow(auth, v13Context);
   await resetV08OperationalControls(auth.adminAccessToken);
   await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
+  await testV15MarketOrders(auth);
+  await resetV08OperationalControls(auth.adminAccessToken);
+  await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default after v0.15");
   await testWebRoutes();
   await testWebBuild();
 
@@ -1482,6 +1485,232 @@ async function testV14CandleFlow(
   console.log("PASS v0.14 candle endpoint validation, empty state, and aggregation");
 }
 
+async function testV15MarketOrders(auth: {
+  userAccessToken: string;
+  receiverAccessToken: string;
+  adminAccessToken: string;
+  user: { email: string; username: string };
+  receiver: { email: string; username: string };
+}) {
+  const marketSymbol = "SWL/SWC";
+  const marketQuery = encodeURIComponent(marketSymbol);
+
+  await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "2000", "Smoke v0.15 market buyer SWC");
+  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "300", "Smoke v0.15 market seller SWL");
+
+  const buyFullFeeBefore = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+  const buyFullBuyerBefore = await walletSnapshot(auth.userAccessToken);
+  const buyFullSellerBefore = await walletSnapshot(auth.receiverAccessToken);
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "10");
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "3", "10");
+  const buyFullPreview = await previewMarketOrder(auth.userAccessToken, marketSymbol, "BUY", {
+    quoteAmount: "50",
+  });
+  if (
+    buyFullPreview.liquidityStatus !== "FULL" ||
+    buyFullPreview.estimatedTradeCount !== 2 ||
+    buyFullPreview.estimatedAveragePrice !== "2.5"
+  ) {
+    throw new Error(`Unexpected full market buy preview: ${JSON.stringify(buyFullPreview)}`);
+  }
+  const buyFull = await createMarketOrder(auth.userAccessToken, marketSymbol, "BUY", {
+    quoteAmount: "50",
+  });
+  expectMarketOrderResponse(buyFull, "FILLED", "20", "0", "50", "2.5", 2);
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWC",
+    BigInt(findWallet(buyFullBuyerBefore, "SWC").availableRaw) - units("50"),
+  );
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWL",
+    BigInt(findWallet(buyFullBuyerBefore, "SWL").availableRaw) + units("19.98"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWL",
+    BigInt(findWallet(buyFullSellerBefore, "SWL").availableRaw) - units("20"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWC",
+    BigInt(findWallet(buyFullSellerBefore, "SWC").availableRaw) + units("49.95"),
+  );
+  const buyFullFeeAfter = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+  expectFeeWalletBalanceDelta(buyFullFeeBefore, buyFullFeeAfter, "SWL", units("0.02"));
+  expectFeeWalletBalanceDelta(buyFullFeeBefore, buyFullFeeAfter, "SWC", units("0.05"));
+  await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market buy full fill");
+
+  const buyPartialBuyerBefore = await walletSnapshot(auth.userAccessToken);
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "5");
+  const buyPartialPreview = await previewMarketOrder(auth.userAccessToken, marketSymbol, "BUY", {
+    quoteAmount: "100",
+  });
+  if (buyPartialPreview.liquidityStatus !== "PARTIAL" || !buyPartialPreview.warning) {
+    throw new Error(`Unexpected partial market buy preview: ${JSON.stringify(buyPartialPreview)}`);
+  }
+  const buyPartial = await createMarketOrder(auth.userAccessToken, marketSymbol, "BUY", {
+    quoteAmount: "100",
+  });
+  expectMarketOrderResponse(buyPartial, "PARTIAL_FILLED_CANCELLED", "5", "0", "10", "2", 1);
+  if (buyPartial.cancelledQuoteAmount !== "90" || !buyPartial.warning) {
+    throw new Error(`Partial market buy should report cancelled quote remainder: ${JSON.stringify(buyPartial)}`);
+  }
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWC",
+    BigInt(findWallet(buyPartialBuyerBefore, "SWC").availableRaw) - units("10"),
+  );
+  await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market buy partial fill");
+
+  const sellFullBuyerBefore = await walletSnapshot(auth.userAccessToken);
+  const sellFullSellerBefore = await walletSnapshot(auth.receiverAccessToken);
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "3", "10");
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "10");
+  const sellFullPreview = await previewMarketOrder(auth.receiverAccessToken, marketSymbol, "SELL", {
+    amount: "20",
+  });
+  if (
+    sellFullPreview.liquidityStatus !== "FULL" ||
+    sellFullPreview.estimatedTradeCount !== 2 ||
+    sellFullPreview.estimatedAveragePrice !== "2.5"
+  ) {
+    throw new Error(`Unexpected full market sell preview: ${JSON.stringify(sellFullPreview)}`);
+  }
+  const sellFull = await createMarketOrder(auth.receiverAccessToken, marketSymbol, "SELL", {
+    amount: "20",
+  });
+  expectMarketOrderResponse(sellFull, "FILLED", "20", "0", "50", "2.5", 2);
+  if (sellFull.receivedQuoteAmount !== "49.95") {
+    throw new Error(`Full market sell should report net received quote: ${JSON.stringify(sellFull)}`);
+  }
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWL",
+    BigInt(findWallet(sellFullSellerBefore, "SWL").availableRaw) - units("20"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWC",
+    BigInt(findWallet(sellFullSellerBefore, "SWC").availableRaw) + units("49.95"),
+  );
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWL",
+    BigInt(findWallet(sellFullBuyerBefore, "SWL").availableRaw) + units("19.98"),
+  );
+  await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market sell full fill");
+
+  const sellPartialSellerBefore = await walletSnapshot(auth.receiverAccessToken);
+  await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "5");
+  const sellPartial = await createMarketOrder(auth.receiverAccessToken, marketSymbol, "SELL", {
+    amount: "20",
+  });
+  expectMarketOrderResponse(sellPartial, "PARTIAL_FILLED_CANCELLED", "5", "15", "10", "2", 1);
+  if (sellPartial.cancelledAmount !== "15" || !sellPartial.warning) {
+    throw new Error(`Partial market sell should report cancelled base remainder: ${JSON.stringify(sellPartial)}`);
+  }
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    "SWL",
+    BigInt(findWallet(sellPartialSellerBefore, "SWL").availableRaw) - units("5"),
+  );
+  await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market sell partial fill");
+
+  const isolatedAssetSymbol = `M${Date.now().toString().slice(-5)}`;
+  const isolatedMarketSymbol = `${isolatedAssetSymbol}/SWC`;
+  const isolatedMarketQuery = encodeURIComponent(isolatedMarketSymbol);
+  await postJson(
+    `${apiBaseUrl}/admin/assets`,
+    auth.adminAccessToken,
+    {
+      symbol: isolatedAssetSymbol,
+      name: "Smoke Market Order Asset",
+      decimals: 18,
+      status: "ACTIVE",
+      description: "Smoke v0.15 market order asset",
+    },
+    "create v0.15 market order asset",
+  );
+  await postJson(
+    `${apiBaseUrl}/admin/markets`,
+    auth.adminAccessToken,
+    {
+      baseAssetSymbol: isolatedAssetSymbol,
+      quoteAssetSymbol: "SWC",
+      status: "ACTIVE",
+      pricePrecision: 18,
+      amountPrecision: 18,
+      minOrderAmount: "0.1",
+      minNotional: "1",
+    },
+    "create v0.15 market order market",
+  );
+  await airdrop(auth.adminAccessToken, auth.receiver.username, isolatedAssetSymbol, "20", "Smoke v0.15 isolated seller asset");
+
+  const noLiquidityBuyerBefore = await walletSnapshot(auth.userAccessToken);
+  const noLiquiditySellerBefore = await walletSnapshot(auth.receiverAccessToken);
+  const noLiquidityPreview = await previewMarketOrder(auth.userAccessToken, isolatedMarketSymbol, "BUY", {
+    quoteAmount: "10",
+  });
+  if (noLiquidityPreview.liquidityStatus !== "NONE") {
+    throw new Error(`Expected no-liquidity preview, got ${JSON.stringify(noLiquidityPreview)}`);
+  }
+  await expectMarketOrderRejected(auth.userAccessToken, isolatedMarketSymbol, "BUY", {
+    quoteAmount: "10",
+  });
+  await expectMarketOrderRejected(auth.receiverAccessToken, isolatedMarketSymbol, "SELL", {
+    amount: "1",
+  });
+  await assertExactWallet(
+    auth.userAccessToken,
+    "SWC",
+    BigInt(findWallet(noLiquidityBuyerBefore, "SWC").availableRaw),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    isolatedAssetSymbol,
+    BigInt(findWallet(noLiquiditySellerBefore, isolatedAssetSymbol).availableRaw),
+  );
+
+  const isolatedAsk = await createOrder(auth.receiverAccessToken, isolatedMarketSymbol, "SELL", "1", "5");
+  await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "4", "1");
+  const isolatedBookBefore = await getJson<{ asks: Array<{ amount: string }> }>(
+    `${apiBaseUrl}/order-book?marketSymbol=${isolatedMarketQuery}`,
+    auth.userAccessToken,
+    "load isolated book before market isolation check",
+  );
+  if (isolatedBookBefore.asks.length !== 1) {
+    throw new Error("Expected isolated market ask before market isolation check.");
+  }
+  const isolatedCheckBuy = await createMarketOrder(auth.userAccessToken, marketSymbol, "BUY", {
+    quoteAmount: "4",
+  });
+  expectMarketOrderResponse(isolatedCheckBuy, "FILLED", "1", "0", "4", "4", 1);
+  await expectAdminOrderStatus(auth.adminAccessToken, isolatedAsk.id, "OPEN", "5");
+  const isolatedBookAfter = await getJson<{ asks: Array<{ amount: string }> }>(
+    `${apiBaseUrl}/order-book?marketSymbol=${isolatedMarketQuery}`,
+    auth.userAccessToken,
+    "load isolated book after market isolation check",
+  );
+  if (isolatedBookAfter.asks.length !== 1 || isolatedBookAfter.asks[0]?.amount !== "5") {
+    throw new Error("Market order in SWL/SWC should not consume isolated-market liquidity.");
+  }
+  await cancelOrder(auth.receiverAccessToken, isolatedAsk.id);
+
+  const userOpenOrders = await getJson<Array<{ id: string; type: string }>>(
+    `${apiBaseUrl}/orders/me?marketSymbol=${marketQuery}&status=OPEN`,
+    auth.userAccessToken,
+    "load v0.15 user open orders",
+  );
+  if (userOpenOrders.some((order) => order.type === "MARKET")) {
+    throw new Error("Market orders should not appear as open user orders.");
+  }
+
+  console.log("PASS v0.15 market orders, taker flow, preview, partial cancel, no liquidity, and market isolation");
+}
+
 async function testWebBuild() {
   const previousWebNextEnv = await readFile(webNextEnvPath, "utf8");
   const previousWebTsconfig = await readFile(webTsconfigPath, "utf8");
@@ -1984,6 +2213,90 @@ async function createOrder(
   };
 }
 
+type MarketOrderSmokeResponse = {
+  id: string;
+  status: string;
+  side: string;
+  type: "MARKET";
+  amount: string;
+  filledAmount: string;
+  remainingAmount: string;
+  spentQuoteAmount: string;
+  receivedQuoteAmount: string | null;
+  cancelledQuoteAmount: string | null;
+  cancelledAmount: string | null;
+  averagePrice: string | null;
+  tradeCount: number;
+  warning: string | null;
+};
+
+async function createMarketOrder(
+  accessToken: string,
+  marketSymbol: string,
+  side: "BUY" | "SELL",
+  input: { quoteAmount?: string; amount?: string },
+) {
+  const response = await fetch(`${apiBaseUrl}/orders`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ marketSymbol, side, type: "MARKET", ...input }),
+  });
+  assertOk(response, `create ${side} market order`);
+  return (await response.json()) as MarketOrderSmokeResponse;
+}
+
+async function previewMarketOrder(
+  accessToken: string,
+  marketSymbol: string,
+  side: "BUY" | "SELL",
+  input: { quoteAmount?: string; amount?: string },
+) {
+  const response = await fetch(`${apiBaseUrl}/orders/preview`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ marketSymbol, side, type: "MARKET", ...input }),
+  });
+  assertOk(response, `preview ${side} market order`);
+  return (await response.json()) as {
+    liquidityStatus: "FULL" | "PARTIAL" | "NONE";
+    estimatedAveragePrice: string | null;
+    estimatedTradeCount: number;
+    warning: string | null;
+  };
+}
+
+async function expectMarketOrderRejected(
+  accessToken: string,
+  marketSymbol: string,
+  side: "BUY" | "SELL",
+  input: { quoteAmount?: string; amount?: string },
+) {
+  const response = await fetch(`${apiBaseUrl}/orders`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ marketSymbol, side, type: "MARKET", ...input }),
+  });
+  if (response.status !== 400) {
+    throw new Error(`Expected no-liquidity ${side} market order to be rejected with 400, got ${response.status}.`);
+  }
+  const { message, hasStack } = await readErrorPayload(response);
+  if (message !== "NO_LIQUIDITY") {
+    throw new Error(`Expected market order rejection message NO_LIQUIDITY, got ${message ?? "no message"}.`);
+  }
+  if (hasStack) {
+    throw new Error("Market order rejection should not expose stack traces.");
+  }
+}
+
 async function expectCreateOrderRejected(
   accessToken: string,
   marketSymbol: string,
@@ -2086,6 +2399,35 @@ function expectTradeResponse(
     throw new Error(
       `Unexpected order amounts: filled=${order.filledAmount} remaining=${order.remainingAmount}`,
     );
+  }
+}
+
+function expectMarketOrderResponse(
+  order: MarketOrderSmokeResponse,
+  expectedStatus: string,
+  expectedFilled: string,
+  expectedRemaining: string,
+  expectedSpentQuote: string,
+  expectedAveragePrice: string,
+  expectedTradeCount: number,
+) {
+  expectTradeResponse(order, expectedStatus, expectedFilled, expectedRemaining);
+  if (
+    order.spentQuoteAmount !== expectedSpentQuote ||
+    order.averagePrice !== expectedAveragePrice ||
+    order.tradeCount !== expectedTradeCount
+  ) {
+    throw new Error(`Unexpected market order response: ${JSON.stringify(order)}`);
+  }
+}
+
+async function expectOrderBookEmpty(accessToken: string, marketQuery: string, label: string) {
+  const orderBook = await getJson<{
+    bids: Array<{ priceRaw: string; amountRaw: string }>;
+    asks: Array<{ priceRaw: string; amountRaw: string }>;
+  }>(`${apiBaseUrl}/order-book?marketSymbol=${marketQuery}`, accessToken, `load order book after ${label}`);
+  if (orderBook.bids.length !== 0 || orderBook.asks.length !== 0) {
+    throw new Error(`Order book should be empty after ${label}.`);
   }
 }
 

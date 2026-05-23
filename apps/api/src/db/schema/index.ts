@@ -34,11 +34,12 @@ export const ledgerEntryTypeEnum = pgEnum("ledger_entry_type", [
 export const transferStatusEnum = pgEnum("transfer_status", ["SUCCESS", "FAILED"]);
 export const marketStatusEnum = pgEnum("market_status", ["ACTIVE", "PAUSED"]);
 export const orderSideEnum = pgEnum("order_side", ["BUY", "SELL"]);
-export const orderTypeEnum = pgEnum("order_type", ["LIMIT"]);
+export const orderTypeEnum = pgEnum("order_type", ["LIMIT", "MARKET"]);
 export const orderStatusEnum = pgEnum("order_status", [
   "OPEN",
   "PARTIAL_FILLED",
   "FILLED",
+  "PARTIAL_FILLED_CANCELLED",
   "CANCELLED",
   "REJECTED",
 ]);
@@ -212,6 +213,19 @@ export const orders = pgTable("orders", {
     .notNull()
     .default(sql`0`),
   remainingAmount: numeric("remaining_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  requestedQuoteAmount: numeric("requested_quote_amount", {
+    precision: 78,
+    scale: 0,
+    mode: "bigint",
+  })
+    .notNull()
+    .default(sql`0`),
+  spentQuoteAmount: numeric("spent_quote_amount", { precision: 78, scale: 0, mode: "bigint" })
+    .notNull()
+    .default(sql`0`),
+  averagePrice: numeric("average_price", { precision: 78, scale: 0, mode: "bigint" })
     .notNull()
     .default(sql`0`),
   lockedAssetId: uuid("locked_asset_id")

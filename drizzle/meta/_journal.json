@@ -64,6 +64,13 @@
       "when": 1779026259414,
       "tag": "0008_freezing_senator_kelly",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1779547017614,
+      "tag": "0009_tough_rogue",
+      "breakpoints": true
     }
   ]
 }

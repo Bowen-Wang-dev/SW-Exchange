@@ -1,4 +1,4 @@
-import { IsIn, IsString, MaxLength } from "class-validator";
+import { IsIn, IsOptional, IsString, MaxLength } from "class-validator";
 
 export class CreateOrderDto {
   @IsString()
@@ -9,11 +9,28 @@ export class CreateOrderDto {
   @IsIn(["BUY", "SELL"])
   side!: "BUY" | "SELL";
 
+  @IsOptional()
   @IsString()
-  @MaxLength(128)
-  price!: string;
+  @IsIn(["LIMIT", "MARKET"])
+  type?: "LIMIT" | "MARKET";
 
+  @IsOptional()
   @IsString()
   @MaxLength(128)
-  amount!: string;
+  price?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  amount?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  quoteAmount?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  spendAmount?: string;
 }

@@ -61,7 +61,7 @@ export default function TradesPage() {
             eyebrow="Trades"
             title="Executed trade history"
             description={TRADE_HISTORY_COPY}
-            action={<StatusBadge label="v0.14.1 Live" tone="success" />}
+            action={<StatusBadge label="v0.15 Live" tone="success" />}
           />
 
           <MarketFilter

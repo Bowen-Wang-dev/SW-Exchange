@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.14.1 Exchange-style K-line Chart`
+Current completed milestone: `v0.15 Market Orders / Taker Flow`
 
-Next milestone: `v0.15 Market Orders / Taker Flow`
+Next milestone: `Future scope remains uncommitted`
 
 ### v0.1 Foundation - Completed
 
@@ -208,14 +208,19 @@ Next milestone: `v0.15 Market Orders / Taker Flow`
 - Empty markets still show the no-trades K-line state
 - No technical indicators, depth chart, market orders, deposit, withdraw, blockchain integration, or chain addresses are implemented
 
-### v0.15 Market Orders / Taker Flow - Planned
+### v0.15 Market Orders / Taker Flow - Completed
 
-- Market buy
-- Market sell
-- Liquidity checks
-- Estimated receive
-- Slippage warning
-- No fake fills if liquidity is insufficient
+- `POST /api/orders` supports `type: LIMIT | MARKET`
+- Market Buy accepts quote spend input and consumes lowest asks first
+- Market Sell accepts base amount input and consumes highest bids first
+- Same-price matching still uses earliest-created order priority
+- Trade price remains the resting maker order price
+- Executed market-order fills settle immediately with existing buyer base-asset fees and seller quote-asset fees
+- Unfilled market-order remainder is automatically cancelled and never rests on the order book
+- Partial market fills use `PARTIAL_FILLED_CANCELLED`
+- `POST /api/orders/preview` estimates fill amount, quote spend/receive, average price, fees, trade count, and liquidity status without mutating balances
+- No-liquidity market orders return `NO_LIQUIDITY` without balance or trade mutation
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts are implemented
 
 ### v1.x Chain Gateway - Planned
 
@@ -226,4 +231,4 @@ Next milestone: `v0.15 Market Orders / Taker Flow`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.14.1
+- No blockchain feature is implemented in v0.15

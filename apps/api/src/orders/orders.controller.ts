@@ -11,7 +11,12 @@ export class OrdersController {
 
   @Post()
   create(@Req() request: AuthenticatedRequest, @Body() dto: CreateOrderDto) {
-    return this.ordersService.createLimitOrder(request.user.sub, dto);
+    return this.ordersService.createOrder(request.user.sub, dto);
+  }
+
+  @Post("preview")
+  preview(@Req() request: AuthenticatedRequest, @Body() dto: CreateOrderDto) {
+    return this.ordersService.previewOrder(request.user.sub, dto);
   }
 
   @Get("me")
