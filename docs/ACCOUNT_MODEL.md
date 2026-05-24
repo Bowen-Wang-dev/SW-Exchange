@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.17 Professional Trading Terminal Layout`
+Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
 
 ## Account Status
 
@@ -38,6 +38,7 @@ v0.16 adds exchange-style market selection, order confirmation, market-order ris
 v0.16.2 adds exchange-style market browsing and navigation polish without changing wallet buckets, transfer rules, matching behavior, or fee-asset rules.
 v0.16.3 removes horizontal-scroll-heavy exchange layouts without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 v0.17 reshapes `/trade` into a denser professional terminal layout without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
+v0.17.2 improves Dashboard and Wallet portfolio asset sorting, filtering, search, and related-market navigation without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 
 ## Asset Metadata
 
@@ -60,6 +61,7 @@ Portfolio valuation is informational only and does not move wallet balances.
 - Available and locked balances are both included in each asset total
 - If no market price exists for a non-SWC asset, that asset valuation remains pending and total equity excludes it
 - No fake prices are generated
+- Dashboard and Wallet filters are display-only and never mutate balances or valuation data
 
 ## Transfers
 

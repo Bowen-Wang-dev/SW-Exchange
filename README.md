@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.17 Professional Trading Terminal Layout`
+Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
 
-Next milestone: `Future scope remains uncommitted`
+Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
 This version is intentionally limited:
 
@@ -54,6 +54,8 @@ Current scope:
 - Last price, 24h high/low/volume/quote volume/change from settled trades
 - User portfolio valuation in `SWC` using real balances and latest available `*/SWC` market prices
 - Wallet estimated value column for priced assets
+- Sortable, searchable Dashboard and Wallet asset displays with hide-zero and hide-dust controls
+- Trade links from portfolio assets to active related markets where available
 - Admin market summary card for last price, 24h volume, open orders, and total trades
 - Asset metadata fields for display name, icon URL, icon source, sort order, and description
 - Clean fallback asset icons across user and admin asset displays
@@ -100,13 +102,35 @@ Current scope:
 - `v0.16.2 Exchange UI Polish` completed
 - `v0.16.3 Exchange Layout Polish` completed
 - `v0.17 Professional Trading Terminal Layout` completed
+- `v0.17.1 Smoke Idempotency / Local DB Test Stability` completed
+- `v0.17.2 Portfolio / Asset Display Polish` completed
 
-- Current completed milestone: `v0.17 Professional Trading Terminal Layout`
-- Next milestone: `Future scope remains uncommitted`
+- Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
+- Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
 ## Planned milestones
 
 - `v1.x Chain Gateway`
+
+## v0.17.2 Portfolio / Asset Display Polish
+
+v0.17.2 improves Dashboard and Wallet portfolio scanning while keeping backend trading and wallet behavior unchanged.
+
+- Dashboard and Wallet asset displays now support sorting by estimated value, token amount, symbol, available balance, and locked balance
+- Asset search works by symbol, name, and display name
+- Hide-zero and hide-`< 1 SWC` controls keep larger portfolios readable while leaving unpriced assets visible
+- Asset rows show icon, symbol, display name, available, locked, total, estimated price, and estimated SWC value without relying on horizontal scroll
+- Assets with active related markets show a Trade link to `/trade?market=...`, preferring `BASE/SWC` markets when available
+- No matching logic, market-order behavior, fee rules, wallet rules, schema, deposit, withdraw, blockchain integration, or new order types were changed
+
+## v0.17.1 Smoke Idempotency / Local DB Test Stability
+
+v0.17.1 makes local smoke checks repeatable against reused development databases.
+
+- Smoke fee, matching, market-data, and market-order scenarios use per-run assets and markets where deterministic isolation matters
+- Assertions are scoped to smoke-created users, orders, markets, and trades instead of global seeded-market state
+- Repeated smoke runs no longer depend on the seeded `SWL/SWC` order book being empty
+- No product behavior, API behavior, schema, matching logic, fee logic, wallet rules, or transfer rules were changed
 
 ## v0.14 K-line / Candlestick Chart
 

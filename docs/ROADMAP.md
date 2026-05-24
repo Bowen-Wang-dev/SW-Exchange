@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.17 Professional Trading Terminal Layout`
+Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
 
-Next milestone: `Future scope remains uncommitted`
+Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
 ### v0.1 Foundation - Completed
 
@@ -16,6 +16,22 @@ Next milestone: `Future scope remains uncommitted`
 - PostgreSQL and Drizzle ORM setup
 - Docker Compose local database workflow
 - Seed script and smoke test
+
+### v0.17.2 Portfolio / Asset Display Polish - Completed
+
+- Dashboard and Wallet asset displays support sorting by estimated value, token amount, symbol, available balance, and locked balance
+- Asset search works by symbol, asset name, and display name
+- Hide-zero and hide-`< 1 SWC` controls reduce clutter without incorrectly hiding unpriced assets
+- Asset rows show icon, symbol, display name, available, locked, total, estimated price, estimated value, and related Trade action when an active market exists
+- Portfolio summary cards make total equity, visible balances, locked balances, priced assets, and valuation-pending states easier to scan
+- No matching logic, market-order behavior, fee rules, wallet rules, schema, deposit, withdraw, blockchain integration, or new order types are added
+
+### v0.17.1 Smoke Idempotency / Local DB Test Stability - Completed
+
+- Smoke scenarios use per-run assets and markets for fee, matching, market-data, and market-order isolation
+- Assertions are scoped to smoke-created users, orders, markets, and trades
+- Reused local DBs no longer need a manually empty seeded `SWL/SWC` order book for smoke to pass
+- No product behavior, API behavior, matching logic, fee rules, wallet rules, transfer rules, schema, or migrations changed
 
 ### v0.2 Auth + CEX UI Shell - Completed
 

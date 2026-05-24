@@ -1,39 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { PortfolioAssetPanel } from "@/components/portfolio/portfolio-asset-panel";
 import { PageHeader } from "@/components/shell/page-header";
-import { AssetIdentity } from "@/components/ui/asset-icon";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
-import type { PortfolioValuation, PortfolioValuationAsset } from "@/lib/api-types";
+import type { MarketSummary, PortfolioValuation } from "@/lib/api-types";
 import { CURRENT_MILESTONE_VERSION, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardContent() {
   const { user } = useAuth();
   const [valuation, setValuation] = useState<PortfolioValuation | null>(null);
+  const [markets, setMarkets] = useState<MarketSummary[]>([]);
 
   useEffect(() => {
     let active = true;
 
-    async function loadValuation() {
+    async function loadPortfolio() {
       try {
-        const response = await apiRequest<PortfolioValuation>("/wallets/me/valuation");
+        const [valuationResponse, marketResponse] = await Promise.all([
+          apiRequest<PortfolioValuation>("/wallets/me/valuation"),
+          apiRequest<MarketSummary[]>("/markets/summary"),
+        ]);
         if (active) {
-          setValuation(response);
+          setValuation(valuationResponse);
+          setMarkets(marketResponse);
         }
       } catch {
         if (active) {
           setValuation(null);
+          setMarkets([]);
         }
       }
     }
 
-    void loadValuation();
+    void loadPortfolio();
 
     const intervalId = window.setInterval(() => {
-      void loadValuation();
+      void loadPortfolio();
     }, 5000);
 
     return () => {
@@ -52,6 +58,8 @@ export function DashboardContent() {
   const baseValue = primaryBaseAsset?.valueInSWC;
   const totalEquity = `${valuation?.totalEquity ?? "0"} SWC`;
   const valuationPending = Boolean(valuation?.hasUnpricedAssets);
+  const visibleNonZeroAssets = valuationAssets.filter((asset) => BigInt(asset.totalRaw) > 0n).length;
+  const lockedAssets = valuationAssets.filter((asset) => BigInt(asset.lockedRaw) > 0n).length;
 
   return (
     <div className="space-y-4">
@@ -98,15 +106,19 @@ export function DashboardContent() {
           tone="warning"
         />
         <StatCard
-          label="24h PnL"
-          badgeLabel="Coming Soon"
-          value="Not live"
-          hint="PnL will be added after trading and pricing milestones."
-          tone="neutral"
+          label="Active Assets"
+          badgeLabel="Portfolio"
+          value={`${visibleNonZeroAssets} active`}
+          hint={
+            lockedAssets > 0
+              ? `${lockedAssets} asset${lockedAssets === 1 ? "" : "s"} include locked balances in open orders.`
+              : "No locked balances in the visible portfolio snapshot."
+          }
+          tone={lockedAssets > 0 ? "warning" : "neutral"}
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
         <section className="panel rounded-3xl p-5">
           <div className="flex items-center justify-between">
             <div>
@@ -138,76 +150,14 @@ export function DashboardContent() {
           </div>
         </section>
 
-        <section className="panel rounded-3xl p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
-                Portfolio Value
-              </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Asset valuation</h2>
-            </div>
-            <StatusBadge label={`${valuationAssets.length} Assets`} tone="info" />
-          </div>
-
-          <div className="mt-5 grid gap-3">
-            {valuationAssets.length > 0 ? (
-              valuationAssets.map((asset) => <AssetValuationRow key={asset.assetSymbol} asset={asset} />)
-            ) : (
-              <div className="rounded-2xl border border-[var(--border)] bg-white/[0.02] px-4 py-5 text-sm text-[var(--foreground-muted)]">
-                No portfolio assets to display yet.
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function AssetValuationRow({ asset }: { asset: PortfolioValuationAsset }) {
-  const note =
-    asset.assetSymbol === "SWC"
-      ? "Quote asset; valued at 1 SWC."
-      : asset.priceInSWC === null
-        ? `${asset.assetSymbol} valuation pending until trades exist.`
-        : "Valued from the latest market trade vs SWC.";
-
-  return (
-    <article className="rounded-2xl border border-[var(--border)] bg-white/[0.025] px-4 py-3">
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.9fr)] lg:items-center">
-        <AssetIdentity
-          symbol={asset.assetSymbol}
-          name={asset.assetName}
-          displayName={asset.displayName}
-          iconUrl={asset.iconUrl}
+        <PortfolioAssetPanel
+          assets={valuationAssets}
+          markets={markets}
+          storageKey="swx-dashboard-portfolio-assets"
+          eyebrow="Portfolio Value"
+          title="Asset valuation"
         />
-
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <MiniValue label="Total" value={`${asset.total} ${asset.assetSymbol}`} />
-          <MiniValue label="Price" value={asset.assetSymbol === "SWC" ? "1 SWC" : `${asset.priceInSWC ?? "—"} SWC`} />
-        </div>
-
-        <div className="lg:text-right">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
-            Value in SWC
-          </p>
-          <p className="mt-1 break-words text-sm font-semibold text-white">
-            {asset.valueInSWC ? `${asset.valueInSWC} SWC` : "—"}
-          </p>
-        </div>
       </div>
-      <p className="mt-2 text-xs leading-relaxed text-[var(--foreground-muted)]">{note}</p>
-    </article>
-  );
-}
-
-function MiniValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">{label}</p>
-      <p className="mt-1 truncate text-sm font-medium text-[var(--foreground-soft)]" title={value}>
-        {value}
-      </p>
     </div>
   );
 }

@@ -1,12 +1,49 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.17 Professional Trading Terminal Layout`
+Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
 
-Next milestone: `Future scope remains uncommitted`
+Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
 ## Upcoming plan
 
+- `v0.17.3 Markets Sorting / Favorites Polish`
 - `v1.x Chain Gateway`
+
+## v0.17.2 Portfolio / Asset Display Polish
+
+This milestone keeps wallet and trading behavior unchanged while making Dashboard and Wallet asset displays easier to scan as more assets are listed.
+
+### Highlights
+
+- Dashboard and Wallet now share sortable, searchable portfolio asset rows
+- Sort options include estimated value, token amount, symbol, available balance, and locked balance
+- Hide-zero and hide-`< 1 SWC` filters reduce clutter without hiding unpriced assets as dust
+- Asset rows show icon, symbol, display name, available, locked, total, estimated price, estimated SWC value, and a Trade action when an active related market exists
+- Portfolio summary cards call out total equity, visible non-zero balances, locked balances, priced assets, and pending valuations
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.17.2
+- Matching logic, fee calculation, transfer rules, wallet rules, market-order behavior, and API behavior are intentionally unchanged
+- This milestone is a frontend portfolio display polish pass
+
+## v0.17.1 Smoke Idempotency / Local DB Test Stability
+
+This milestone makes local smoke checks repeatable against reused development databases.
+
+### Highlights
+
+- Smoke fee, matching, market-data, and market-order scenarios use per-run assets and markets where deterministic isolation matters
+- Smoke assertions are scoped to smoke-created users, orders, markets, and trades
+- The smoke suite avoids assuming global seeded-market balances, order books, or trade lists are empty
+- Smoke was verified twice back-to-back against a reused local database
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.17.1
+- Product behavior, API behavior, matching logic, fee calculation, wallet rules, and transfer rules are intentionally unchanged
+- This milestone is a test/tooling stability pass
 
 ## v0.17 Professional Trading Terminal Layout
 
