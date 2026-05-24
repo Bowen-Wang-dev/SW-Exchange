@@ -1,13 +1,34 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
+Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
-Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+Next milestone: `v0.17.4 Trading Interaction Polish`
 
 ## Upcoming plan
 
-- `v0.17.3 Markets Sorting / Favorites Polish`
+- `v0.17.4 Trading Interaction Polish`
 - `v1.x Chain Gateway`
+
+## v0.17.3 Markets Sorting / Favorites Polish
+
+This milestone keeps market data and trading behavior unchanged while making `/markets` feel more like an exchange market center.
+
+### Highlights
+
+- `/markets` now supports sorting by 24h volume, 24h change, last price, symbol, best bid, best ask, and newly listed
+- Market search covers symbol, base/quote assets, asset names, and display names
+- Quote-asset, status, and favorites-only filters compose with sorting and search
+- Favorites are stored locally in `localStorage` with star buttons that do not trigger row navigation
+- Compact overview sections cover Favorites, Top Gainers, Top Losers, Trending, and Newly Listed markets
+- Full market rows are clickable exchange-style rows with pair icons, last price, 24h change, 24h volume, bid/ask, paused badge, favorite star, and Trade affordance
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.17.3
+- Matching logic, fee calculation, transfer rules, wallet rules, market-order behavior, and API behavior are intentionally unchanged
+- Favorites and market display preferences are local browser state only
+- This milestone is a frontend market discovery polish pass
 
 ## v0.17.2 Portfolio / Asset Display Polish
 

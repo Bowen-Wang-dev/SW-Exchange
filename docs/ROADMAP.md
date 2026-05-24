@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
+Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
-Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+Next milestone: `v0.17.4 Trading Interaction Polish`
 
 ### v0.1 Foundation - Completed
 
@@ -16,6 +16,16 @@ Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 - PostgreSQL and Drizzle ORM setup
 - Docker Compose local database workflow
 - Seed script and smoke test
+
+### v0.17.3 Markets Sorting / Favorites Polish - Completed
+
+- `/markets` supports sorting by 24h volume, 24h change, last price, symbol, best bid, best ask, and newly listed
+- Market search covers symbols, base/quote assets, asset names, and display names
+- Quote, status, and favorites-only filters compose with sorting and search
+- Local favorites persist in `localStorage` and can be toggled without row navigation
+- Compact overview sections show Favorites, Top Gainers, Top Losers, Trending, and Newly Listed markets
+- Full market rows are clickable and avoid horizontal scrolling as the primary layout solution
+- No matching logic, market-order behavior, fee rules, wallet rules, schema, deposit, withdraw, blockchain integration, or new order types are added
 
 ### v0.17.2 Portfolio / Asset Display Polish - Completed
 

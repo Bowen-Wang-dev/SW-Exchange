@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
@@ -11,15 +13,51 @@ import type { MarketRow, MarketSummary } from "@/lib/api-types";
 import { REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 
 const POLL_INTERVAL_MS = 5000;
+const MARKET_PREFS_STORAGE_KEY = "swx-market-center-prefs";
+const MARKET_FAVORITES_STORAGE_KEY = "swx-market-favorites";
+
+type MarketSortKey =
+  | "volume-desc"
+  | "change-desc"
+  | "price-desc"
+  | "symbol-asc"
+  | "bid-desc"
+  | "ask-desc"
+  | "newest-desc";
+type MarketStatusFilter = "ALL" | "ACTIVE" | "PAUSED";
 
 type MarketOverviewRow = MarketSummary & {
   createdAt?: string;
   listIndex: number;
 };
 
+type MarketPrefs = {
+  sortKey?: MarketSortKey;
+  quoteFilter?: string;
+  statusFilter?: MarketStatusFilter;
+  favoritesOnly?: boolean;
+};
+
+const MARKET_SORT_OPTIONS: Array<{ value: MarketSortKey; label: string }> = [
+  { value: "volume-desc", label: "24h Volume" },
+  { value: "change-desc", label: "24h Change" },
+  { value: "price-desc", label: "Last Price" },
+  { value: "symbol-asc", label: "Symbol A-Z" },
+  { value: "bid-desc", label: "Best Bid" },
+  { value: "ask-desc", label: "Best Ask" },
+  { value: "newest-desc", label: "Newly Listed" },
+];
+
 export default function MarketsPage() {
   const [marketRows, setMarketRows] = useState<MarketRow[]>([]);
   const [marketSummaries, setMarketSummaries] = useState<MarketSummary[]>([]);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<MarketSortKey>("volume-desc");
+  const [quoteFilter, setQuoteFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<MarketStatusFilter>("ALL");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [favoriteMarkets, setFavoriteMarkets] = useState<string[]>([]);
+  const [hasLoadedPrefs, setHasLoadedPrefs] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -53,14 +91,103 @@ export default function MarketsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    try {
+      const storedPrefs = window.localStorage.getItem(MARKET_PREFS_STORAGE_KEY);
+      if (storedPrefs) {
+        const prefs = JSON.parse(storedPrefs) as MarketPrefs;
+        if (prefs.sortKey && MARKET_SORT_OPTIONS.some((option) => option.value === prefs.sortKey)) {
+          setSortKey(prefs.sortKey);
+        }
+        if (typeof prefs.quoteFilter === "string") {
+          setQuoteFilter(prefs.quoteFilter);
+        }
+        if (prefs.statusFilter && ["ALL", "ACTIVE", "PAUSED"].includes(prefs.statusFilter)) {
+          setStatusFilter(prefs.statusFilter);
+        }
+        if (typeof prefs.favoritesOnly === "boolean") {
+          setFavoritesOnly(prefs.favoritesOnly);
+        }
+      }
+
+      const storedFavorites = window.localStorage.getItem(MARKET_FAVORITES_STORAGE_KEY);
+      if (storedFavorites) {
+        const favorites = JSON.parse(storedFavorites) as unknown;
+        if (Array.isArray(favorites)) {
+          setFavoriteMarkets(favorites.filter((item): item is string => typeof item === "string"));
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(MARKET_PREFS_STORAGE_KEY);
+      window.localStorage.removeItem(MARKET_FAVORITES_STORAGE_KEY);
+    } finally {
+      setHasLoadedPrefs(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedPrefs) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      MARKET_PREFS_STORAGE_KEY,
+      JSON.stringify({ sortKey, quoteFilter, statusFilter, favoritesOnly }),
+    );
+  }, [favoritesOnly, hasLoadedPrefs, quoteFilter, sortKey, statusFilter]);
+
+  useEffect(() => {
+    if (!hasLoadedPrefs) {
+      return;
+    }
+
+    window.localStorage.setItem(MARKET_FAVORITES_STORAGE_KEY, JSON.stringify(favoriteMarkets));
+  }, [favoriteMarkets, hasLoadedPrefs]);
+
   const markets = useMemo(
     () => mergeMarkets(marketRows, marketSummaries),
     [marketRows, marketSummaries],
   );
+  const favoriteSet = useMemo(() => new Set(favoriteMarkets), [favoriteMarkets]);
+  const quoteOptions = useMemo(
+    () => ["ALL", ...Array.from(new Set(markets.map((market) => market.quoteAssetSymbol).filter(Boolean))).sort()],
+    [markets],
+  );
   const activeMarkets = markets.filter((market) => market.status === "ACTIVE");
-  const topGainers = [...activeMarkets].sort(compareByChangeDesc).slice(0, 3);
-  const newlyListed = [...markets].sort(compareByCreatedAtDesc).slice(0, 3);
-  const trending = [...activeMarkets].sort(compareByVolumeDesc).slice(0, 3);
+  const favoriteOverviewMarkets = markets
+    .filter((market) => favoriteSet.has(market.marketSymbol))
+    .sort((left, right) => left.marketSymbol.localeCompare(right.marketSymbol))
+    .slice(0, 4);
+  const topGainers = [...activeMarkets].sort(compareByChangeDesc).slice(0, 4);
+  const topLosers = activeMarkets
+    .filter((market) => hasSortableNumber(market.change24hPercent))
+    .sort(compareByChangeAsc)
+    .slice(0, 4);
+  const newlyListed = [...markets].sort(compareByCreatedAtDesc).slice(0, 4);
+  const trending = [...activeMarkets].sort(compareByVolumeDesc).slice(0, 4);
+  const visibleMarkets = useMemo(
+    () =>
+      filterAndSortMarkets(markets, {
+        search,
+        sortKey,
+        quoteFilter,
+        statusFilter,
+        favoritesOnly,
+        favoriteSet,
+      }),
+    [favoriteSet, favoritesOnly, markets, quoteFilter, search, sortKey, statusFilter],
+  );
+  const hiddenCount = Math.max(0, markets.length - visibleMarkets.length);
+
+  function toggleFavorite(marketSymbol: string) {
+    setFavoriteMarkets((current) => {
+      if (current.includes(marketSymbol)) {
+        return current.filter((symbol) => symbol !== marketSymbol);
+      }
+
+      return [...current, marketSymbol].sort();
+    });
+  }
 
   return (
     <AppShell>
@@ -71,11 +198,23 @@ export default function MarketsPage() {
           description={`SW Exchange v0.x supports multiple internal spot markets, including admin-created listings. Explore gainers, new listings, trending pairs, and the full exchange table. ${REAL_TIME_SYNC_COPY}`}
         />
 
-        <div className="grid gap-4 xl:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-5">
+          {favoriteOverviewMarkets.length > 0 ? (
+            <MarketSection
+              title="Favorites"
+              description="Your local watchlist"
+              markets={favoriteOverviewMarkets}
+            />
+          ) : null}
           <MarketSection
             title="Top Gainers"
             description="Highest 24h movers"
             markets={topGainers}
+          />
+          <MarketSection
+            title="Top Losers"
+            description="Weakest 24h movers"
+            markets={topLosers}
           />
           <MarketSection
             title="Newly Listed"
@@ -100,8 +239,87 @@ export default function MarketsPage() {
             <StatusBadge label={`${markets.length} Listed`} tone="info" />
           </div>
 
+          <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(190px,1fr)_minmax(170px,0.7fr)_minmax(130px,0.5fr)_minmax(130px,0.5fr)_auto] lg:items-end">
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                Search markets
+              </span>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Symbol, asset, or name"
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                Sort by
+              </span>
+              <select
+                value={sortKey}
+                onChange={(event) => setSortKey(event.target.value as MarketSortKey)}
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              >
+                {MARKET_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-slate-950">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                Quote
+              </span>
+              <select
+                value={quoteFilter}
+                onChange={(event) => setQuoteFilter(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              >
+                {quoteOptions.map((quote) => (
+                  <option key={quote} value={quote} className="bg-slate-950">
+                    {quote === "ALL" ? "All quotes" : quote}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
+              <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+                Status
+              </span>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as MarketStatusFilter)}
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              >
+                <option value="ALL" className="bg-slate-950">All</option>
+                <option value="ACTIVE" className="bg-slate-950">Active</option>
+                <option value="PAUSED" className="bg-slate-950">Paused</option>
+              </select>
+            </label>
+
+            <label className="flex min-h-[42px] items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/[0.02] px-3 py-2 text-sm text-[var(--foreground-soft)]">
+              <input
+                type="checkbox"
+                checked={favoritesOnly}
+                onChange={(event) => setFavoritesOnly(event.target.checked)}
+                className="h-4 w-4 rounded border-[var(--border)] accent-[var(--accent)]"
+              />
+              <span>Favorites only</span>
+            </label>
+          </div>
+
+          {hiddenCount > 0 ? (
+            <p className="mt-3 text-xs text-[var(--foreground-muted)]">
+              Showing {visibleMarkets.length} of {markets.length} markets. Clear search or filters to show all.
+            </p>
+          ) : null}
+
           <div className="mt-4 overflow-hidden rounded-3xl border border-[var(--border)]">
-            <div className="hidden grid-cols-[minmax(0,1.45fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] gap-4 border-b border-[var(--border)] bg-white/[0.03] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)] xl:grid">
+            <div className="hidden grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] gap-4 border-b border-[var(--border)] bg-white/[0.03] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)] xl:grid">
               <span>Market</span>
               <span>Last Price</span>
               <span>24h Change</span>
@@ -111,13 +329,18 @@ export default function MarketsPage() {
             </div>
 
             <div className="data-divider">
-              {markets.length > 0 ? (
-                markets.map((market) => (
-                  <MarketListRow key={market.marketSymbol} market={market} />
+              {visibleMarkets.length > 0 ? (
+                visibleMarkets.map((market) => (
+                  <MarketListRow
+                    key={market.marketSymbol}
+                    market={market}
+                    isFavorite={favoriteSet.has(market.marketSymbol)}
+                    onToggleFavorite={toggleFavorite}
+                  />
                 ))
               ) : (
                 <div className="px-4 py-6 text-sm text-[var(--foreground-muted)]">
-                  No markets available.
+                  No markets match the current search and filters.
                 </div>
               )}
             </div>
@@ -155,8 +378,8 @@ function MarketSection({
             <Link
               key={market.marketSymbol}
               href={`/trade?market=${encodeURIComponent(market.marketSymbol)}`}
-              className="grid grid-cols-[minmax(0,1.4fr)_90px_86px] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-sm transition first:border-t-0 hover:bg-white/[0.04]"
-            >
+            className="grid grid-cols-[minmax(0,1.45fr)_minmax(74px,0.55fr)_minmax(66px,0.45fr)] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-sm transition first:border-t-0 hover:bg-white/[0.04]"
+          >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <AssetPairIcons
                   baseSymbol={market.baseAssetSymbol}
@@ -166,6 +389,7 @@ function MarketSection({
                   baseIconUrl={market.baseAssetIconUrl}
                   quoteIconUrl={market.quoteAssetIconUrl}
                   size={20}
+                  quoteSize={18}
                 />
                 <span className="min-w-0">
                   <span className="block truncate font-medium text-white">{market.marketSymbol}</span>
@@ -194,16 +418,58 @@ function MarketSection({
   );
 }
 
-function MarketListRow({ market }: { market: MarketOverviewRow }) {
+function MarketListRow({
+  market,
+  isFavorite,
+  onToggleFavorite,
+}: {
+  market: MarketOverviewRow;
+  isFavorite: boolean;
+  onToggleFavorite: (marketSymbol: string) => void;
+}) {
+  const router = useRouter();
+  const tradeHref = `/trade?market=${encodeURIComponent(market.marketSymbol)}`;
+
+  function openMarket() {
+    router.push(tradeHref);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openMarket();
+    }
+  }
+
   return (
-    <Link
-      href={`/trade?market=${encodeURIComponent(market.marketSymbol)}`}
+    <article
+      role="link"
+      tabIndex={0}
+      onClick={openMarket}
+      onKeyDown={handleKeyDown}
       className={`group block border-t border-[var(--border)] px-4 py-3 text-sm transition first:border-t-0 ${
-        market.status === "ACTIVE" ? "bg-white/[0.01] hover:bg-white/[0.05]" : "bg-[var(--accent-soft)]/10 hover:bg-white/[0.05]"
+        market.status === "ACTIVE" ? "cursor-pointer bg-white/[0.01] hover:bg-white/[0.05]" : "cursor-pointer bg-[var(--accent-soft)]/10 hover:bg-white/[0.05]"
       }`}
     >
-      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] xl:items-center xl:gap-4">
+      <div className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] xl:items-center xl:gap-4">
         <span className="inline-flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            aria-label={isFavorite ? `Remove ${market.marketSymbol} from favorites` : `Add ${market.marketSymbol} to favorites`}
+            aria-pressed={isFavorite}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleFavorite(market.marketSymbol);
+            }}
+            onKeyDown={(event) => event.stopPropagation()}
+            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-base transition ${
+              isFavorite
+                ? "border-amber-300/50 bg-amber-300/15 text-amber-200"
+                : "border-[var(--border)] bg-white/[0.02] text-[var(--foreground-muted)] hover:border-amber-300/40 hover:text-amber-200"
+            }`}
+          >
+            {isFavorite ? "★" : "☆"}
+          </button>
           <AssetPairIcons
             baseSymbol={market.baseAssetSymbol}
             quoteSymbol={market.quoteAssetSymbol}
@@ -212,6 +478,7 @@ function MarketListRow({ market }: { market: MarketOverviewRow }) {
             baseIconUrl={market.baseAssetIconUrl}
             quoteIconUrl={market.quoteAssetIconUrl}
             size={24}
+            quoteSize={20}
           />
           <span className="min-w-0">
             <span className="flex min-w-0 flex-wrap items-center gap-2">
@@ -244,7 +511,7 @@ function MarketListRow({ market }: { market: MarketOverviewRow }) {
           Trade →
         </span>
       </div>
-    </Link>
+    </article>
   );
 }
 
@@ -329,11 +596,15 @@ function changeToneClass(value: string | null | undefined) {
 }
 
 function compareByChangeDesc(left: MarketOverviewRow, right: MarketOverviewRow) {
-  return compareNumbersDesc(right.change24hPercent, left.change24hPercent, left.listIndex - right.listIndex);
+  return compareNumbersDesc(left.change24hPercent, right.change24hPercent, left.listIndex - right.listIndex);
+}
+
+function compareByChangeAsc(left: MarketOverviewRow, right: MarketOverviewRow) {
+  return compareNumbersAsc(left.change24hPercent, right.change24hPercent, left.listIndex - right.listIndex);
 }
 
 function compareByVolumeDesc(left: MarketOverviewRow, right: MarketOverviewRow) {
-  return compareNumbersDesc(right.volume24h, left.volume24h, left.listIndex - right.listIndex);
+  return compareNumbersDesc(left.volume24h, right.volume24h, left.listIndex - right.listIndex);
 }
 
 function compareByCreatedAtDesc(left: MarketOverviewRow, right: MarketOverviewRow) {
@@ -356,6 +627,18 @@ function compareNumbersDesc(
 ) {
   const left = toSortableNumber(leftValue);
   const right = toSortableNumber(rightValue);
+  const result = right - left;
+
+  return Number.isFinite(result) ? result : fallback;
+}
+
+function compareNumbersAsc(
+  leftValue: string | null | undefined,
+  rightValue: string | null | undefined,
+  fallback: number,
+) {
+  const left = toSortableNumber(leftValue);
+  const right = toSortableNumber(rightValue);
   const result = left - right;
 
   return Number.isFinite(result) ? result : fallback;
@@ -370,10 +653,94 @@ function toSortableNumber(value: string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
 }
 
+function hasSortableNumber(value: string | null | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  return Number.isFinite(Number(value));
+}
+
 function renderStatusCell(status: MarketSummary["status"]) {
   if (status === "ACTIVE") {
-    return <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">Live</span>;
+    return null;
   }
 
   return <StatusBadge label={status} tone="warning" />;
+}
+
+function filterAndSortMarkets(
+  markets: MarketOverviewRow[],
+  filters: {
+    search: string;
+    sortKey: MarketSortKey;
+    quoteFilter: string;
+    statusFilter: MarketStatusFilter;
+    favoritesOnly: boolean;
+    favoriteSet: Set<string>;
+  },
+) {
+  const query = filters.search.trim().toLowerCase();
+  const filtered = markets.filter((market) => {
+    if (filters.favoritesOnly && !filters.favoriteSet.has(market.marketSymbol)) {
+      return false;
+    }
+
+    if (filters.quoteFilter !== "ALL" && market.quoteAssetSymbol !== filters.quoteFilter) {
+      return false;
+    }
+
+    if (filters.statusFilter !== "ALL" && market.status !== filters.statusFilter) {
+      return false;
+    }
+
+    if (!query) {
+      return true;
+    }
+
+    return [
+      market.marketSymbol,
+      market.baseAssetSymbol,
+      market.quoteAssetSymbol,
+      market.baseAssetName ?? "",
+      market.quoteAssetName ?? "",
+      market.baseAssetDisplayName ?? "",
+      market.quoteAssetDisplayName ?? "",
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  });
+
+  return [...filtered].sort((left, right) => compareMarkets(left, right, filters.sortKey));
+}
+
+function compareMarkets(left: MarketOverviewRow, right: MarketOverviewRow, sortKey: MarketSortKey) {
+  const fallback = left.marketSymbol.localeCompare(right.marketSymbol);
+
+  if (sortKey === "symbol-asc") {
+    return fallback;
+  }
+
+  if (sortKey === "change-desc") {
+    return compareNumbersDesc(left.change24hPercent, right.change24hPercent, fallback);
+  }
+
+  if (sortKey === "price-desc") {
+    return compareNumbersDesc(left.lastPrice, right.lastPrice, fallback);
+  }
+
+  if (sortKey === "bid-desc") {
+    return compareNumbersDesc(left.bestBid, right.bestBid, fallback);
+  }
+
+  if (sortKey === "ask-desc") {
+    return compareNumbersDesc(left.bestAsk, right.bestAsk, fallback);
+  }
+
+  if (sortKey === "newest-desc") {
+    return compareByCreatedAtDesc(left, right) || fallback;
+  }
+
+  return compareNumbersDesc(left.volume24h, right.volume24h, fallback);
 }

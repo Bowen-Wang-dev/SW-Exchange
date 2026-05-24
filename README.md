@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
+Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
 
-Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+Next milestone: `v0.17.4 Trading Interaction Polish`
 
 This version is intentionally limited:
 
@@ -64,6 +64,8 @@ Current scope:
 - Seeded demo market `SWD/SWC` alongside existing `SWL/SWC`
 - Exchange-style market selector on `/trade`
 - Market summary list includes all seeded markets
+- Sortable, searchable `/markets` discovery with quote/status filters and local favorites
+- Compact market overview sections for favorites, gainers, losers, trending, and newly listed markets
 - Admin asset creation endpoint and `/admin/assets` form
 - Admin market creation endpoint and `/admin/markets` form
 - Eager zero-balance wallet coverage for new assets across existing users and admin buckets
@@ -104,13 +106,26 @@ Current scope:
 - `v0.17 Professional Trading Terminal Layout` completed
 - `v0.17.1 Smoke Idempotency / Local DB Test Stability` completed
 - `v0.17.2 Portfolio / Asset Display Polish` completed
+- `v0.17.3 Markets Sorting / Favorites Polish` completed
 
-- Current completed milestone: `v0.17.2 Portfolio / Asset Display Polish`
-- Next milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+- Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+- Next milestone: `v0.17.4 Trading Interaction Polish`
 
 ## Planned milestones
 
 - `v1.x Chain Gateway`
+
+## v0.17.3 Markets Sorting / Favorites Polish
+
+v0.17.3 improves `/markets` discovery while keeping backend market data and trading behavior unchanged.
+
+- `/markets` supports sorting by 24h volume, 24h change, last price, symbol, best bid, best ask, and newly listed
+- Search covers market symbol, base asset, quote asset, asset names, and display names
+- Quote-asset, status, and favorites-only filters compose with search and sorting
+- Favorites are local-only, stored in `localStorage`, and can be toggled from market rows without navigating
+- Overview sections show favorites, top gainers, top losers, trending markets, and newly listed markets in compact cards
+- Full market rows are clickable exchange-style rows with pair icons, last price, 24h change, volume, bid/ask, paused status, favorite star, and Trade affordance
+- No matching logic, market-order behavior, fee rules, wallet rules, schema, deposit, withdraw, blockchain integration, or new order types were changed
 
 ## v0.17.2 Portfolio / Asset Display Polish
 
