@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+Current completed milestone: `v0.17.4 Trading Interaction Polish`
 
-Next milestone: `v0.17.4 Trading Interaction Polish`
+Next milestone: `v0.17.5 Light Mode / Theme Polish`
 
 ### v0.1 Foundation - Completed
 
@@ -16,6 +16,15 @@ Next milestone: `v0.17.4 Trading Interaction Polish`
 - PostgreSQL and Drizzle ORM setup
 - Docker Compose local database workflow
 - Seed script and smoke test
+
+### v0.17.4 Trading Interaction Polish - Completed
+
+- Order book bid/ask prices fill the Limit price input without submitting orders
+- Recent trade prices fill the Limit price input without submitting orders
+- Best Bid, Best Ask, and Last quick price controls use existing ticker/order-book data
+- Open Orders includes current-market Cancel All, Cancel Buy, and Cancel Sell controls for user open limit orders
+- Open order rows show type, side, price, amount, filled, remaining, status, quote flow, and per-order cancel action in compact cards
+- No matching logic, market-order behavior, fee rules, wallet rules, schema, deposit, withdraw, blockchain integration, or new order types are added
 
 ### v0.17.3 Markets Sorting / Favorites Polish - Completed
 

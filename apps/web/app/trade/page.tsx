@@ -69,6 +69,7 @@ type MarketSelectorEntry = Pick<
 >;
 
 type BottomPanelTab = "OPEN_ORDERS" | "ORDER_HISTORY" | "TRADE_HISTORY" | "ASSETS";
+type BulkCancelScope = "ALL" | "BUY" | "SELL";
 
 export default function TradePage() {
   const [selectedMarketSymbol, setSelectedMarketSymbol] = useState(DEFAULT_MARKET_SYMBOL);
@@ -97,6 +98,7 @@ export default function TradePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [bulkCancellingScope, setBulkCancellingScope] = useState<BulkCancelScope | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastExecutionOrder, setLastExecutionOrder] = useState<OrderEntry | null>(null);
@@ -521,21 +523,94 @@ export default function TradePage() {
     }
   }
 
+  function fillLimitPrice(nextPrice: string | null | undefined, source: string) {
+    if (!nextPrice) {
+      return;
+    }
+
+    setOrderType("LIMIT");
+    setPrice(nextPrice);
+    setSuccess(`Price filled from ${source}.`);
+    setError(null);
+  }
+
+  async function cancelOrderRequest(orderId: string) {
+    return apiRequest<OrderEntry>(`/orders/${orderId}/cancel`, {
+      method: "POST",
+    });
+  }
+
   async function cancelOrder(orderId: string) {
     setError(null);
     setSuccess(null);
 
     try {
       setCancellingId(orderId);
-      const order = await apiRequest<OrderEntry>(`/orders/${orderId}/cancel`, {
-        method: "POST",
-      });
+      const order = await cancelOrderRequest(orderId);
       setSuccess(`Order ${shortId(order.id)} cancelled.`);
       await Promise.all([loadTradeData(), loadCandles()]);
     } catch (cancelError) {
       setError(cancelError instanceof ApiError ? cancelError.message : "Unable to cancel order.");
     } finally {
       setCancellingId(null);
+    }
+  }
+
+  async function cancelOpenOrders(scope: BulkCancelScope) {
+    const cancellableOrders = myOrders.filter(
+      (order) =>
+        order.type === "LIMIT" &&
+        isOpenOrder(order.status) &&
+        BigInt(order.remainingAmountRaw) > 0n &&
+        (scope === "ALL" || order.side === scope),
+    );
+
+    if (cancellableOrders.length === 0) {
+      setSuccess(scope === "ALL" ? "No cancellable open orders for this market." : `No open ${scope.toLowerCase()} orders to cancel.`);
+      setError(null);
+      return;
+    }
+
+    const label =
+      scope === "ALL"
+        ? "all open limit orders"
+        : `open ${scope.toLowerCase()} limit orders`;
+    const confirmed = window.confirm(
+      `Cancel ${cancellableOrders.length} ${label} on ${selectedMarketSymbol}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setSuccess(null);
+    setBulkCancellingScope(scope);
+
+    let cancelledCount = 0;
+    let failedCount = 0;
+
+    try {
+      for (const order of cancellableOrders) {
+        try {
+          setCancellingId(order.id);
+          await cancelOrderRequest(order.id);
+          cancelledCount += 1;
+        } catch {
+          failedCount += 1;
+        }
+      }
+
+      await Promise.all([loadTradeData(), loadCandles()]);
+
+      if (failedCount > 0) {
+        setError(`Cancelled ${cancelledCount} order${cancelledCount === 1 ? "" : "s"}; ${failedCount} failed.`);
+      } else {
+        setSuccess(`Cancelled ${cancelledCount} ${scope === "ALL" ? "open" : scope.toLowerCase()} order${cancelledCount === 1 ? "" : "s"} on ${selectedMarketSymbol}.`);
+      }
+    } finally {
+      setCancellingId(null);
+      setBulkCancellingScope(null);
     }
   }
 
@@ -593,6 +668,7 @@ export default function TradePage() {
                   quoteSymbol={quoteSymbol}
                   lastPrice={ticker?.lastPrice ?? null}
                   lastPriceTone={changeTone(ticker?.change24hPercent)}
+                  onPriceSelect={fillLimitPrice}
                 />
               </div>
 
@@ -607,7 +683,9 @@ export default function TradePage() {
                 baseSymbol={baseSymbol}
                 quoteSymbol={quoteSymbol}
                 cancellingId={cancellingId}
+                bulkCancellingScope={bulkCancellingScope}
                 onCancelOrder={(orderId) => void cancelOrder(orderId)}
+                onCancelOpenOrders={(scope) => void cancelOpenOrders(scope)}
               />
             </div>
 
@@ -706,6 +784,14 @@ export default function TradePage() {
                         className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
                       />
                     </label>
+
+                    <PriceQuickFillControls
+                      bestBid={ticker?.bestBid ?? null}
+                      bestAsk={ticker?.bestAsk ?? null}
+                      lastPrice={ticker?.lastPrice ?? null}
+                      quoteSymbol={quoteSymbol}
+                      onFill={fillLimitPrice}
+                    />
 
                     <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
                       Amount in {baseSymbol}
@@ -944,9 +1030,11 @@ function SideText({ side }: { side: OrderSide }) {
 function RecentTradesTable({
   trades,
   compact = false,
+  onPriceSelect,
 }: {
   trades: TradeEntry[];
   compact?: boolean;
+  onPriceSelect?: (price: string, source: string) => void;
 }) {
   return (
     <div className={`overflow-hidden rounded-2xl border border-[var(--border)] ${compact ? "h-full" : "mt-4"}`}>
@@ -964,7 +1052,14 @@ function RecentTradesTable({
               className="grid grid-cols-[0.95fr_1fr_1fr_1fr] gap-2 border-t border-[var(--border)] px-3 py-2 text-sm first:border-t-0"
             >
               <span className="truncate text-[var(--foreground-muted)]">{formatCompactDateTime(trade.createdAt)}</span>
-              <span className="truncate text-white">{trade.price}</span>
+              <button
+                type="button"
+                onClick={() => onPriceSelect?.(trade.price, "recent trade")}
+                className="truncate rounded-md text-left text-white transition hover:bg-white/[0.06] hover:text-[var(--accent-strong)]"
+                title="Use this trade price"
+              >
+                {trade.price}
+              </button>
               <span className="truncate text-[var(--foreground-soft)]">{trade.amount}</span>
               <span className="truncate text-right text-[var(--foreground-soft)]">{trade.quoteAmount}</span>
             </div>
@@ -1077,6 +1172,52 @@ function QuickFillControls({
       >
         Max
       </button>
+    </div>
+  );
+}
+
+function PriceQuickFillControls({
+  bestBid,
+  bestAsk,
+  lastPrice,
+  quoteSymbol,
+  onFill,
+}: {
+  bestBid: string | null;
+  bestAsk: string | null;
+  lastPrice: string | null;
+  quoteSymbol: string;
+  onFill: (price: string | null | undefined, source: string) => void;
+}) {
+  const options = [
+    { label: "Best Bid", value: bestBid, source: "best bid" },
+    { label: "Best Ask", value: bestAsk, source: "best ask" },
+    { label: "Last", value: lastPrice, source: "last trade" },
+  ];
+
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.025] p-2">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
+        Quick price
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {options.map((option) => (
+          <button
+            key={option.label}
+            type="button"
+            disabled={!option.value}
+            onClick={() => onFill(option.value, option.source)}
+            className="min-w-0 rounded-xl border border-[var(--border)] bg-white/[0.03] px-2 py-2 text-left transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)]">
+              {option.label}
+            </span>
+            <span className="mt-1 block truncate text-xs font-semibold text-white" title={formatTickerValue(option.value, quoteSymbol)}>
+              {formatTickerValue(option.value, quoteSymbol)}
+            </span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1416,6 +1557,7 @@ function OrderBookTradesColumn({
   quoteSymbol,
   lastPrice,
   lastPriceTone,
+  onPriceSelect,
 }: {
   orderBook: OrderBook | null;
   recentTrades: TradeEntry[];
@@ -1423,6 +1565,7 @@ function OrderBookTradesColumn({
   quoteSymbol: string;
   lastPrice: string | null;
   lastPriceTone: "neutral" | "positive" | "negative";
+  onPriceSelect: (price: string, source: string) => void;
 }) {
   return (
     <section className="panel flex min-h-0 flex-col rounded-3xl p-3">
@@ -1445,7 +1588,11 @@ function OrderBookTradesColumn({
           </div>
 
           <div className="mt-1 grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2">
-            <CompactOrderBookList side="SELL" levels={orderBook?.asks ?? []} />
+            <CompactOrderBookList
+              side="SELL"
+              levels={orderBook?.asks ?? []}
+              onPriceSelect={onPriceSelect}
+            />
             <div className="rounded-xl border border-[var(--border)] bg-[#09101f] px-3 py-2 text-center">
               <p className={`text-sm font-semibold ${toneClassForChange(lastPriceTone)}`}>
                 {formatTickerValue(lastPrice, quoteSymbol)}
@@ -1454,7 +1601,11 @@ function OrderBookTradesColumn({
                 Last price
               </p>
             </div>
-            <CompactOrderBookList side="BUY" levels={orderBook?.bids ?? []} />
+            <CompactOrderBookList
+              side="BUY"
+              levels={orderBook?.bids ?? []}
+              onPriceSelect={onPriceSelect}
+            />
           </div>
         </div>
 
@@ -1467,7 +1618,7 @@ function OrderBookTradesColumn({
               <p className="mt-1 text-xs text-[var(--foreground-soft)]">Market tape near execution.</p>
             </div>
           </div>
-          <RecentTradesTable trades={recentTrades} compact />
+          <RecentTradesTable trades={recentTrades} compact onPriceSelect={onPriceSelect} />
         </div>
       </div>
     </section>
@@ -1485,7 +1636,9 @@ function BottomTerminalPanel({
   baseSymbol,
   quoteSymbol,
   cancellingId,
+  bulkCancellingScope,
   onCancelOrder,
+  onCancelOpenOrders,
 }: {
   activeTab: BottomPanelTab;
   onTabChange: (tab: BottomPanelTab) => void;
@@ -1497,7 +1650,9 @@ function BottomTerminalPanel({
   baseSymbol: string;
   quoteSymbol: string;
   cancellingId: string | null;
+  bulkCancellingScope: BulkCancelScope | null;
   onCancelOrder: (orderId: string) => void;
+  onCancelOpenOrders: (scope: BulkCancelScope) => void;
 }) {
   return (
     <section className="panel flex min-h-0 flex-col rounded-3xl p-3">
@@ -1536,7 +1691,9 @@ function BottomTerminalPanel({
             quoteSymbol={quoteSymbol}
             baseSymbol={baseSymbol}
             cancellingId={cancellingId}
+            bulkCancellingScope={bulkCancellingScope}
             onCancelOrder={onCancelOrder}
+            onCancelOpenOrders={onCancelOpenOrders}
           />
         ) : null}
         {activeTab === "ORDER_HISTORY" ? (
@@ -1568,24 +1725,29 @@ function BottomTerminalPanel({
 function CompactOrderBookList({
   side,
   levels,
+  onPriceSelect,
 }: {
   side: OrderSide;
   levels: OrderBookLevel[];
+  onPriceSelect: (price: string, source: string) => void;
 }) {
   return (
     <div className="exchange-scrollbar min-h-0 overflow-y-auto">
       {levels.length > 0 ? (
         levels.map((level) => (
-          <div
+          <button
             key={`${side}-${level.priceRaw}`}
-            className="grid grid-cols-[1fr_1fr_64px] gap-2 px-2 py-1.5 text-[12px]"
+            type="button"
+            onClick={() => onPriceSelect(level.price, side === "BUY" ? "best bid row" : "best ask row")}
+            className="grid w-full grid-cols-[1fr_1fr_64px] gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition hover:bg-white/[0.06]"
+            title={`Use ${level.price} as limit price`}
           >
             <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>
               {level.price}
             </span>
             <span className="truncate text-[var(--foreground-soft)]">{level.amount}</span>
             <span className="text-right text-[var(--foreground-muted)]">{level.orderCount}</span>
-          </div>
+          </button>
         ))
       ) : (
         <div className="px-2 py-6 text-center text-sm text-[var(--foreground-muted)]">No depth yet.</div>
@@ -1600,15 +1762,29 @@ function OrdersActivityTable({
   quoteSymbol,
   baseSymbol,
   cancellingId,
+  bulkCancellingScope,
   onCancelOrder,
+  onCancelOpenOrders,
 }: {
   variant: "open" | "history";
   orders: OrderEntry[];
   quoteSymbol: string;
   baseSymbol: string;
   cancellingId: string | null;
+  bulkCancellingScope?: BulkCancelScope | null;
   onCancelOrder: (orderId: string) => void;
+  onCancelOpenOrders?: (scope: BulkCancelScope) => void;
 }) {
+  const cancellableOrders = orders.filter(
+    (order) =>
+      variant === "open" &&
+      order.type === "LIMIT" &&
+      isOpenOrder(order.status) &&
+      BigInt(order.remainingAmountRaw) > 0n,
+  );
+  const cancellableBuyCount = cancellableOrders.filter((order) => order.side === "BUY").length;
+  const cancellableSellCount = cancellableOrders.filter((order) => order.side === "SELL").length;
+
   if (orders.length === 0) {
     return (
       <EmptyTerminalState
@@ -1618,31 +1794,40 @@ function OrdersActivityTable({
   }
 
   return (
-    <div className="exchange-scrollbar h-full overflow-y-auto rounded-2xl border border-[var(--border)]">
-      <table className="w-full table-fixed border-collapse text-left">
-        <thead>
-          <tr className="border-b border-[var(--border)] bg-white/[0.03]">
-            {[
-              "Time",
-              "Type",
-              "Side",
-              "Price",
-              "Amount",
-              "Filled",
-              "Quote",
-              "Status",
-              "Action",
-            ].map((column) => (
-              <th
-                key={column}
-                className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]"
-              >
-                {column}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {variant === "open" && cancellableOrders.length > 0 && onCancelOpenOrders ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-white/[0.025] px-3 py-2">
+          <p className="text-xs text-[var(--foreground-soft)]">
+            {cancellableOrders.length} cancellable limit order{cancellableOrders.length === 1 ? "" : "s"} on this market.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <BulkCancelButton
+              label="Cancel All"
+              count={cancellableOrders.length}
+              scope="ALL"
+              activeScope={bulkCancellingScope ?? null}
+              onCancel={onCancelOpenOrders}
+            />
+            <BulkCancelButton
+              label="Cancel Buy"
+              count={cancellableBuyCount}
+              scope="BUY"
+              activeScope={bulkCancellingScope ?? null}
+              onCancel={onCancelOpenOrders}
+            />
+            <BulkCancelButton
+              label="Cancel Sell"
+              count={cancellableSellCount}
+              scope="SELL"
+              activeScope={bulkCancellingScope ?? null}
+              onCancel={onCancelOpenOrders}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="exchange-scrollbar min-h-0 flex-1 overflow-y-auto rounded-2xl border border-[var(--border)]">
+        <div className="grid gap-2">
           {orders.map((order) => {
             const canCancel =
               variant === "open" &&
@@ -1650,50 +1835,37 @@ function OrdersActivityTable({
               isOpenOrder(order.status) &&
               BigInt(order.remainingAmountRaw) > 0n;
 
+            const priceLabel =
+              order.type === "MARKET"
+                ? maybePrice(order.averagePrice, quoteSymbol)
+                : `${order.price} ${quoteSymbol}`;
+            const quoteLabel =
+              order.type === "MARKET"
+                ? order.side === "BUY"
+                  ? `${order.spentQuoteAmount} ${quoteSymbol}`
+                  : `${order.receivedQuoteAmount ?? "0"} ${quoteSymbol}`
+                : formatMaybeQuotedValue(calculateOrderHistoryQuote(order), quoteSymbol);
+
             return (
-              <tr key={order.id} className="border-t border-[var(--border)] first:border-t-0">
-                <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]">
-                  <span className="block truncate">{formatCompactDateTime(order.createdAt)}</span>
-                </td>
-                <td className="px-3 py-2 text-sm text-white">
-                  <span className="block truncate">{order.type}</span>
-                </td>
-                <td className="px-3 py-2 text-sm">
-                  <SideText side={order.side} />
-                </td>
-                <td className="px-3 py-2 text-sm text-white">
-                  <span className="block truncate" title={order.type === "MARKET" ? maybePrice(order.averagePrice, quoteSymbol) : `${order.price} ${quoteSymbol}`}>
-                    {order.type === "MARKET" ? maybePrice(order.averagePrice, quoteSymbol) : `${order.price} ${quoteSymbol}`}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]">
-                  <span className="block truncate">{order.amount} {baseSymbol}</span>
-                </td>
-                <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]">
-                  <span className="block truncate">{order.filledAmount} {baseSymbol}</span>
-                </td>
-                <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]">
-                  <span
-                    className="block truncate"
-                    title={
-                      order.type === "MARKET"
-                        ? order.side === "BUY"
-                          ? `${order.spentQuoteAmount} ${quoteSymbol}`
-                          : `${order.receivedQuoteAmount ?? "0"} ${quoteSymbol}`
-                        : formatMaybeQuotedValue(calculateOrderHistoryQuote(order), quoteSymbol)
-                    }
-                  >
-                    {order.type === "MARKET"
-                      ? order.side === "BUY"
-                        ? `${order.spentQuoteAmount} ${quoteSymbol}`
-                        : `${order.receivedQuoteAmount ?? "0"} ${quoteSymbol}`
-                      : formatMaybeQuotedValue(calculateOrderHistoryQuote(order), quoteSymbol)}
-                  </span>
-                </td>
-                <td className="px-3 py-2 text-sm">
-                  <StatusBadge label={order.status} tone={orderStatusTone(order.status)} />
-                </td>
-                <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]">
+              <article
+                key={order.id}
+                className="grid gap-3 border-t border-[var(--border)] bg-white/[0.01] px-3 py-3 first:border-t-0 xl:grid-cols-[minmax(100px,0.8fr)_72px_70px_minmax(100px,0.8fr)_minmax(120px,1fr)_minmax(120px,1fr)_minmax(110px,0.8fr)_auto] xl:items-center"
+              >
+                <OrderMiniMetric label="Time" value={formatCompactDateTime(order.createdAt)} />
+                <OrderMiniMetric label="Type" value={order.type} strong />
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] xl:hidden">Side</p>
+                  <p className="mt-1 text-sm font-semibold xl:mt-0"><SideText side={order.side} /></p>
+                </div>
+                <OrderMiniMetric label="Price" value={priceLabel} strong />
+                <OrderMiniMetric label="Amount" value={`${order.amount} ${baseSymbol}`} />
+                <OrderMiniMetric label="Filled / Rem." value={`${order.filledAmount} / ${order.remainingAmount} ${baseSymbol}`} />
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] xl:hidden">Status</p>
+                  <div className="mt-1 xl:mt-0"><StatusBadge label={order.status} tone={orderStatusTone(order.status)} /></div>
+                  <p className="mt-1 truncate text-xs text-[var(--foreground-muted)]" title={quoteLabel}>{quoteLabel}</p>
+                </div>
+                <div className="text-sm text-[var(--foreground-soft)] xl:text-right">
                   {canCancel ? (
                     <button
                       type="button"
@@ -1708,12 +1880,59 @@ function OrdersActivityTable({
                       {order.type === "MARKET" ? "Executed" : "Closed"}
                     </span>
                   )}
-                </td>
-              </tr>
+                </div>
+              </article>
             );
           })}
-        </tbody>
-      </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BulkCancelButton({
+  label,
+  count,
+  scope,
+  activeScope,
+  onCancel,
+}: {
+  label: string;
+  count: number;
+  scope: BulkCancelScope;
+  activeScope: BulkCancelScope | null;
+  onCancel: (scope: BulkCancelScope) => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={count === 0 || activeScope !== null}
+      onClick={() => onCancel(scope)}
+      className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:border-rose-200 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {activeScope === scope ? "Cancelling..." : `${label} (${count})`}
+    </button>
+  );
+}
+
+function OrderMiniMetric({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] xl:hidden">{label}</p>
+      <p
+        className={`mt-1 truncate text-sm xl:mt-0 ${strong ? "font-semibold text-white" : "text-[var(--foreground-soft)]"}`}
+        title={value}
+      >
+        {value}
+      </p>
     </div>
   );
 }

@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+Current completed milestone: `v0.17.4 Trading Interaction Polish`
 
-Next milestone: `v0.17.4 Trading Interaction Polish`
+Next milestone: `v0.17.5 Light Mode / Theme Polish`
 
 This version is intentionally limited:
 
@@ -80,6 +80,9 @@ Current scope:
 - No-horizontal-scroll exchange layouts for dashboard valuation and market browsing
 - Compact trade ticker header with selected market and 24h stats in one exchange-style strip
 - Professional CEX-style `/trade` terminal layout with compact ticker bar, dominant chart, adjacent order book and recent trades, fixed desktop order-entry rail, and docked bottom activity tabs
+- Order book and recent trade prices on `/trade` can fill the Limit price input without placing an order
+- Best Bid, Best Ask, and Last quick price controls on `/trade`
+- Current-market Cancel All, Cancel Buy, and Cancel Sell controls for user open limit orders
 
 ## Milestone status
 
@@ -107,13 +110,25 @@ Current scope:
 - `v0.17.1 Smoke Idempotency / Local DB Test Stability` completed
 - `v0.17.2 Portfolio / Asset Display Polish` completed
 - `v0.17.3 Markets Sorting / Favorites Polish` completed
+- `v0.17.4 Trading Interaction Polish` completed
 
-- Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
-- Next milestone: `v0.17.4 Trading Interaction Polish`
+- Current completed milestone: `v0.17.4 Trading Interaction Polish`
+- Next milestone: `v0.17.5 Light Mode / Theme Polish`
 
 ## Planned milestones
 
 - `v1.x Chain Gateway`
+
+## v0.17.4 Trading Interaction Polish
+
+v0.17.4 improves live `/trade` interaction while keeping backend order execution behavior unchanged.
+
+- Clicking an order book bid or ask fills the Limit price input and switches the form to Limit mode
+- Clicking a recent trade price fills the Limit price input without placing an order
+- Best Bid, Best Ask, and Last quick price buttons fill the current Limit price from existing ticker/order-book data
+- Open Orders adds current-market Cancel All, Cancel Buy, and Cancel Sell controls for cancellable user limit orders
+- Open orders use compact cards that show side, type, price, amount, filled, remaining, status, quote flow, and per-order cancel action
+- Existing Limit and Market order behavior, matching logic, fee rules, wallet rules, transfer rules, schema, deposit, withdraw, blockchain integration, and order types are unchanged
 
 ## v0.17.3 Markets Sorting / Favorites Polish
 

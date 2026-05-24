@@ -1,13 +1,34 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.17.3 Markets Sorting / Favorites Polish`
+Current completed milestone: `v0.17.4 Trading Interaction Polish`
 
-Next milestone: `v0.17.4 Trading Interaction Polish`
+Next milestone: `v0.17.5 Light Mode / Theme Polish`
 
 ## Upcoming plan
 
-- `v0.17.4 Trading Interaction Polish`
+- `v0.17.5 Light Mode / Theme Polish`
 - `v1.x Chain Gateway`
+
+## v0.17.4 Trading Interaction Polish
+
+This milestone keeps order execution behavior unchanged while making `/trade` interactions feel closer to a real exchange terminal.
+
+### Highlights
+
+- Clicking an order book bid or ask fills the Limit price input and switches the form to Limit mode
+- Clicking a recent trade price fills the Limit price input without submitting an order
+- Best Bid, Best Ask, and Last quick price buttons fill the Limit price from existing ticker/order-book data
+- Open Orders includes current-market Cancel All, Cancel Buy, and Cancel Sell controls for cancellable user limit orders
+- Bulk cancel actions confirm before cancelling and refresh trade data, balances, order book, candles, and open orders afterward
+- Open orders use compact card rows that show type, side, price, amount, filled, remaining, quote flow, status, and per-order cancel action
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.17.4
+- Matching logic, fee calculation, transfer rules, wallet rules, market-order behavior, and API behavior are intentionally unchanged
+- Bulk cancellation uses the existing current-user order cancel endpoint from the frontend
+- This milestone is a frontend trading interaction polish pass
 
 ## v0.17.3 Markets Sorting / Favorites Polish
 
