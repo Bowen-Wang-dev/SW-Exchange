@@ -18,7 +18,7 @@ export function TopNav() {
   }
 
   return (
-    <header className="panel-strong sticky top-0 z-20 rounded-3xl px-4 py-4 backdrop-blur sm:px-5">
+    <header className="panel-strong sticky top-0 z-20 shrink-0 rounded-3xl px-4 py-4 backdrop-blur sm:px-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <Link href="/" className="flex items-center gap-3">

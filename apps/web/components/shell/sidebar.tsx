@@ -11,8 +11,8 @@ export function Sidebar() {
   const admin = isAdmin();
 
   return (
-    <aside className="panel rounded-3xl p-4">
-      <div className="space-y-6">
+    <aside className="panel flex h-full min-h-0 flex-col overflow-hidden rounded-3xl p-4">
+      <div className="exchange-scrollbar min-h-0 space-y-6 overflow-y-auto pr-1">
         <NavSection title="User" items={userSidebarNavigation} pathname={pathname} />
         {admin ? (
           <NavSection title="Admin" items={adminSidebarNavigation} pathname={pathname} />

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
-import { AssetIcon } from "@/components/ui/asset-icon";
+import { AssetPairIcons } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
@@ -56,20 +56,16 @@ export default function MarketsPage() {
           columns={["Market", "Last Price", "24h Change", "24h Volume", "Best Bid", "Best Ask", "Status", "Action"]}
           rows={markets.length > 0 ? markets.map((market) => [
               <div key={`${market.marketSymbol}-market`} className="flex items-center gap-2">
-                <span className="flex -space-x-2">
-                  <AssetIcon
-                    symbol={market.baseAssetSymbol}
-                    name={market.baseAssetDisplayName ?? market.baseAssetName}
-                    iconUrl={market.baseAssetIconUrl}
-                    size={28}
-                  />
-                  <AssetIcon
-                    symbol={market.quoteAssetSymbol}
-                    name={market.quoteAssetDisplayName ?? market.quoteAssetName}
-                    iconUrl={market.quoteAssetIconUrl}
-                    size={28}
-                  />
-                </span>
+                <AssetPairIcons
+                  baseSymbol={market.baseAssetSymbol}
+                  quoteSymbol={market.quoteAssetSymbol}
+                  baseName={market.baseAssetDisplayName ?? market.baseAssetName}
+                  quoteName={market.quoteAssetDisplayName ?? market.quoteAssetName}
+                  baseIconUrl={market.baseAssetIconUrl}
+                  quoteIconUrl={market.quoteAssetIconUrl}
+                  size={28}
+                  quoteSize={23}
+                />
                 <span className="space-y-1">
                   <span className="block font-medium text-white">{market.marketSymbol}</span>
                   <span className="block text-xs uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
@@ -102,10 +98,14 @@ export default function MarketsPage() {
             ]) : [
               [
                 <div key="fallback-market" className="flex items-center gap-2">
-                  <span className="flex -space-x-2">
-                    <AssetIcon symbol="SWL" name="SW LUNA" size={28} />
-                    <AssetIcon symbol="SWC" name="SW Cash" size={28} />
-                  </span>
+                  <AssetPairIcons
+                    baseSymbol="SWL"
+                    quoteSymbol="SWC"
+                    baseName="SW LUNA"
+                    quoteName="SW Cash"
+                    size={28}
+                    quoteSize={23}
+                  />
                   <span className="space-y-1">
                     <span className="block font-medium text-white">SWL/SWC</span>
                     <span className="block text-xs uppercase tracking-[0.18em] text-[var(--foreground-muted)]">

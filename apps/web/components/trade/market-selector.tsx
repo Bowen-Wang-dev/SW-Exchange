@@ -1,9 +1,9 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { AssetIcon } from "@/components/ui/asset-icon";
+import { AssetPairIcons } from "@/components/ui/asset-icon";
 import { StatusBadge } from "@/components/ui/status-badge";
-import type { MarketStatus, MarketSummary } from "@/lib/api-types";
+import type { MarketSummary } from "@/lib/api-types";
 
 type MarketSelectorEntry = Pick<
   MarketSummary,
@@ -114,71 +114,72 @@ export function MarketSelector({
   const activeMarket = selectedMarket ?? marketOptions.find((market) => market.marketSymbol === selectedMarketSymbol) ?? null;
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className="relative w-full sm:w-auto">
       <button
         type="button"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex min-w-[260px] items-center gap-3 rounded-2xl border border-[var(--border-strong)] bg-white/[0.04] px-4 py-3 text-left transition hover:border-[var(--accent)] hover:bg-white/[0.06]"
+        className="group inline-flex w-full min-w-[220px] items-center gap-3 rounded-2xl border border-[var(--border-strong)] bg-white/[0.04] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-[var(--accent)] hover:bg-white/[0.06] sm:w-[250px]"
       >
-        <span className="flex -space-x-2">
-          <AssetIcon
-            symbol={activeMarket?.baseAssetSymbol ?? marketBaseSymbol(selectedMarketSymbol)}
-            name={activeMarket?.baseAssetDisplayName ?? activeMarket?.baseAssetName}
-            iconUrl={activeMarket?.baseAssetIconUrl}
-            size={32}
-          />
-          <AssetIcon
-            symbol={activeMarket?.quoteAssetSymbol ?? marketQuoteSymbol(selectedMarketSymbol)}
-            name={activeMarket?.quoteAssetDisplayName ?? activeMarket?.quoteAssetName}
-            iconUrl={activeMarket?.quoteAssetIconUrl}
-            size={32}
-          />
-        </span>
+        <AssetPairIcons
+          baseSymbol={activeMarket?.baseAssetSymbol ?? marketBaseSymbol(selectedMarketSymbol)}
+          quoteSymbol={activeMarket?.quoteAssetSymbol ?? marketQuoteSymbol(selectedMarketSymbol)}
+          baseName={activeMarket?.baseAssetDisplayName ?? activeMarket?.baseAssetName}
+          quoteName={activeMarket?.quoteAssetDisplayName ?? activeMarket?.quoteAssetName}
+          baseIconUrl={activeMarket?.baseAssetIconUrl}
+          quoteIconUrl={activeMarket?.quoteAssetIconUrl}
+          size={30}
+          quoteSize={24}
+        />
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
             Spot market
           </span>
           <span className="mt-1 flex items-center gap-2">
-            <span className="truncate text-xl font-semibold text-white">{selectedMarketSymbol}</span>
+            <span className="truncate text-lg font-semibold text-white">{selectedMarketSymbol}</span>
             <ChevronIcon open={isOpen} />
+          </span>
+          <span className="mt-0.5 block truncate text-[11px] text-[var(--foreground-muted)] group-hover:text-[var(--foreground-soft)]">
+            Click to switch
           </span>
         </span>
       </button>
 
       {isOpen ? (
-        <div className="panel-strong absolute left-0 top-full z-30 mt-3 w-[min(860px,calc(100vw-2rem))] rounded-3xl border border-[var(--border-strong)] p-4 shadow-[0_30px_80px_rgba(2,5,18,0.7)]">
+        <div className="panel-strong absolute left-0 top-full z-30 mt-2 max-h-[72vh] w-[min(680px,calc(100vw-2rem))] rounded-2xl border border-[var(--border-strong)] p-3 shadow-[0_24px_70px_rgba(2,5,18,0.72)]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
                 Markets
               </p>
-              <p className="mt-1 text-sm text-[var(--foreground-soft)]">
+              <p className="mt-1 text-xs text-[var(--foreground-soft)]">
                 Search by symbol or asset name.
               </p>
             </div>
             <StatusBadge label={`${filteredMarkets.length} Listed`} tone="info" />
           </div>
 
-          <label className="mt-4 grid gap-2 text-sm text-[var(--foreground-soft)]">
+          <label className="mt-3 grid gap-2 text-sm text-[var(--foreground-soft)]">
             <span className="sr-only">Search markets</span>
             <input
               ref={inputRef}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search markets..."
-              className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="rounded-xl border border-[var(--border)] bg-[#0a1122] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)]">
-            <div className="grid grid-cols-[minmax(190px,1.5fr)_minmax(90px,0.8fr)_minmax(110px,0.8fr)_minmax(130px,0.9fr)_90px] gap-3 bg-white/[0.03] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+          <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border)]">
+            <div className="grid grid-cols-[minmax(180px,1.35fr)_minmax(82px,0.7fr)_minmax(96px,0.72fr)_minmax(110px,0.82fr)_86px] gap-3 bg-white/[0.03] px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)]">
               <span>Market</span>
               <span>Last</span>
               <span>24h Change</span>
               <span>24h Volume</span>
               <span className="text-right">Status</span>
             </div>
-            <div className="exchange-scrollbar max-h-[420px] overflow-y-auto">
+            <div className="exchange-scrollbar max-h-[min(380px,calc(72vh-150px))] overflow-y-auto">
               {filteredMarkets.length > 0 ? (
                 filteredMarkets.map((market) => {
                   const isSelected = market.marketSymbol === selectedMarketSymbol;
@@ -192,25 +193,21 @@ export function MarketSelector({
                         setIsOpen(false);
                         setSearch("");
                       }}
-                      className={`grid w-full grid-cols-[minmax(190px,1.5fr)_minmax(90px,0.8fr)_minmax(110px,0.8fr)_minmax(130px,0.9fr)_90px] gap-3 border-t border-[var(--border)] px-4 py-3 text-left text-sm transition first:border-t-0 ${
+                      className={`grid w-full grid-cols-[minmax(180px,1.35fr)_minmax(82px,0.7fr)_minmax(96px,0.72fr)_minmax(110px,0.82fr)_86px] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-left text-sm transition first:border-t-0 ${
                         isSelected ? "bg-[var(--accent-soft)]" : "bg-white/[0.01] hover:bg-white/[0.04]"
                       }`}
                     >
                       <span className="inline-flex min-w-0 items-center gap-3">
-                        <span className="flex -space-x-2">
-                          <AssetIcon
-                            symbol={market.baseAssetSymbol}
-                            name={market.baseAssetDisplayName ?? market.baseAssetName}
-                            iconUrl={market.baseAssetIconUrl}
-                            size={28}
-                          />
-                          <AssetIcon
-                            symbol={market.quoteAssetSymbol}
-                            name={market.quoteAssetDisplayName ?? market.quoteAssetName}
-                            iconUrl={market.quoteAssetIconUrl}
-                            size={28}
-                          />
-                        </span>
+                        <AssetPairIcons
+                          baseSymbol={market.baseAssetSymbol}
+                          quoteSymbol={market.quoteAssetSymbol}
+                          baseName={market.baseAssetDisplayName ?? market.baseAssetName}
+                          quoteName={market.quoteAssetDisplayName ?? market.quoteAssetName}
+                          baseIconUrl={market.baseAssetIconUrl}
+                          quoteIconUrl={market.quoteAssetIconUrl}
+                          size={26}
+                          quoteSize={22}
+                        />
                         <span className="min-w-0">
                           <span className="block truncate font-semibold text-white">
                             {market.marketSymbol}

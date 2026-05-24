@@ -10,6 +10,18 @@ type AssetIconProps = {
   size?: number;
 };
 
+type AssetPairIconsProps = {
+  baseSymbol: string;
+  quoteSymbol: string;
+  baseName?: string | null;
+  quoteName?: string | null;
+  baseIconUrl?: string | null;
+  quoteIconUrl?: string | null;
+  size?: number;
+  quoteSize?: number;
+  className?: string;
+};
+
 export function AssetIcon({ symbol, name, iconUrl, size = 28 }: AssetIconProps) {
   const resolvedIconUrl = useMemo(() => resolveAssetIconUrl(symbol, iconUrl), [symbol, iconUrl]);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
@@ -37,10 +49,29 @@ export function AssetIcon({ symbol, name, iconUrl, size = 28 }: AssetIconProps) 
   return (
     <span
       aria-label={`${name ?? symbol} icon fallback`}
-      className="inline-flex shrink-0 items-center justify-center rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] text-[10px] font-semibold text-[var(--accent-strong)]"
-      style={{ width: size, height: size }}
+      className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] font-semibold leading-none text-[var(--accent-strong)]"
+      style={{ width: size, height: size, fontSize: Math.max(8, Math.floor(size * 0.32)) }}
     >
       {label}
+    </span>
+  );
+}
+
+export function AssetPairIcons({
+  baseSymbol,
+  quoteSymbol,
+  baseName,
+  quoteName,
+  baseIconUrl,
+  quoteIconUrl,
+  size = 28,
+  quoteSize = size,
+  className = "",
+}: AssetPairIconsProps) {
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1 ${className}`}>
+      <AssetIcon symbol={baseSymbol} name={baseName} iconUrl={baseIconUrl} size={size} />
+      <AssetIcon symbol={quoteSymbol} name={quoteName} iconUrl={quoteIconUrl} size={quoteSize} />
     </span>
   );
 }

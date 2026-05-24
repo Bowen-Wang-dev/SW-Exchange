@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { MarketSelector } from "@/components/trade/market-selector";
 import { OrderConfirmationDialog, type OrderConfirmationView } from "@/components/trade/order-confirmation-dialog";
 import { KlineChart } from "@/components/trade/kline-chart";
-import { AssetIcon } from "@/components/ui/asset-icon";
+import { AssetIcon, AssetPairIcons } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
@@ -510,22 +510,11 @@ export default function TradePage() {
   return (
     <ProtectedRoute>
       <AppShell>
-        <div className="space-y-4">
+        <div className="space-y-3">
           <PageHeader
             eyebrow="Trade"
             title="Spot terminal"
             description={TRADE_PAGE_COPY}
-            action={
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <StatusBadge label="v0.16 Live" tone="success" />
-                <MarketSelector
-                  markets={markets}
-                  selectedMarketSymbol={selectedMarketSymbol}
-                  selectedMarket={marketSelectorSelection}
-                  onSelect={handleMarketChange}
-                />
-              </div>
-            }
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -540,29 +529,39 @@ export default function TradePage() {
             />
           ) : null}
 
-          <section className="panel rounded-3xl p-5">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <TickerMetric
-                label="Last Price"
-                value={formatTickerValue(ticker?.lastPrice, quoteSymbol)}
-              />
-              <TickerMetric
-                label="24h Change"
-                value={formatPercent(ticker?.change24hPercent)}
-                tone={changeTone(ticker?.change24hPercent)}
-              />
-              <TickerMetric
-                label="24h High"
-                value={formatTickerValue(ticker?.high24h, quoteSymbol)}
-              />
-              <TickerMetric label="24h Low" value={formatTickerValue(ticker?.low24h, quoteSymbol)} />
-              <TickerMetric
-                label="24h Volume"
-                value={formatTickerValue(ticker?.volume24h, baseSymbol)}
-              />
-              <TickerMetric label="Best Bid" value={formatTickerValue(ticker?.bestBid, quoteSymbol)} />
-              <TickerMetric label="Best Ask" value={formatTickerValue(ticker?.bestAsk, quoteSymbol)} />
-              <TickerMetric label="Status" value={marketStatus} />
+          <section className="panel rounded-3xl p-4">
+            <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center">
+              <div className="shrink-0">
+                <MarketSelector
+                  markets={markets}
+                  selectedMarketSymbol={selectedMarketSymbol}
+                  selectedMarket={marketSelectorSelection}
+                  onSelect={handleMarketChange}
+                />
+              </div>
+              <div className="grid flex-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8">
+                <TickerMetric
+                  label="Last Price"
+                  value={formatTickerValue(ticker?.lastPrice, quoteSymbol)}
+                />
+                <TickerMetric
+                  label="24h Change"
+                  value={formatPercent(ticker?.change24hPercent)}
+                  tone={changeTone(ticker?.change24hPercent)}
+                />
+                <TickerMetric
+                  label="24h High"
+                  value={formatTickerValue(ticker?.high24h, quoteSymbol)}
+                />
+                <TickerMetric label="24h Low" value={formatTickerValue(ticker?.low24h, quoteSymbol)} />
+                <TickerMetric
+                  label="24h Volume"
+                  value={formatTickerValue(ticker?.volume24h, baseSymbol)}
+                />
+                <TickerMetric label="Best Bid" value={formatTickerValue(ticker?.bestBid, quoteSymbol)} />
+                <TickerMetric label="Best Ask" value={formatTickerValue(ticker?.bestAsk, quoteSymbol)} />
+                <TickerMetric label="Status" value={marketStatus} />
+              </div>
             </div>
           </section>
 
@@ -582,14 +581,20 @@ export default function TradePage() {
             }}
           />
 
-          <div className="grid gap-4 xl:grid-cols-[0.9fr_1fr_0.85fr]">
-            <section className="panel rounded-3xl p-5">
+          <div className="grid gap-3 xl:grid-cols-[0.9fr_1fr_0.85fr]">
+            <section className="panel rounded-3xl p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="flex -space-x-2">
-                    <AssetIcon symbol={baseSymbol} name={baseName} iconUrl={baseIconUrl} size={28} />
-                    <AssetIcon symbol={quoteSymbol} name={quoteName} iconUrl={quoteIconUrl} size={28} />
-                  </span>
+                  <AssetPairIcons
+                    baseSymbol={baseSymbol}
+                    quoteSymbol={quoteSymbol}
+                    baseName={baseName}
+                    quoteName={quoteName}
+                    baseIconUrl={baseIconUrl}
+                    quoteIconUrl={quoteIconUrl}
+                    size={28}
+                    quoteSize={23}
+                  />
                   <span>
                     <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                       Market
@@ -600,14 +605,14 @@ export default function TradePage() {
                 <StatusBadge label="Spot" tone="info" />
               </div>
 
-              <div className="mt-5 grid gap-5">
+              <div className="mt-4 grid gap-4">
                 <OrderBookTable
                   title="Asks"
                   side="SELL"
                   levels={orderBook?.asks ?? []}
                   baseSymbol={baseSymbol}
                 />
-                <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-center text-sm font-semibold text-white">
+                <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-2.5 text-center text-sm font-semibold text-white">
                   {quoteSymbol} per {baseSymbol}
                 </div>
                 <OrderBookTable
@@ -619,7 +624,7 @@ export default function TradePage() {
               </div>
             </section>
 
-            <section className="panel rounded-3xl p-5">
+            <section className="panel rounded-3xl p-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-1">
                   {(["LIMIT", "MARKET"] as const).map((option) => (
@@ -661,7 +666,7 @@ export default function TradePage() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
+              <form onSubmit={handleSubmit} className="mt-4 grid gap-3">
                 {orderType === "LIMIT" ? (
                   <>
                     <div className="grid gap-3 md:grid-cols-2">
@@ -836,7 +841,7 @@ export default function TradePage() {
               </form>
             </section>
 
-            <section className="panel rounded-3xl p-5">
+            <section className="panel rounded-3xl p-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-white">Recent Trades</h2>
                 <StatusBadge label="Polling Sync" tone="info" />
@@ -919,7 +924,7 @@ function OrderBookTable({
           levels.map((level) => (
             <div
               key={`${side}-${level.priceRaw}`}
-              className="grid grid-cols-[1fr_1fr_80px] gap-2 bg-white/[0.02] px-3 py-2 text-sm"
+              className="grid grid-cols-[1fr_1fr_80px] gap-2 bg-white/[0.02] px-3 py-1.5 text-sm"
             >
               <span className={toneClass}>{level.price}</span>
               <span className="text-[var(--foreground-soft)]">{level.amount}</span>
@@ -936,7 +941,7 @@ function OrderBookTable({
 
 function BalanceTile({ label, value }: { label: ReactNode; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3">
+    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-3 py-2.5">
       <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
         {typeof label === "string" ? label : label}
       </div>
@@ -1000,7 +1005,7 @@ function SideText({ side }: { side: OrderSide }) {
 
 function RecentTradesTable({ trades }: { trades: TradeEntry[] }) {
   return (
-    <div className="data-divider mt-5 overflow-hidden rounded-2xl border border-[var(--border)]">
+    <div className="data-divider mt-4 overflow-hidden rounded-2xl border border-[var(--border)]">
       <div className="grid grid-cols-[1.1fr_1fr_1fr_1fr] gap-2 bg-white/[0.03] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
         <span>Time</span>
         <span>Price</span>
@@ -1056,7 +1061,7 @@ function ExecutionSummaryPanel({
         <StatusBadge label={order.status} tone={orderStatusTone(order.status)} />
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <BalanceTile label="Side" value={order.side} />
         <BalanceTile label="Type" value={order.type} />
         <BalanceTile

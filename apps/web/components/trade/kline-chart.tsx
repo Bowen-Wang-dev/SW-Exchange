@@ -223,7 +223,7 @@ export function KlineChart({
   }, [baseSymbol, chartRows, error, interval, isLoading, marketSymbol]);
 
   return (
-    <section className="panel rounded-3xl p-5">
+    <section className="panel rounded-3xl p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <p className="text-xs uppercase text-[var(--foreground-muted)]">K-line</p>
@@ -254,7 +254,7 @@ export function KlineChart({
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--border)] bg-[#070d1a]">
+      <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border)] bg-[#070d1a]">
         {isLoading ? (
           <ChartState message="Loading candles..." />
         ) : error ? (
@@ -270,7 +270,7 @@ export function KlineChart({
               ref={chartContainerRef}
               role="img"
               aria-label={`${marketSymbol} ${interval} interactive candlestick chart`}
-              className="h-[430px] w-full"
+              className="h-[360px] w-full"
             />
           </>
         )}
@@ -288,7 +288,7 @@ function ChartState({
 }) {
   return (
     <div
-      className={`flex min-h-[460px] items-center justify-center px-4 text-center text-sm ${
+      className={`flex min-h-[390px] items-center justify-center px-4 text-center text-sm ${
         tone === "danger" ? "text-rose-200" : "text-[var(--foreground-muted)]"
       }`}
     >
@@ -310,7 +310,7 @@ function OhlcPanel({
   const movementTone = movement ? toneForNumber(movement.change) : "neutral";
 
   return (
-    <div className="grid gap-3 border-b border-[var(--border)] bg-[#09101f] px-4 py-3 text-[11px] lg:grid-cols-[1.35fr_repeat(9,minmax(0,1fr))]">
+    <div className="grid gap-3 border-b border-[var(--border)] bg-[#09101f] px-3 py-2.5 text-[11px] lg:grid-cols-[1.35fr_repeat(9,minmax(0,1fr))]">
       <OhlcItem label="Time" value={row ? formatPanelTime(row.source.startTime) : "—"} />
       <OhlcItem label="Open" value={formatDisplayNumber(row?.source.open)} suffix={quoteSymbol} />
       <OhlcItem label="High" value={formatDisplayNumber(row?.source.high)} suffix={quoteSymbol} />
