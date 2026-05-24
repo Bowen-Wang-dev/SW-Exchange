@@ -1,12 +1,68 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
+Current completed milestone: `v0.17 Professional Trading Terminal Layout`
 
 Next milestone: `Future scope remains uncommitted`
 
 ## Upcoming plan
 
 - `v1.x Chain Gateway`
+
+## v0.17 Professional Trading Terminal Layout
+
+This milestone keeps trading behavior unchanged while reshaping `/trade` into a denser professional CEX-style terminal.
+
+### Highlights
+
+- `/trade` now uses a compact ticker bar, dominant chart, adjacent order book and recent trades, fixed desktop order-entry rail, and docked bottom activity tabs
+- Chart, depth, tape, and order-entry controls remain visible together at normal desktop zoom instead of stacking into large vertical cards
+- Core terminal information avoids full-page horizontal scrolling and uses contained panel scrolling instead
+- The layout direction was informed by `docs/ui-references/bybit-trade-layout-summary.md`
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.17
+- Matching logic, fee calculation, transfer rules, admin wallet buckets, market-order behavior, and API behavior are intentionally unchanged
+- This milestone is a frontend layout milestone only
+
+## v0.16.3 Exchange Layout Polish
+
+This milestone keeps trading behavior unchanged while removing horizontal-scroll-heavy layouts from core exchange pages.
+
+### Highlights
+
+- Dashboard asset valuation uses compact rows/cards instead of an internally scrolling table
+- `/markets` keeps clickable full rows while fitting market, price, change, volume, bid, ask, and trade affordance into the page
+- `/trade` promotes ticker stats into the top market header beside the selected market switcher
+- The trade market selector panel remains compact, vertically scrollable, and avoids horizontal overflow
+- Pair icon sizing remains consistent across trade, markets, and navigation surfaces
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.16.3
+- Matching logic, fee calculation, transfer rules, admin wallet buckets, API behavior, and market-order backend behavior are intentionally unchanged
+- This milestone is a frontend layout polish pass
+
+## v0.16.2 Exchange UI Polish
+
+This milestone keeps trading behavior unchanged while polishing exchange discovery and market browsing.
+
+### Highlights
+
+- `/markets` adds compact Top Gainers, Newly Listed, and Trending sections above the full market table
+- Full market rows are clickable and open the selected market in `/trade`
+- Trade navigation opens a hoverable market discovery panel
+- Market pair icons are cleaned up across trade and markets surfaces
+- Dashboard tables scroll horizontally instead of clipping right-side columns
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+### Developer and operational notes
+
+- No schema or migration change is required for v0.16.2
+- Matching logic, fee calculation, transfer rules, admin wallet buckets, and admin asset/market creation behavior are intentionally unchanged
+- This milestone is primarily a frontend/user-flow polish pass
 
 ## v0.16 Trading UX / Order Safety Polish
 

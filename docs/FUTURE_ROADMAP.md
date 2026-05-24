@@ -1,6 +1,6 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.16 Trading UX / Order Safety Polish`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v0.17 Professional Trading Terminal Layout`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
@@ -11,10 +11,13 @@ This plan documents intended future work after `v0.16 Trading UX / Order Safety 
 - `v0.14.1 Exchange-style K-line Chart` is completed.
 - `v0.15 Market Orders / Taker Flow` is completed.
 - `v0.16 Trading UX / Order Safety Polish` is completed.
+- `v0.16.2 Exchange UI Polish` is completed.
+- `v0.16.3 Exchange Layout Polish` is completed.
+- `v0.17 Professional Trading Terminal Layout` is completed.
 - Multiple internal markets are supported, including admin-created listings.
 - K-line candles are generated from existing trades with no fake chart data, and `/trade` now has an interactive exchange-style chart with hover OHLC and volume.
 - Market orders use IOC-like taker behavior and never rest on the order book.
-- `/trade` now includes an exchange-style market selector, order confirmation, market-order risk messaging, and quick-fill controls.
+- `/trade` now includes an exchange-style market selector, compact ticker header, dominant chart, adjacent depth/tape, fixed desktop order rail, bottom activity tabs, order confirmation, market-order risk messaging, and quick-fill controls.
 - Deposit, withdraw, and blockchain features are not live.
 
 ## Future scope remains uncommitted
@@ -31,4 +34,4 @@ This plan documents intended future work after `v0.16 Trading UX / Order Safety 
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.16
+- No blockchain feature is implemented in v0.17

@@ -4,7 +4,7 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
+Current completed milestone: `v0.17 Professional Trading Terminal Layout`
 
 Next milestone: `Future scope remains uncommitted`
 
@@ -222,6 +222,32 @@ Next milestone: `Future scope remains uncommitted`
 - No-liquidity market orders return `NO_LIQUIDITY` without balance or trade mutation
 - No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts are implemented
 
+### v0.16.2 Exchange UI Polish - Completed
+
+- `/markets` adds compact Top Gainers, Newly Listed, and Trending sections above the full market table
+- Full market rows are clickable and open the selected market in `/trade`
+- Trade navigation opens a hoverable market discovery panel
+- Market pair icons are kept clean and readable in trade and markets views
+- Dashboard tables scroll horizontally instead of clipping right-side columns
+- No matching, fee, transfer, schema, deposit, withdraw, or blockchain behavior changed
+
+### v0.17 Professional Trading Terminal Layout - Completed
+
+- `/trade` now uses a professional terminal composition with a compact ticker bar, dominant chart, adjacent order book and recent trades, fixed desktop order-entry rail, and docked bottom activity tabs
+- The left workspace stays flexible while the order-entry rail remains visible beside chart and depth on desktop
+- Core trade-terminal information no longer relies on page-level horizontal scrolling at normal desktop widths
+- The layout direction is informed by `docs/ui-references/bybit-trade-layout-summary.md`
+- Matching, fee, wallet, API, and schema behavior remain unchanged
+
+### v0.16.3 Exchange Layout Polish - Completed
+
+- Dashboard asset valuation no longer relies on internal horizontal scrolling
+- `/markets` full market list fits the page without horizontal-scroll table behavior
+- `/trade` top market header uses the right side for compact ticker stats
+- Trade market selector rows remain compact with vertical-only scrolling for long lists
+- Pair icons stay consistent and readable across touched exchange surfaces
+- No matching, fee, transfer, API, schema, deposit, withdraw, or blockchain behavior changed
+
 ### v0.16 Trading UX / Order Safety Polish - Completed
 
 - `/trade` replaces the native market select with a searchable exchange-style market selector opened from the header
@@ -243,4 +269,4 @@ Next milestone: `Future scope remains uncommitted`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.16
+- No blockchain feature is implemented in v0.17

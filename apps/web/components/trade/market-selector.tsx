@@ -120,7 +120,7 @@ export function MarketSelector({
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
-        className="group inline-flex w-full min-w-[220px] items-center gap-3 rounded-2xl border border-[var(--border-strong)] bg-white/[0.04] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-[var(--accent)] hover:bg-white/[0.06] sm:w-[250px]"
+        className="group inline-flex w-full min-w-[220px] items-center gap-3 rounded-2xl border border-[var(--border-strong)] bg-white/[0.04] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-[var(--accent)] hover:bg-white/[0.06] sm:w-[255px]"
       >
         <AssetPairIcons
           baseSymbol={activeMarket?.baseAssetSymbol ?? marketBaseSymbol(selectedMarketSymbol)}
@@ -130,7 +130,6 @@ export function MarketSelector({
           baseIconUrl={activeMarket?.baseAssetIconUrl}
           quoteIconUrl={activeMarket?.quoteAssetIconUrl}
           size={30}
-          quoteSize={24}
         />
         <span className="min-w-0 flex-1">
           <span className="block text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
@@ -147,7 +146,7 @@ export function MarketSelector({
       </button>
 
       {isOpen ? (
-        <div className="panel-strong absolute left-0 top-full z-30 mt-2 max-h-[72vh] w-[min(680px,calc(100vw-2rem))] rounded-2xl border border-[var(--border-strong)] p-3 shadow-[0_24px_70px_rgba(2,5,18,0.72)]">
+        <div className="panel-strong absolute left-0 top-full z-30 mt-2 max-h-[72vh] w-[min(560px,calc(100vw-2rem))] rounded-2xl border border-[var(--border-strong)] p-3 shadow-[0_24px_70px_rgba(2,5,18,0.72)]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
@@ -172,12 +171,10 @@ export function MarketSelector({
           </label>
 
           <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border)]">
-            <div className="grid grid-cols-[minmax(180px,1.35fr)_minmax(82px,0.7fr)_minmax(96px,0.72fr)_minmax(110px,0.82fr)_86px] gap-3 bg-white/[0.03] px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)]">
+            <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] gap-3 bg-white/[0.03] px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)] sm:grid">
               <span>Market</span>
-              <span>Last</span>
-              <span>24h Change</span>
-              <span>24h Volume</span>
-              <span className="text-right">Status</span>
+              <span>Last / 24h</span>
+              <span className="text-right">Volume</span>
             </div>
             <div className="exchange-scrollbar max-h-[min(380px,calc(72vh-150px))] overflow-y-auto">
               {filteredMarkets.length > 0 ? (
@@ -193,7 +190,7 @@ export function MarketSelector({
                         setIsOpen(false);
                         setSearch("");
                       }}
-                      className={`grid w-full grid-cols-[minmax(180px,1.35fr)_minmax(82px,0.7fr)_minmax(96px,0.72fr)_minmax(110px,0.82fr)_86px] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-left text-sm transition first:border-t-0 ${
+                      className={`grid w-full gap-3 border-t border-[var(--border)] px-3 py-2.5 text-left text-sm transition first:border-t-0 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] ${
                         isSelected ? "bg-[var(--accent-soft)]" : "bg-white/[0.01] hover:bg-white/[0.04]"
                       }`}
                     >
@@ -206,7 +203,6 @@ export function MarketSelector({
                           baseIconUrl={market.baseAssetIconUrl}
                           quoteIconUrl={market.quoteAssetIconUrl}
                           size={26}
-                          quoteSize={22}
                         />
                         <span className="min-w-0">
                           <span className="block truncate font-semibold text-white">
@@ -219,18 +215,25 @@ export function MarketSelector({
                           </span>
                         </span>
                       </span>
-                      <span className="font-medium text-white">{market.lastPrice ?? "—"}</span>
-                      <span className={changeClass(market.change24hPercent)}>
-                        {market.change24hPercent ? `${market.change24hPercent}%` : "—"}
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium text-white">{market.lastPrice ?? "—"}</span>
+                        <span className={`block truncate text-xs ${changeClass(market.change24hPercent)}`}>
+                          {market.change24hPercent ? `${market.change24hPercent}%` : "—"}
+                        </span>
                       </span>
-                      <span className="text-[var(--foreground-soft)]">
-                        {market.volume24h} {market.baseAssetSymbol}
-                      </span>
-                      <span className="flex justify-end">
-                        <StatusBadge
-                          label={market.status}
-                          tone={market.status === "ACTIVE" ? "success" : "warning"}
-                        />
+                      <span className="min-w-0 sm:text-right">
+                        <span className="block truncate text-[var(--foreground-soft)]">
+                          {market.volume24h} {market.baseAssetSymbol}
+                        </span>
+                        <span className="mt-1 block">
+                          {market.status === "ACTIVE" ? (
+                            <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
+                              Live
+                            </span>
+                          ) : (
+                            <StatusBadge label={market.status} tone="warning" />
+                          )}
+                        </span>
                       </span>
                     </button>
                   );

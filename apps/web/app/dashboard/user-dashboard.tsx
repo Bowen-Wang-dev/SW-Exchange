@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/shell/page-header";
 import { AssetIdentity } from "@/components/ui/asset-icon";
-import { DataTable } from "@/components/ui/data-table";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
-import type { PortfolioValuation } from "@/lib/api-types";
+import type { PortfolioValuation, PortfolioValuationAsset } from "@/lib/api-types";
 import { CURRENT_MILESTONE_VERSION, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
 import { useAuth } from "@/providers/auth-provider";
 
@@ -45,6 +44,7 @@ export function DashboardContent() {
 
   const swcAsset = valuation?.assets.find((asset) => asset.assetSymbol === "SWC");
   const nonQuoteAssets = valuation?.assets.filter((asset) => asset.assetSymbol !== "SWC") ?? [];
+  const valuationAssets = valuation?.assets ?? [];
   const primaryBaseAsset = nonQuoteAssets.find((asset) => asset.assetSymbol === "SWL") ?? nonQuoteAssets[0];
   const swcBalance = swcAsset?.total ?? "0";
   const swcValue = swcAsset?.valueInSWC ?? "0";
@@ -138,44 +138,76 @@ export function DashboardContent() {
           </div>
         </section>
 
-        <DataTable
-          columns={["Asset", "Total", "Price in SWC", "Value in SWC", "Note"]}
-          rows={[
-            ...(swcAsset
-              ? [
-                  [
-                    <AssetIdentity
-                      key="swc-asset"
-                      symbol="SWC"
-                      name={swcAsset.assetName}
-                      displayName={swcAsset.displayName}
-                      iconUrl={swcAsset.iconUrl}
-                    />,
-                    `${swcAsset.total} SWC`,
-                    "1",
-                    `${swcAsset.valueInSWC ?? "0"} SWC`,
-                    "Quote asset; valued at 1 SWC.",
-                  ],
-                ]
-              : []),
-            ...nonQuoteAssets.map((asset) => [
-              <AssetIdentity
-                key={`${asset.assetSymbol}-asset`}
-                symbol={asset.assetSymbol}
-                name={asset.assetName}
-                displayName={asset.displayName}
-                iconUrl={asset.iconUrl}
-              />,
-              `${asset.total} ${asset.assetSymbol}`,
-              asset.priceInSWC ?? "—",
-              asset.valueInSWC ? `${asset.valueInSWC} SWC` : "—",
-              asset.priceInSWC === null
-                ? `${asset.assetSymbol} valuation pending until trades exist.`
-                : "Valued from the latest market trade vs SWC.",
-            ]),
-          ]}
-        />
+        <section className="panel rounded-3xl p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+                Portfolio Value
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-white">Asset valuation</h2>
+            </div>
+            <StatusBadge label={`${valuationAssets.length} Assets`} tone="info" />
+          </div>
+
+          <div className="mt-5 grid gap-3">
+            {valuationAssets.length > 0 ? (
+              valuationAssets.map((asset) => <AssetValuationRow key={asset.assetSymbol} asset={asset} />)
+            ) : (
+              <div className="rounded-2xl border border-[var(--border)] bg-white/[0.02] px-4 py-5 text-sm text-[var(--foreground-muted)]">
+                No portfolio assets to display yet.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
+    </div>
+  );
+}
+
+function AssetValuationRow({ asset }: { asset: PortfolioValuationAsset }) {
+  const note =
+    asset.assetSymbol === "SWC"
+      ? "Quote asset; valued at 1 SWC."
+      : asset.priceInSWC === null
+        ? `${asset.assetSymbol} valuation pending until trades exist.`
+        : "Valued from the latest market trade vs SWC.";
+
+  return (
+    <article className="rounded-2xl border border-[var(--border)] bg-white/[0.025] px-4 py-3">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.95fr)_minmax(0,0.9fr)] lg:items-center">
+        <AssetIdentity
+          symbol={asset.assetSymbol}
+          name={asset.assetName}
+          displayName={asset.displayName}
+          iconUrl={asset.iconUrl}
+        />
+
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <MiniValue label="Total" value={`${asset.total} ${asset.assetSymbol}`} />
+          <MiniValue label="Price" value={asset.assetSymbol === "SWC" ? "1 SWC" : `${asset.priceInSWC ?? "—"} SWC`} />
+        </div>
+
+        <div className="lg:text-right">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
+            Value in SWC
+          </p>
+          <p className="mt-1 break-words text-sm font-semibold text-white">
+            {asset.valueInSWC ? `${asset.valueInSWC} SWC` : "—"}
+          </p>
+        </div>
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-[var(--foreground-muted)]">{note}</p>
+    </article>
+  );
+}
+
+function MiniValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">{label}</p>
+      <p className="mt-1 truncate text-sm font-medium text-[var(--foreground-soft)]" title={value}>
+        {value}
+      </p>
     </div>
   );
 }

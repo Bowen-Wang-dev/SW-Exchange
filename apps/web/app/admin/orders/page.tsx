@@ -78,7 +78,7 @@ export default function AdminOrdersPage() {
             eyebrow="Admin Orders"
             title="Order review"
             description="Inspect market and limit orders with clearer execution details, cancelled remainders, and final states newest first."
-            action={<StatusBadge label="v0.16 Live" tone="success" />}
+            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
           />
 
           <AdminOrderFilters

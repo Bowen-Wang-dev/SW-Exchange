@@ -26,6 +26,7 @@ type KlineChartProps = {
   interval: CandleInterval;
   isLoading: boolean;
   error: string | null;
+  chartHeightClassName?: string;
   onIntervalChange: (interval: CandleInterval) => void;
 };
 
@@ -48,6 +49,7 @@ export function KlineChart({
   interval,
   isLoading,
   error,
+  chartHeightClassName,
   onIntervalChange,
 }: KlineChartProps) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -223,11 +225,13 @@ export function KlineChart({
   }, [baseSymbol, chartRows, error, interval, isLoading, marketSymbol]);
 
   return (
-    <section className="panel rounded-3xl p-4">
+    <section className="panel flex h-full min-h-0 flex-col rounded-3xl p-3">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <p className="text-xs uppercase text-[var(--foreground-muted)]">K-line</p>
-          <h2 className="mt-1 break-words text-lg font-semibold text-white">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
+            K-line
+          </p>
+          <h2 className="mt-1 break-words text-base font-semibold text-white sm:text-lg">
             {marketSymbol} candlestick
           </h2>
         </div>
@@ -254,7 +258,7 @@ export function KlineChart({
         </div>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border)] bg-[#070d1a]">
+      <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[#070d1a]">
         {isLoading ? (
           <ChartState message="Loading candles..." />
         ) : error ? (
@@ -270,7 +274,7 @@ export function KlineChart({
               ref={chartContainerRef}
               role="img"
               aria-label={`${marketSymbol} ${interval} interactive candlestick chart`}
-              className="h-[360px] w-full"
+              className={`${chartHeightClassName ?? "h-[360px]"} w-full xl:h-full`}
             />
           </>
         )}
@@ -288,7 +292,7 @@ function ChartState({
 }) {
   return (
     <div
-      className={`flex min-h-[390px] items-center justify-center px-4 text-center text-sm ${
+      className={`flex min-h-[390px] flex-1 items-center justify-center px-4 text-center text-sm ${
         tone === "danger" ? "text-rose-200" : "text-[var(--foreground-muted)]"
       }`}
     >

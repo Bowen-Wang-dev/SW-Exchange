@@ -2,7 +2,7 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
+Current completed milestone: `v0.17 Professional Trading Terminal Layout`
 
 Next milestone: `Future scope remains uncommitted`
 
@@ -73,6 +73,9 @@ Current scope:
 - Market-order liquidity status, warning, and execution summary polish
 - Quick-fill percentage and Max controls on `/trade`
 - Clearer user/admin order-history display for LIMIT vs MARKET execution outcomes
+- No-horizontal-scroll exchange layouts for dashboard valuation and market browsing
+- Compact trade ticker header with selected market and 24h stats in one exchange-style strip
+- Professional CEX-style `/trade` terminal layout with compact ticker bar, dominant chart, adjacent order book and recent trades, fixed desktop order-entry rail, and docked bottom activity tabs
 
 ## Milestone status
 
@@ -94,8 +97,11 @@ Current scope:
 - `v0.14.1 Exchange-style K-line Chart` completed
 - `v0.15 Market Orders / Taker Flow` completed
 - `v0.16 Trading UX / Order Safety Polish` completed
+- `v0.16.2 Exchange UI Polish` completed
+- `v0.16.3 Exchange Layout Polish` completed
+- `v0.17 Professional Trading Terminal Layout` completed
 
-- Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
+- Current completed milestone: `v0.17 Professional Trading Terminal Layout`
 - Next milestone: `Future scope remains uncommitted`
 
 ## Planned milestones
@@ -133,6 +139,39 @@ SW_EXCHANGE_ALLOW_SIMULATED_TRADES=local-demo-only corepack pnpm exec tsx script
 ```
 
 This helper is not part of normal `db:seed`, only runs with explicit opt-in, and refuses non-local database hosts.
+
+## v0.17 Professional Trading Terminal Layout
+
+v0.17 reshapes `/trade` into a denser professional centralized-exchange terminal while keeping backend trading behavior unchanged.
+
+- `/trade` now uses a three-zone desktop terminal: flexible left workspace, fixed right order-entry rail, and bottom activity/history panel
+- The top ticker bar keeps the market selector, last price, 24h change, 24h high/low, base volume, quote volume, bid, and ask in one compact strip
+- The chart now dominates the left/center while order book and recent trades stay docked beside it
+- Open Orders, Order History, Trade History, and Assets are docked below the chart workspace instead of pushing the order form downward
+- The layout direction was informed by `docs/ui-references/bybit-trade-layout-summary.md`
+- No matching logic, market-order behavior, fee rules, wallet rules, schema, deposit, withdraw, blockchain integration, or new order types were changed
+
+## v0.16.3 Exchange Layout Polish
+
+v0.16.3 removes the backend-table feel from core exchange pages while keeping trading behavior unchanged.
+
+- Dashboard asset valuation is shown as compact rows/cards instead of a horizontally scrolling table
+- `/markets` full market rows fit the page without internal horizontal scrolling
+- `/trade` uses the market header space for selected-market context plus last price, 24h stats, volume, bid, and ask
+- Trade market selector rows stay compact and avoid horizontal overflow
+- Pair icon sizing remains consistent across market browsing and trade surfaces
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
+
+## v0.16.2 Exchange UI Polish
+
+v0.16.2 tightens the exchange browsing and navigation experience while keeping trading behavior unchanged.
+
+- `/markets` adds compact Top Gainers, Newly Listed, and Trending sections above the full market list
+- Full market rows are clickable and open the selected market in `/trade`
+- Trade navigation opens a hoverable market panel with quick spot-market discovery
+- Market pair icons are kept clean and readable in trade, markets, and shared rows
+- Dashboard tables scroll horizontally instead of clipping right-side columns
+- No deposit, withdraw, blockchain integration, chain addresses, stop-loss, take-profit, post-only, leverage, futures, or contracts are added
 
 ## v0.16 Trading UX / Order Safety Polish
 

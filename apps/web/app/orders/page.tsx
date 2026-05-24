@@ -74,7 +74,7 @@ export default function OrdersPage() {
             eyebrow="Orders"
             title="Order history"
             description="Review market and limit spot orders with clearer execution summaries, cancelled remainders, and open-limit cancel controls."
-            action={<StatusBadge label="v0.16 Live" tone="success" />}
+            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
           />
 
           <MarketFilter

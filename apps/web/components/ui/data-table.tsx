@@ -9,7 +9,7 @@ export function DataTable({ columns, rows }: DataTableProps) {
   return (
     <div className="panel overflow-hidden rounded-3xl">
       <div className="overflow-x-auto exchange-scrollbar">
-        <table className="min-w-full border-collapse text-left text-sm">
+        <table className="min-w-max border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[var(--border)] bg-white/[0.02]">
               {columns.map((column) => (

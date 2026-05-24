@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.16 Trading UX / Order Safety Polish`
+Current completed milestone: `v0.17 Professional Trading Terminal Layout`
 
 ## Account Status
 
@@ -35,6 +35,9 @@ v0.14 adds trade-derived K-line candles without changing wallet buckets, balance
 v0.14.1 upgrades the chart UI for those candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
 v0.15 adds market-order taker flow without changing wallet buckets, transfer rules, admin bucket behavior, or fee-asset rules. Market orders spend or sell only the executed amount and cancel any unfilled remainder without resting on the order book.
 v0.16 adds exchange-style market selection, order confirmation, market-order risk messaging, quick-fill controls, and order-history polish without changing wallet buckets, transfer rules, matching behavior, or fee-asset rules.
+v0.16.2 adds exchange-style market browsing and navigation polish without changing wallet buckets, transfer rules, matching behavior, or fee-asset rules.
+v0.16.3 removes horizontal-scroll-heavy exchange layouts without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
+v0.17 reshapes `/trade` into a denser professional terminal layout without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 
 ## Asset Metadata
 
