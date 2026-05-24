@@ -17,6 +17,8 @@ const databaseUrl = process.env.DATABASE_URL;
 const adminEmail = process.env.ADMIN_EMAIL;
 const adminUsername = process.env.ADMIN_USERNAME;
 const adminPassword = process.env.ADMIN_PASSWORD;
+const smokeRunId = Date.now().toString(36).toUpperCase();
+let smokeSymbolCounter = 0;
 
 if (!databaseUrl || !adminEmail || !adminUsername || !adminPassword) {
   throw new Error("DATABASE_URL, ADMIN_EMAIL, ADMIN_USERNAME, and ADMIN_PASSWORD are required.");
@@ -77,16 +79,14 @@ async function main() {
   await testV03AirdropFlow(auth);
   await testV04TransferFlow(auth);
   await testV07FeeFlow(auth);
-  await testV06OrderFlow(auth);
-  await testV10MarketDataAndValuation(auth);
+  const v06Context = await testV06OrderFlow(auth);
+  await testV10MarketDataAndValuation(auth, v06Context);
   await testV08AdminControlsFlow(auth);
   const v13Context = await testV13AdminAssetAndMarketCreation(auth);
   await testV14CandleFlow(auth, v13Context);
   await resetV08OperationalControls(auth.adminAccessToken);
-  await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default v0.7 fees");
   await testV15MarketOrders(auth);
   await resetV08OperationalControls(auth.adminAccessToken);
-  await setFeeSettings(auth.adminAccessToken, "0.1", "0.1", "Smoke reset default after v0.15");
   await testWebRoutes();
   await testWebBuild();
 
@@ -332,10 +332,16 @@ async function testV07FeeFlow(auth: {
   user: { email: string; username: string };
   receiver: { email: string; username: string };
 }) {
-  const marketSymbol = "SWL/SWC";
+  const feeMarket = await createSmokeMarket(auth.adminAccessToken, {
+    prefix: "F",
+    name: "Smoke Fee Asset",
+    description: "Smoke v0.17.1 fee isolation asset",
+  });
+  const { assetSymbol, marketSymbol } = feeMarket;
 
   const defaultSettings = await setFeeSettings(
     auth.adminAccessToken,
+    marketSymbol,
     "0.1",
     "0.1",
     "Smoke v0.7 default fee setup",
@@ -348,11 +354,17 @@ async function testV07FeeFlow(auth: {
   }
 
   await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "1000", "Smoke v0.7 fee buyer funding");
-  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "400", "Smoke v0.7 fee seller funding");
+  await airdrop(
+    auth.adminAccessToken,
+    auth.receiver.username,
+    assetSymbol,
+    "400",
+    "Smoke v0.7 fee seller funding",
+  );
 
   const buyerBeforeA = await walletSnapshot(auth.userAccessToken);
   const sellerBeforeA = await walletSnapshot(auth.receiverAccessToken);
-  const feeBeforeA = await feeSettings(auth.adminAccessToken);
+  const feeBeforeA = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
 
   await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "100");
   await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "100");
@@ -364,13 +376,13 @@ async function testV07FeeFlow(auth: {
   );
   await assertExactWallet(
     auth.userAccessToken,
-    "SWL",
-    BigInt(findWallet(buyerBeforeA, "SWL").availableRaw) + units("99.9"),
+    assetSymbol,
+    BigInt(findWallet(buyerBeforeA, assetSymbol).availableRaw) + units("99.9"),
   );
   await assertExactWallet(
     auth.receiverAccessToken,
-    "SWL",
-    BigInt(findWallet(sellerBeforeA, "SWL").availableRaw) - units("100"),
+    assetSymbol,
+    BigInt(findWallet(sellerBeforeA, assetSymbol).availableRaw) - units("100"),
   );
   await assertExactWallet(
     auth.receiverAccessToken,
@@ -378,23 +390,26 @@ async function testV07FeeFlow(auth: {
     BigInt(findWallet(sellerBeforeA, "SWC").availableRaw) + units("199.8"),
   );
 
-  const feeAfterA = await feeSettings(auth.adminAccessToken);
-  expectFeeWalletBalanceDelta(feeBeforeA, feeAfterA, "SWL", units("0.1"));
+  const feeAfterA = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+  expectFeeWalletBalanceDelta(feeBeforeA, feeAfterA, assetSymbol, units("0.1"));
   expectFeeWalletBalanceDelta(feeBeforeA, feeAfterA, "SWC", units("0.2"));
 
-  const tradesAfterA = await adminTrades(auth.adminAccessToken);
+  const tradesAfterA = await adminTradesByMarket(auth.adminAccessToken, marketSymbol);
   const tradeA = tradesAfterA.find(
     (trade) =>
       trade.price === "2" &&
       trade.amount === "100" &&
+      trade.marketSymbol === marketSymbol &&
       trade.buyer.username === auth.user.username &&
       trade.seller.username === auth.receiver.username,
   );
   if (!tradeA || tradeA.buyerFee !== "0.1" || tradeA.sellerFee !== "0.2") {
-    throw new Error("Expected default fee trade to persist 0.1 SWL buyer fee and 0.2 SWC seller fee.");
+    throw new Error(
+      `Expected default fee trade to persist 0.1 ${assetSymbol} buyer fee and 0.2 SWC seller fee.`,
+    );
   }
 
-  await setFeeSettings(auth.adminAccessToken, "0.2", "0.3", "Smoke v0.7 fee change");
+  await setFeeSettings(auth.adminAccessToken, marketSymbol, "0.2", "0.3", "Smoke v0.7 fee change");
   const auditLogs = await getJson<Array<{ action: string }>>(
     `${apiBaseUrl}/admin/audit-logs`,
     auth.adminAccessToken,
@@ -406,33 +421,49 @@ async function testV07FeeFlow(auth: {
 
   await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "100");
   await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "100");
-  const tradesAfterB = await adminTrades(auth.adminAccessToken);
-  const tradeB = tradesAfterB[0];
+  const tradesAfterB = await adminTradesByMarket(auth.adminAccessToken, marketSymbol);
+  const tradeB = tradesAfterB.find(
+    (trade) =>
+      trade.id !== tradeA.id &&
+      trade.price === "2" &&
+      trade.amount === "100" &&
+      trade.buyer.username === auth.user.username &&
+      trade.seller.username === auth.receiver.username,
+  );
   if (!tradeB || tradeB.buyerFee !== "0.2" || tradeB.sellerFee !== "0.6") {
-    throw new Error("Updated fee trade should persist 0.2 SWL buyer fee and 0.6 SWC seller fee.");
+    throw new Error(
+      `Updated fee trade should persist 0.2 ${assetSymbol} buyer fee and 0.6 SWC seller fee.`,
+    );
   }
   const historicalTradeA = tradesAfterB.find((trade) => trade.id === tradeA.id);
   if (!historicalTradeA || historicalTradeA.buyerFee !== "0.1" || historicalTradeA.sellerFee !== "0.2") {
     throw new Error("Historical trades should keep original persisted fee amounts after fee changes.");
   }
 
-  await expectFeeSettingsRejected(auth.adminAccessToken, "-0.1", "0.1");
-  await expectFeeSettingsRejected(auth.adminAccessToken, "50", "0.1");
-  await expectFeeSettingsRejected(auth.adminAccessToken, "abc", "0.1");
-  await expectFeeSettingsRejected(auth.adminAccessToken, "1e-3", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, marketSymbol, "-0.1", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, marketSymbol, "50", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, marketSymbol, "abc", "0.1");
+  await expectFeeSettingsRejected(auth.adminAccessToken, marketSymbol, "1e-3", "0.1");
 
   const zeroSettingsBefore = await setFeeSettings(
     auth.adminAccessToken,
+    marketSymbol,
     "0",
     "0",
     "Smoke v0.7 zero fee validation",
   );
   await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "2", "10");
   await createOrder(auth.userAccessToken, marketSymbol, "BUY", "2", "10");
-  const zeroSettingsAfter = await feeSettings(auth.adminAccessToken);
-  expectFeeWalletBalanceDelta(zeroSettingsBefore, zeroSettingsAfter, "SWL", 0n);
+  const zeroSettingsAfter = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
+  expectFeeWalletBalanceDelta(zeroSettingsBefore, zeroSettingsAfter, assetSymbol, 0n);
   expectFeeWalletBalanceDelta(zeroSettingsBefore, zeroSettingsAfter, "SWC", 0n);
-  const zeroFeeTrade = (await adminTrades(auth.adminAccessToken))[0];
+  const zeroFeeTrade = (await adminTradesByMarket(auth.adminAccessToken, marketSymbol)).find(
+    (trade) =>
+      trade.price === "2" &&
+      trade.amount === "10" &&
+      trade.buyer.username === auth.user.username &&
+      trade.seller.username === auth.receiver.username,
+  );
   if (!zeroFeeTrade || zeroFeeTrade.buyerFee !== "0" || zeroFeeTrade.sellerFee !== "0") {
     throw new Error("Zero fee trades should persist zero buyer and seller fees.");
   }
@@ -447,23 +478,37 @@ async function testV06OrderFlow(auth: {
   user: { email: string; username: string };
   receiver: { email: string; username: string };
 }) {
-  const marketSymbol = "SWL/SWC";
-  const marketQuery = encodeURIComponent(marketSymbol);
+  const orderMarket = await createSmokeMarket(auth.adminAccessToken, {
+    prefix: "L",
+    name: "Smoke Limit Asset",
+    description: "Smoke v0.17.1 limit order isolation asset",
+  });
+  const { assetSymbol, marketSymbol, marketQuery } = orderMarket;
   const trackedOrderIds: string[] = [];
 
+  await setFeeSettings(auth.adminAccessToken, marketSymbol, "0", "0", "Smoke v0.6 zero fee setup");
   await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "1000", "Smoke v0.6 buyer funding");
-  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "200", "Smoke v0.6 seller funding");
-  await airdrop(auth.adminAccessToken, adminUsername, "SWL", "200", "Smoke v0.6 admin seller funding");
+  await airdrop(
+    auth.adminAccessToken,
+    auth.receiver.username,
+    assetSymbol,
+    "200",
+    "Smoke v0.6 seller funding",
+  );
+  await airdrop(
+    auth.adminAccessToken,
+    adminUsername,
+    assetSymbol,
+    "200",
+    "Smoke v0.6 admin seller funding",
+  );
 
   const fundedBuyer = await walletSnapshot(auth.userAccessToken);
   const fundedSeller = await walletSnapshot(auth.receiverAccessToken);
-  const fundedAdmin = await walletSnapshot(auth.adminAccessToken);
-
   const buyerSwcFunded = findWallet(fundedBuyer, "SWC");
-  const buyerSwlFunded = findWallet(fundedBuyer, "SWL");
+  const buyerAssetFunded = findWallet(fundedBuyer, assetSymbol);
   const sellerSwcFunded = findWallet(fundedSeller, "SWC");
-  const sellerSwlFunded = findWallet(fundedSeller, "SWL");
-  const adminSwlFunded = findWallet(fundedAdmin, "SWL");
+  const sellerAssetFunded = findWallet(fundedSeller, assetSymbol);
 
   const sellA = await createOrder(auth.receiverAccessToken, marketSymbol, "SELL", "1.15", "50");
   trackedOrderIds.push(sellA.id);
@@ -471,8 +516,16 @@ async function testV06OrderFlow(auth: {
   trackedOrderIds.push(buyA.id);
   expectTradeResponse(buyA, "FILLED", "50", "0");
   await assertExactWallet(auth.userAccessToken, "SWC", BigInt(buyerSwcFunded.availableRaw) - quoteUnits("1.15", "50"));
-  await assertExactWallet(auth.userAccessToken, "SWL", BigInt(buyerSwlFunded.availableRaw) + units("50"));
-  await assertExactWallet(auth.receiverAccessToken, "SWL", BigInt(sellerSwlFunded.availableRaw) - units("50"));
+  await assertExactWallet(
+    auth.userAccessToken,
+    assetSymbol,
+    BigInt(buyerAssetFunded.availableRaw) + units("50"),
+  );
+  await assertExactWallet(
+    auth.receiverAccessToken,
+    assetSymbol,
+    BigInt(sellerAssetFunded.availableRaw) - units("50"),
+  );
   await assertExactWallet(auth.receiverAccessToken, "SWC", BigInt(sellerSwcFunded.availableRaw) + quoteUnits("1.15", "50"));
   await expectAdminOrderStatus(auth.adminAccessToken, sellA.id, "FILLED", "0");
   await expectAdminOrderStatus(auth.adminAccessToken, buyA.id, "FILLED", "0");
@@ -500,8 +553,8 @@ async function testV06OrderFlow(auth: {
   );
   await assertExactWallet(
     auth.userAccessToken,
-    "SWL",
-    BigInt(findWallet(buyerBeforeB, "SWL").availableRaw) + units("50"),
+    assetSymbol,
+    BigInt(findWallet(buyerBeforeB, assetSymbol).availableRaw) + units("50"),
   );
   await assertExactWallet(
     auth.receiverAccessToken,
@@ -574,7 +627,7 @@ async function testV06OrderFlow(auth: {
   await expectForbidden(`${apiBaseUrl}/admin/trades`, auth.userAccessToken, "normal user admin trades");
   await expectCreateOrderRejected(auth.userAccessToken, marketSymbol, "BUY", "1e-3", "1");
 
-  const tradesBeforeSelfCross = await adminTrades(auth.adminAccessToken);
+  const tradesBeforeSelfCross = await adminTradesByMarket(auth.adminAccessToken, marketSymbol);
   const selfSell = await createOrder(auth.userAccessToken, marketSymbol, "SELL", "1.00", "1");
   trackedOrderIds.push(selfSell.id);
   const selfBuy = await createOrder(auth.userAccessToken, marketSymbol, "BUY", "1.20", "1");
@@ -583,7 +636,7 @@ async function testV06OrderFlow(auth: {
   expectOrderStatus(selfBuy, "OPEN");
   await expectAdminOrderStatus(auth.adminAccessToken, selfSell.id, "OPEN", "1");
   await expectAdminOrderStatus(auth.adminAccessToken, selfBuy.id, "OPEN", "1");
-  const tradesAfterSelfCross = await adminTrades(auth.adminAccessToken);
+  const tradesAfterSelfCross = await adminTradesByMarket(auth.adminAccessToken, marketSymbol);
   if (tradesAfterSelfCross.length !== tradesBeforeSelfCross.length) {
     throw new Error("Crossed orders from the same user should not self-trade.");
   }
@@ -591,7 +644,7 @@ async function testV06OrderFlow(auth: {
   await cancelOrder(auth.userAccessToken, selfSell.id);
 
   const userTrades = await getJson<Array<{ side: string; price: string; amount: string; quoteAmount: string }>>(
-    `${apiBaseUrl}/trades/me`,
+    `${apiBaseUrl}/trades/me?marketSymbol=${marketQuery}`,
     auth.userAccessToken,
     "load my trades",
   );
@@ -599,7 +652,7 @@ async function testV06OrderFlow(auth: {
     throw new Error("My trades endpoint should return user-side trades.");
   }
 
-  const adminTradesList = await adminTrades(auth.adminAccessToken);
+  const adminTradesList = await adminTradesByMarket(auth.adminAccessToken, marketSymbol);
   if (!adminTradesList.length) {
     throw new Error("Admin trades endpoint should return settled trades.");
   }
@@ -619,6 +672,8 @@ async function testV06OrderFlow(auth: {
   }
 
   console.log("PASS v0.6 matching regression, partial fills, maker pricing, refunds, trades, and cancel flow");
+
+  return orderMarket;
 }
 
 async function testV08AdminControlsFlow(auth: {
@@ -753,11 +808,17 @@ async function testV08AdminControlsFlow(auth: {
   console.log("PASS v0.8 admin user, asset, and market controls");
 }
 
-async function testV10MarketDataAndValuation(auth: {
+async function testV10MarketDataAndValuation(
+  auth: {
   userAccessToken: string;
   adminAccessToken: string;
-}) {
-  const marketQuery = encodeURIComponent("SWL/SWC");
+  },
+  context: {
+    marketSymbol: string;
+    assetSymbol: string;
+  },
+) {
+  const marketQuery = encodeURIComponent(context.marketSymbol);
   const ticker = await getJson<{
     marketSymbol: string;
     baseAssetSymbol: string;
@@ -779,8 +840,8 @@ async function testV10MarketDataAndValuation(auth: {
   );
 
   if (
-    ticker.marketSymbol !== "SWL/SWC" ||
-    ticker.baseAssetSymbol !== "SWL" ||
+    ticker.marketSymbol !== context.marketSymbol ||
+    ticker.baseAssetSymbol !== context.assetSymbol ||
     ticker.quoteAssetSymbol !== "SWC"
   ) {
     throw new Error(`Unexpected ticker market metadata: ${JSON.stringify(ticker)}`);
@@ -799,9 +860,9 @@ async function testV10MarketDataAndValuation(auth: {
     auth.userAccessToken,
     "load v0.10 market summary",
   );
-  const swlSwcSummary = summary.find((entry) => entry.marketSymbol === "SWL/SWC");
-  if (!swlSwcSummary || swlSwcSummary.lastPrice !== ticker.lastPrice) {
-    throw new Error("Market summary should include SWL/SWC with the same last price as ticker.");
+  const tradedMarketSummary = summary.find((entry) => entry.marketSymbol === context.marketSymbol);
+  if (!tradedMarketSummary || tradedMarketSummary.lastPrice !== ticker.lastPrice) {
+    throw new Error(`Market summary should include ${context.marketSymbol} with the same last price as ticker.`);
   }
   const swdSwcSummary = summary.find((entry) => entry.marketSymbol === "SWD/SWC");
   if (!swdSwcSummary) {
@@ -853,10 +914,10 @@ async function testV10MarketDataAndValuation(auth: {
     }>;
   }>(`${apiBaseUrl}/wallets/me/valuation`, auth.userAccessToken, "load v0.10 wallet valuation");
   const swcValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWC");
-  const swlValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWL");
+  const tradedAssetValuation = valuation.assets.find((asset) => asset.assetSymbol === context.assetSymbol);
   const swdValuation = valuation.assets.find((asset) => asset.assetSymbol === "SWD");
 
-  if (valuation.quoteAssetSymbol !== "SWC" || !swcValuation || !swlValuation || !swdValuation) {
+  if (valuation.quoteAssetSymbol !== "SWC" || !swcValuation || !tradedAssetValuation || !swdValuation) {
     throw new Error(`Unexpected valuation payload: ${JSON.stringify(valuation)}`);
   }
 
@@ -864,21 +925,26 @@ async function testV10MarketDataAndValuation(auth: {
     throw new Error(`SWC valuation should be fixed at 1 SWC, got ${swcValuation.priceInSWC}.`);
   }
 
-  if (swlValuation.priceInSWC !== ticker.lastPrice || swlValuation.valueInSWC === null) {
-    throw new Error("SWL valuation should use the latest SWL/SWC last price after trades exist.");
+  if (tradedAssetValuation.priceInSWC !== ticker.lastPrice || tradedAssetValuation.valueInSWC === null) {
+    throw new Error(
+      `${context.assetSymbol} valuation should use the latest ${context.marketSymbol} last price after trades exist.`,
+    );
   }
 
-  const adminSummary = await getJson<{ marketSummary?: { marketSymbol: string; totalTradeCount: number } }>(
+  const adminSummary = await getJson<{
+    marketSummary?: { marketSymbol: string; totalTradeCount: number };
+    marketSummaries?: Array<{ marketSymbol: string; totalTradeCount: number; lastPrice: string | null }>;
+  }>(
     `${apiBaseUrl}/admin/reports/summary`,
     auth.adminAccessToken,
     "load v0.10 admin market summary",
   );
   if (
-    !adminSummary.marketSummary ||
-    adminSummary.marketSummary.marketSymbol !== "SWL/SWC" ||
-    adminSummary.marketSummary.totalTradeCount <= 0
+    !adminSummary.marketSummaries?.some(
+      (entry) => entry.marketSymbol === context.marketSymbol && entry.totalTradeCount > 0,
+    )
   ) {
-    throw new Error("Admin report summary should include SWL/SWC market data.");
+    throw new Error(`Admin report summary should include ${context.marketSymbol} market data.`);
   }
 
   console.log("PASS v0.10 market ticker, summary, wallet valuation, and admin market data");
@@ -890,7 +956,7 @@ async function testV13AdminAssetAndMarketCreation(auth: {
   user: { email: string; username: string };
   receiver: { email: string; username: string };
 }) {
-  const assetSymbol = `Q${Date.now().toString().slice(-5)}`;
+  const assetSymbol = nextSmokeSymbol("Q");
   const marketSymbol = `${assetSymbol}/SWC`;
 
   await expectPostJsonRejected(
@@ -1051,7 +1117,7 @@ async function testV13AdminAssetAndMarketCreation(auth: {
     "market symbol format rejection",
   );
 
-  const pausedAssetSymbol = `P${Date.now().toString().slice(-5)}`;
+  const pausedAssetSymbol = nextSmokeSymbol("P");
   await postJson(
     `${apiBaseUrl}/admin/assets`,
     auth.adminAccessToken,
@@ -1344,7 +1410,7 @@ async function testV14CandleFlow(
   },
   context: { emptyMarketSymbol: string },
 ) {
-  const assetSymbol = `K${Date.now().toString().slice(-5)}`;
+  const assetSymbol = nextSmokeSymbol("K");
   const marketSymbol = `${assetSymbol}/SWC`;
   const marketQuery = encodeURIComponent(marketSymbol);
 
@@ -1492,11 +1558,21 @@ async function testV15MarketOrders(auth: {
   user: { email: string; username: string };
   receiver: { email: string; username: string };
 }) {
-  const marketSymbol = "SWL/SWC";
-  const marketQuery = encodeURIComponent(marketSymbol);
+  const marketOrderMarket = await createSmokeMarket(auth.adminAccessToken, {
+    prefix: "M",
+    name: "Smoke Market Asset",
+    description: "Smoke v0.17.1 market order isolation asset",
+  });
+  const { assetSymbol, marketSymbol, marketQuery } = marketOrderMarket;
 
   await airdrop(auth.adminAccessToken, auth.user.username, "SWC", "2000", "Smoke v0.15 market buyer SWC");
-  await airdrop(auth.adminAccessToken, auth.receiver.username, "SWL", "300", "Smoke v0.15 market seller SWL");
+  await airdrop(
+    auth.adminAccessToken,
+    auth.receiver.username,
+    assetSymbol,
+    "300",
+    "Smoke v0.15 market seller asset",
+  );
 
   const buyFullFeeBefore = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
   const buyFullBuyerBefore = await walletSnapshot(auth.userAccessToken);
@@ -1524,13 +1600,13 @@ async function testV15MarketOrders(auth: {
   );
   await assertExactWallet(
     auth.userAccessToken,
-    "SWL",
-    BigInt(findWallet(buyFullBuyerBefore, "SWL").availableRaw) + units("19.98"),
+    assetSymbol,
+    BigInt(findWallet(buyFullBuyerBefore, assetSymbol).availableRaw) + units("19.98"),
   );
   await assertExactWallet(
     auth.receiverAccessToken,
-    "SWL",
-    BigInt(findWallet(buyFullSellerBefore, "SWL").availableRaw) - units("20"),
+    assetSymbol,
+    BigInt(findWallet(buyFullSellerBefore, assetSymbol).availableRaw) - units("20"),
   );
   await assertExactWallet(
     auth.receiverAccessToken,
@@ -1538,7 +1614,7 @@ async function testV15MarketOrders(auth: {
     BigInt(findWallet(buyFullSellerBefore, "SWC").availableRaw) + units("49.95"),
   );
   const buyFullFeeAfter = await feeSettingsForMarket(auth.adminAccessToken, marketSymbol);
-  expectFeeWalletBalanceDelta(buyFullFeeBefore, buyFullFeeAfter, "SWL", units("0.02"));
+  expectFeeWalletBalanceDelta(buyFullFeeBefore, buyFullFeeAfter, assetSymbol, units("0.02"));
   expectFeeWalletBalanceDelta(buyFullFeeBefore, buyFullFeeAfter, "SWC", units("0.05"));
   await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market buy full fill");
 
@@ -1587,8 +1663,8 @@ async function testV15MarketOrders(auth: {
   }
   await assertExactWallet(
     auth.receiverAccessToken,
-    "SWL",
-    BigInt(findWallet(sellFullSellerBefore, "SWL").availableRaw) - units("20"),
+    assetSymbol,
+    BigInt(findWallet(sellFullSellerBefore, assetSymbol).availableRaw) - units("20"),
   );
   await assertExactWallet(
     auth.receiverAccessToken,
@@ -1597,8 +1673,8 @@ async function testV15MarketOrders(auth: {
   );
   await assertExactWallet(
     auth.userAccessToken,
-    "SWL",
-    BigInt(findWallet(sellFullBuyerBefore, "SWL").availableRaw) + units("19.98"),
+    assetSymbol,
+    BigInt(findWallet(sellFullBuyerBefore, assetSymbol).availableRaw) + units("19.98"),
   );
   await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market sell full fill");
 
@@ -1613,41 +1689,25 @@ async function testV15MarketOrders(auth: {
   }
   await assertExactWallet(
     auth.receiverAccessToken,
-    "SWL",
-    BigInt(findWallet(sellPartialSellerBefore, "SWL").availableRaw) - units("5"),
+    assetSymbol,
+    BigInt(findWallet(sellPartialSellerBefore, assetSymbol).availableRaw) - units("5"),
   );
   await expectOrderBookEmpty(auth.userAccessToken, marketQuery, "market sell partial fill");
 
-  const isolatedAssetSymbol = `M${Date.now().toString().slice(-5)}`;
-  const isolatedMarketSymbol = `${isolatedAssetSymbol}/SWC`;
-  const isolatedMarketQuery = encodeURIComponent(isolatedMarketSymbol);
-  await postJson(
-    `${apiBaseUrl}/admin/assets`,
+  const isolatedMarket = await createSmokeMarket(auth.adminAccessToken, {
+    prefix: "I",
+    name: "Smoke Isolated Market Asset",
+    description: "Smoke v0.17.1 isolated market asset",
+  });
+  const isolatedMarketSymbol = isolatedMarket.marketSymbol;
+  const isolatedMarketQuery = isolatedMarket.marketQuery;
+  await airdrop(
     auth.adminAccessToken,
-    {
-      symbol: isolatedAssetSymbol,
-      name: "Smoke Market Order Asset",
-      decimals: 18,
-      status: "ACTIVE",
-      description: "Smoke v0.15 market order asset",
-    },
-    "create v0.15 market order asset",
+    auth.receiver.username,
+    isolatedMarket.assetSymbol,
+    "20",
+    "Smoke v0.15 isolated seller asset",
   );
-  await postJson(
-    `${apiBaseUrl}/admin/markets`,
-    auth.adminAccessToken,
-    {
-      baseAssetSymbol: isolatedAssetSymbol,
-      quoteAssetSymbol: "SWC",
-      status: "ACTIVE",
-      pricePrecision: 18,
-      amountPrecision: 18,
-      minOrderAmount: "0.1",
-      minNotional: "1",
-    },
-    "create v0.15 market order market",
-  );
-  await airdrop(auth.adminAccessToken, auth.receiver.username, isolatedAssetSymbol, "20", "Smoke v0.15 isolated seller asset");
 
   const noLiquidityBuyerBefore = await walletSnapshot(auth.userAccessToken);
   const noLiquiditySellerBefore = await walletSnapshot(auth.receiverAccessToken);
@@ -1670,8 +1730,8 @@ async function testV15MarketOrders(auth: {
   );
   await assertExactWallet(
     auth.receiverAccessToken,
-    isolatedAssetSymbol,
-    BigInt(findWallet(noLiquiditySellerBefore, isolatedAssetSymbol).availableRaw),
+    isolatedMarket.assetSymbol,
+    BigInt(findWallet(noLiquiditySellerBefore, isolatedMarket.assetSymbol).availableRaw),
   );
 
   const isolatedAsk = await createOrder(auth.receiverAccessToken, isolatedMarketSymbol, "SELL", "1", "5");
@@ -2102,6 +2162,7 @@ async function feeSettingsForMarket(accessToken: string, marketSymbol: string) {
 
 async function setFeeSettings(
   accessToken: string,
+  marketSymbol: string,
   buyerFeeRatePercent: string,
   sellerFeeRatePercent: string,
   note: string,
@@ -2113,7 +2174,7 @@ async function setFeeSettings(
       authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      marketSymbol: "SWL/SWC",
+      marketSymbol,
       buyerFeeRatePercent,
       sellerFeeRatePercent,
       note,
@@ -2131,6 +2192,7 @@ async function setFeeSettings(
 
 async function expectFeeSettingsRejected(
   accessToken: string,
+  marketSymbol: string,
   buyerFeeRatePercent: string,
   sellerFeeRatePercent: string,
 ) {
@@ -2141,7 +2203,7 @@ async function expectFeeSettingsRejected(
       authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({
-      marketSymbol: "SWL/SWC",
+      marketSymbol,
       buyerFeeRatePercent,
       sellerFeeRatePercent,
       note: "Smoke invalid fee settings",
@@ -2166,6 +2228,62 @@ function expectFeeWalletBalanceDelta(
       `Admin Fee Wallet ${asset} expected delta ${expectedDelta.toString()}, got ${delta.toString()}.`,
     );
   }
+}
+
+function nextSmokeSymbol(prefix: string) {
+  smokeSymbolCounter += 1;
+  const normalizedPrefix = prefix.trim().toUpperCase().replace(/[^A-Z0-9]/g, "") || "S";
+  const suffix = `${smokeRunId}${smokeSymbolCounter.toString(36).toUpperCase()}`.replace(/[^A-Z0-9]/g, "");
+  return `${normalizedPrefix}${suffix}`.slice(0, 16);
+}
+
+async function createSmokeMarket(
+  adminAccessToken: string,
+  options: {
+    prefix: string;
+    name: string;
+    description: string;
+    minOrderAmount?: string;
+    minNotional?: string;
+  },
+) {
+  const assetSymbol = nextSmokeSymbol(options.prefix);
+  const marketSymbol = `${assetSymbol}/SWC`;
+
+  await postJson(
+    `${apiBaseUrl}/admin/assets`,
+    adminAccessToken,
+    {
+      symbol: assetSymbol,
+      name: options.name,
+      displayName: options.name,
+      decimals: 18,
+      status: "ACTIVE",
+      description: options.description,
+    },
+    `create smoke asset ${assetSymbol}`,
+  );
+
+  await postJson(
+    `${apiBaseUrl}/admin/markets`,
+    adminAccessToken,
+    {
+      baseAssetSymbol: assetSymbol,
+      quoteAssetSymbol: "SWC",
+      status: "ACTIVE",
+      pricePrecision: 18,
+      amountPrecision: 18,
+      minOrderAmount: options.minOrderAmount ?? "0.1",
+      minNotional: options.minNotional ?? "1",
+    },
+    `create smoke market ${marketSymbol}`,
+  );
+
+  return {
+    assetSymbol,
+    marketSymbol,
+    marketQuery: encodeURIComponent(marketSymbol),
+  };
 }
 
 type FeeWalletSettings = {
