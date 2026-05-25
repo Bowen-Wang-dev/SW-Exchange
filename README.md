@@ -2,9 +2,11 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.17.4 Trading Interaction Polish`
+Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
 
-Next milestone: `v0.17.5 Light Mode / Theme Polish`
+Next milestone: `v0.18.1 Light Mode / Theme Polish`
+
+AI-native docs index: [`docs/README.md`](./docs/README.md)
 
 This version is intentionally limited:
 
@@ -111,13 +113,18 @@ Current scope:
 - `v0.17.2 Portfolio / Asset Display Polish` completed
 - `v0.17.3 Markets Sorting / Favorites Polish` completed
 - `v0.17.4 Trading Interaction Polish` completed
+- `v0.18 AI-Native Project Docs / Codex Context Pack` completed
 
-- Current completed milestone: `v0.17.4 Trading Interaction Polish`
-- Next milestone: `v0.17.5 Light Mode / Theme Polish`
+- Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
+- Next milestone: `v0.18.1 Light Mode / Theme Polish`
 
 ## Planned milestones
 
 - `v1.x Chain Gateway`
+
+## v0.18 AI-Native Project Docs / Codex Context Pack
+
+v0.18 is a docs-first maintenance milestone. It adds an AI-native context pack for architecture state, business rules, API contracts, terminology, testing workflow, release workflow, UI style, event flow, current limitations, and known tech debt without changing product behavior.
 
 ## v0.17.4 Trading Interaction Polish
 

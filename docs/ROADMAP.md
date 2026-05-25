@@ -4,9 +4,9 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.17.4 Trading Interaction Polish`
+Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
 
-Next milestone: `v0.17.5 Light Mode / Theme Polish`
+Next milestone: `v0.18.1 Light Mode / Theme Polish`
 
 ### v0.1 Foundation - Completed
 
@@ -16,6 +16,13 @@ Next milestone: `v0.17.5 Light Mode / Theme Polish`
 - PostgreSQL and Drizzle ORM setup
 - Docker Compose local database workflow
 - Seed script and smoke test
+
+### v0.18 AI-Native Project Docs / Codex Context Pack - Completed
+
+- Added an AI-native documentation pack for architecture state, business rules, API contracts, terminology, event flow, testing rules, release workflow, UI style, limitations, and known tech debt
+- Refreshed roadmap/version/account documentation for current-state accuracy
+- Updated app-facing milestone copy to `v0.18`
+- No product behavior, API behavior, schema, or migrations changed
 
 ### v0.17.4 Trading Interaction Polish - Completed
 

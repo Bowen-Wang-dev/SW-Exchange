@@ -1,13 +1,30 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.17.4 Trading Interaction Polish`
+Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
 
-Next milestone: `v0.17.5 Light Mode / Theme Polish`
+Next milestone: `v0.18.1 Light Mode / Theme Polish`
 
 ## Upcoming plan
 
-- `v0.17.5 Light Mode / Theme Polish`
+- `v0.18.1 Light Mode / Theme Polish`
 - `v1.x Chain Gateway`
+
+## v0.18 AI-Native Project Docs / Codex Context Pack
+
+This milestone is a docs-first maintenance pass focused on AI coding stability, milestone continuity, regression prevention, and architecture consistency.
+
+### Highlights
+
+- Added `docs/ARCHITECTURE_STATE.md` as the current-state architecture snapshot
+- Added canonical business rules, terminology, API contracts, event flow, testing rules, release workflow, UI style guidance, known tech debt, and limitation docs
+- Added `docs/README.md` as a docs index and AI read-order guide
+- Updated milestone copy to make `v0.18` the current completed milestone and keep the next milestone planned-only
+- No product behavior, API behavior, schema, or migrations changed
+
+### Developer and operational notes
+
+- This milestone is documentation and project-maintenance only
+- The docs are intended to improve long-context restoration for future Codex/AI tasks
 
 ## v0.17.4 Trading Interaction Polish
 
