@@ -1,54 +1,52 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.19 One-Command Deploy / Docker Production Runtime`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v0.20 Exchange Boundary + v1/v2 Planning Docs`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
-- `v0.11 Asset Metadata + Icon System` is completed.
-- `v0.12 Multi-Market Foundation` is completed.
-- `v0.13 Admin Asset / Market Creation` is completed.
-- `v0.14 K-line / Candlestick Chart` is completed.
-- `v0.14.1 Exchange-style K-line Chart` is completed.
-- `v0.15 Market Orders / Taker Flow` is completed.
-- `v0.16 Trading UX / Order Safety Polish` is completed.
-- `v0.16.2 Exchange UI Polish` is completed.
-- `v0.16.3 Exchange Layout Polish` is completed.
-- `v0.17 Professional Trading Terminal Layout` is completed.
-- `v0.17.1 Smoke Idempotency / Local DB Test Stability` is completed.
-- `v0.17.2 Portfolio / Asset Display Polish` is completed.
-- `v0.17.3 Markets Sorting / Favorites Polish` is completed.
-- `v0.17.4 Trading Interaction Polish` is completed.
-- `v0.18 AI-Native Project Docs / Codex Context Pack` is completed.
-- `v0.18.1 Light Mode / Theme Polish` is completed.
-- `v0.18.2 Admin Operations / Risk Controls Polish` is completed.
-- `v0.18.3 Pre-v1 Stabilization / Release Candidate` is completed.
 - `v0.19 One-Command Deploy / Docker Production Runtime` is completed.
-- Multiple internal markets are supported, including admin-created listings.
-- K-line candles are generated from existing trades with no fake chart data, and `/trade` now has an interactive exchange-style chart with hover OHLC and volume.
-- Market orders use IOC-like taker behavior and never rest on the order book.
-- `/trade` now includes an exchange-style market selector, compact ticker header, dominant chart, adjacent depth/tape, fixed desktop order rail, bottom activity tabs, order confirmation, market-order risk messaging, and quick-fill controls.
-- Dashboard and Wallet now include sortable, searchable portfolio asset rows with hide-zero and hide-dust controls.
-- `/markets` now includes local favorites, sorting, search, quote/status filters, and compact discovery sections.
-- `/trade` now supports price click-to-fill, Best Bid / Best Ask / Last quick price controls, and current-market open-order bulk cancellation.
-- Deposit, withdraw, and blockchain features are not live.
+- `v0.20 Exchange Boundary + v1/v2 Planning Docs` is completed.
+- `v0.x` is currently a complete off-chain simulated exchange runtime for custom assets and custom markets.
+- Deposit, withdraw, blockchain, 2FA, email verification, margin, and futures features are not live.
 
-## Planned v0.x polish
+## v1.x Focus
 
-- No additional v0.x milestone is committed as live after `v0.19`.
-- Future v0.x polish, if any, remains optional and planned-only until explicitly implemented.
+- `v1.x` is planned to focus on auth/security hardening and optional chain token gateway capabilities.
+- Planned starting sequence:
+  - `v1.0 Auth Security + Feature Flags`
+  - `v1.1 Chain Asset Registry`
+  - `v1.2 User Deposit Address Model`
+  - `v1.3 Deposit Monitor Detect-only`
+  - `v1.4 Deposit Credit Flow`
+  - `v1.5 Withdrawal Request`
+  - `v1.6 Withdrawal Approval + Broadcast`
+  - `v1.7 Gas / Withdrawal Fee Management`
+  - `v1.8 Chain Reconciliation / Audit`
+  - `v1.9 Chain Gateway Stabilization`
 
-## Future scope remains uncommitted
+## v1.x Boundaries
 
-- Future v0.x polish may refine exchange UX, reporting, and operational controls.
-- No future scope is committed as live until it is implemented and documented.
+- Optional chain token gateway only
+- No fiat deposits
+- No fiat withdrawals
+- No cash redemption
+- No built-in KYC workflow
+- No regulated financial exchange workflow
 
-## v1.x Chain Gateway
+## v2.x Direction
 
-- BSC deposit and withdraw planning
-- Every user/admin may have an independent chain deposit address
-- Deposits credit internal `MAIN` wallet after confirmation
-- Withdrawals debit or freeze `MAIN` wallet and may be broadcast from shared `HOT` wallet
-- Deposit has no platform fee in the current plan
-- Withdrawal may have network or platform fees later
-- `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.19
+- `v2.x` is planned-only and remains outside the `v1.x` chain gateway scope.
+- Optional future areas:
+  - isolated margin simulation
+  - long/short perpetual simulation
+  - liquidation simulation
+  - risk dashboard
+- `v2.x` modules must be feature-flagged and default disabled.
+
+## Reference Planning Docs
+
+- [EXCHANGE_BOUNDARY.md](./EXCHANGE_BOUNDARY.md)
+- [REAL_EXCHANGE_GAP_ANALYSIS.md](./REAL_EXCHANGE_GAP_ANALYSIS.md)
+- [FEATURE_FLAGS_PLAN.md](./FEATURE_FLAGS_PLAN.md)
+- [V1_IMPLEMENTATION_SEQUENCE.md](./V1_IMPLEMENTATION_SEQUENCE.md)
+- [V2_MARGIN_FUTURES_PLAN.md](./V2_MARGIN_FUTURES_PLAN.md)

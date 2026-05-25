@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
+Current milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 
 ## Current Stack
 
@@ -25,20 +25,29 @@ Current milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 - `v0.18.2 Admin Operations / Risk Controls Polish`
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v0.19 One-Command Deploy / Docker Production Runtime`
+- `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+
+## Public Product Positioning
+
+- SW Exchange is a simulated exchange runtime for custom assets and custom markets.
+- Current `v0.x` behavior is off-chain and uses internal accounting only.
+- The system is already a complete off-chain spot-style exchange runtime within that boundary.
+- Future `v1.x` work may add optional chain token gateway capabilities.
+- Future `v2.x` work may add optional margin and futures simulation behind feature flags.
 
 ## Current Supported Assets / Markets
 
 - Seeded assets: `SWC`, `SWL`, `SWD`
 - Seeded markets: `SWL/SWC`, `SWD/SWC`
 - Admins can create additional internal assets and spot markets
-- Current valuation logic is SWC-quoted only
+- Current valuation logic is `SWC`-quoted only
 
 ## Current Trading Features
 
 - Spot trading only
 - Multi-market limit orders
 - Multi-market market-order taker flow
-- Order preview for LIMIT and MARKET
+- Order preview for `LIMIT` and `MARKET`
 - Current-user order cancellation
 - Current-market bulk cancel in UI via per-order cancel requests
 - Order book, recent trades, ticker, candles, order/trade history
@@ -64,6 +73,7 @@ Current milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 - Admin user: `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, `HOT`
 - Balances split into `availableBalance` and `lockedBalance`
 - New active assets eagerly create zero-balance wallet coverage for users and admin buckets
+- `HOT` is still a placeholder bucket in `v0.x`; it does not have live chain behavior
 
 ## Current User Status Model
 
@@ -106,20 +116,33 @@ Current milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 - Admin operations pages are filterable and use confirmation dialogs for high-impact actions
 - Favorites on `/markets` are local browser state
 - Theme preference is stored in `localStorage`
-- Current polish remains focused on deployment/runtime clarity without changing product scope or trading behavior
 
 ## Current System Constraints
 
 - Internal simulation only
 - Off-chain internal-accounting model only
-- No deposit / withdraw / blockchain
-- No real-money redemption or live KYC flow
+- No deposit / withdraw / blockchain behavior
+- No chain listeners, chain addresses, or token gateway runtime
+- No real-money redemption, fiat flow, or built-in KYC workflow
+- No 2FA or email verification yet
+- No margin / futures / leverage behavior
 - No real-time event bus; web UI uses polling and manual refresh paths
 - No candle aggregation table; candles come from trades
 - Transfers are normal-user/admin `MAIN` wallet flows only
 - User-facing transfer form currently supports `SWC` and `SWL` only
 
+## Planning Documents Added In v0.20
+
+- Public exchange boundary and exclusions
+- Real-exchange gap analysis by module
+- Feature-flag plan for optional and high-risk modules
+- `v1.x` auth/security plan
+- `v1.x` chain gateway architecture, registry, custody, and flow planning
+- `v1.x` phased implementation sequence
+- `v2.x` optional margin/futures simulation plan
+
 ## Current Milestone
 
-- Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
-- Next planned milestone: `v1.x Chain Gateway`
+- Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+- Next planned milestone: `v1.0 Auth Security + Feature Flags`
+- `v0.20` is docs/planning only and does not change runtime behavior

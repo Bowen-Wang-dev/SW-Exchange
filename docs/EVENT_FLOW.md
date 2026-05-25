@@ -1,10 +1,16 @@
 # Event Flow
 
+This document describes current live `v0.x` runtime flows only. Future chain deposit, withdrawal, and custody flows are planned in:
+
+- [DEPOSIT_WITHDRAW_FLOW.md](./DEPOSIT_WITHDRAW_FLOW.md)
+- [V1_CHAIN_GATEWAY_PLAN.md](./V1_CHAIN_GATEWAY_PLAN.md)
+- [CHAIN_EVENT_INDEXING.md](./CHAIN_EVENT_INDEXING.md)
+
 ## Limit Order Flow
 
-- User submits LIMIT order -> API validates user / market / asset status -> amount and price are parsed -> minimums checked
-- BUY -> quote is locked in `MAIN`
-- SELL -> base is locked in `MAIN`
+- User submits `LIMIT` order -> API validates user / market / asset status -> amount and price are parsed -> minimums checked
+- `BUY` -> quote is locked in `MAIN`
+- `SELL` -> base is locked in `MAIN`
 - `ORDER_LOCK` ledger entry is written
 - Matching checks same-market opposite-side active-user limit orders
 - Fills execute at resting maker price
@@ -12,9 +18,9 @@
 
 ## Market Order Flow
 
-- User submits MARKET order -> API validates user / market / asset status
-- MARKET BUY -> requested quote spend is parsed from `quoteAmount` or `spendAmount`
-- MARKET SELL -> requested base amount is parsed from `amount`
+- User submits `MARKET` order -> API validates user / market / asset status
+- `MARKET BUY` -> requested quote spend is parsed from `quoteAmount` or `spendAmount`
+- `MARKET SELL` -> requested base amount is parsed from `amount`
 - Matching walks resting same-market limit liquidity
 - Executed fills settle immediately
 - No fill -> `NO_LIQUIDITY`
@@ -45,7 +51,7 @@
 - Target `MAIN.available` increases
 - Admin audit log is written
 - `AIRDROP` ledger entry is written
-- Admin `AIRDROP` bucket is not debited in current v0.x
+- Admin `AIRDROP` bucket is not debited in current `v0.x`
 
 ## Admin Asset Creation Flow
 
@@ -93,7 +99,7 @@
 - Client requests `/api/wallets/me/valuation`
 - API loads `MAIN` wallets
 - `SWC` is valued at `1 SWC`
-- Non-SWC assets look for latest real `*/SWC` last price
+- Non-`SWC` assets look for latest real `*/SWC` last price
 - Available + locked are included in total balance
 - Unpriced assets remain visible and flagged as valuation-pending
 
@@ -107,7 +113,7 @@
 ## Price Click-to-Fill UI Flow
 
 - User clicks order-book price / recent trade / Best Bid / Best Ask / Last
-- UI switches to LIMIT mode when needed
+- UI switches to `LIMIT` mode when needed
 - UI fills the limit price input only
 - No order is placed until explicit confirmation
 

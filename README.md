@@ -1,10 +1,10 @@
 # SW Exchange v0.x
 
-SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
+SW Exchange v0.x is a simulated exchange runtime for custom assets and custom markets.
 
-Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
+Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 
-Next milestone: `v1.x Chain Gateway`
+Next milestone: `v1.0 Auth Security + Feature Flags`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -12,7 +12,7 @@ This version is intentionally limited:
 
 - No blockchain integration
 - No deposit or withdraw
-- No BSC integration
+- No chain token gateway integration in `v0.x`
 - No KYC
 - No stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts
 - No fee discounts, VIP tiers, or maker/taker tiers yet
@@ -121,13 +121,34 @@ Current scope:
 - `v0.18.2 Admin Operations / Risk Controls Polish` completed
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate` completed
 - `v0.19 One-Command Deploy / Docker Production Runtime` completed
+- `v0.20 Exchange Boundary + v1/v2 Planning Docs` completed
 
-- Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
-- Next milestone: `v1.x Chain Gateway`
+- Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+- Next milestone: `v1.0 Auth Security + Feature Flags`
 
 ## Planned milestones
 
-- `v1.x Chain Gateway`
+- `v1.0 Auth Security + Feature Flags`
+- `v1.1 Chain Asset Registry`
+- `v1.2 User Deposit Address Model`
+- `v1.3 Deposit Monitor Detect-only`
+- `v1.4 Deposit Credit Flow`
+- `v1.5 Withdrawal Request`
+- `v1.6 Withdrawal Approval + Broadcast`
+- `v1.7 Gas / Withdrawal Fee Management`
+- `v1.8 Chain Reconciliation / Audit`
+- `v1.9 Chain Gateway Stabilization`
+- `v2.x Margin / Futures Simulation`
+
+## v0.20 Exchange Boundary + v1/v2 Planning Docs
+
+v0.20 is a docs-only planning milestone. It defines what SW Exchange is and is not before any chain gateway, security-hardening, or margin/futures implementation work begins.
+
+- Added boundary, gap-analysis, feature-flag, and `v1.x` / `v2.x` planning docs under [`docs/`](./docs/README.md)
+- Clarified that `v0.x` remains an off-chain internal-accounting runtime for custom assets and custom markets
+- Defined `v1.0` to `v1.9` planned-only sequence for auth/security, chain asset registry, deposit/withdraw flow, hot wallet, indexing, and reconciliation work
+- Defined `v2.x` as optional, default-disabled margin/futures simulation planning only
+- No matching logic, market-order behavior, fee calculation rules, wallet rules, transfer rules, schema, API behavior, deposit, withdraw, blockchain behavior, email verification, 2FA, margin, or futures behavior changed
 
 ## v0.19 One-Command Deploy / Docker Production Runtime
 

@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 
 ## Account Status
 
@@ -10,7 +10,7 @@ User statuses are:
 - `FROZEN`: can login and view dashboard, wallets, ledger, orders, and trades, but cannot transfer, place orders, cancel orders, or trade through matching
 - `BANNED`: cannot login; existing banned sessions are rejected by authenticated API requests
 
-Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the safer/simple v0.x rule.
+Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the current safer/simple `v0.x` rule.
 
 ## Wallet Buckets
 
@@ -26,25 +26,9 @@ The admin user has:
 
 Fees go to the admin `FEE` wallet. Buyer fees are collected in the traded base asset; seller fees are collected in the quote asset.
 
-Airdrops are still unlimited in current v0.x and do not deduct from the `AIRDROP` wallet.
+Airdrops are still unlimited in current `v0.x` and do not deduct from the `AIRDROP` wallet.
 
-v0.13 adds admin-created asset and market listing without changing the wallet bucket model or transfer rules.
-New assets eagerly create zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
-
-v0.14 adds trade-derived K-line candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
-v0.14.1 upgrades the chart UI for those candles without changing wallet buckets, balance movement, transfer rules, matching behavior, or fee calculation.
-v0.15 adds market-order taker flow without changing wallet buckets, transfer rules, admin bucket behavior, or fee-asset rules. Market orders spend or sell only the executed amount and cancel any unfilled remainder without resting on the order book.
-v0.16 adds exchange-style market selection, order confirmation, market-order risk messaging, quick-fill controls, and order-history polish without changing wallet buckets, transfer rules, matching behavior, or fee-asset rules.
-v0.16.2 adds exchange-style market browsing and navigation polish without changing wallet buckets, transfer rules, matching behavior, or fee-asset rules.
-v0.16.3 removes horizontal-scroll-heavy exchange layouts without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.17 reshapes `/trade` into a denser professional terminal layout without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.17.2 improves Dashboard and Wallet portfolio asset sorting, filtering, search, and related-market navigation without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.17.3 improves `/markets` sorting, search, filters, local favorites, and market-row navigation without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.17.4 improves `/trade` price click-to-fill, quick price buttons, and current-market open-order bulk cancellation without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.18 adds an AI-native documentation/context pack without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.18.1 adds light/dark theme support without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.18.2 adds safer admin confirmations and operations filtering without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
-v0.18.3 aligns release-candidate copy, empty states, and workflow guidance without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
+`v0.x` asset creation eagerly creates zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
 
 ## Asset Metadata
 
@@ -56,18 +40,17 @@ Assets may have optional display metadata:
 - sort order
 - description
 
-Listed assets such as `SWC`, `SWL`, and `SWD` remain internal simulation assets. Admins can manually add more virtual assets and set icon URLs directly. Missing icons render as clean symbol avatars. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
+Listed assets such as `SWC`, `SWL`, and `SWD` remain internal simulation assets. Admins can manually add more custom assets and set icon URLs directly. Metadata does not affect balances, transfer eligibility, matching, fee calculation, or status rules.
 
 ## Portfolio Valuation
 
 Portfolio valuation is informational only and does not move wallet balances.
 
 - `SWC` is valued at `1 SWC`
-- Non-SWC assets are valued from their latest real `*/SWC` last price when available
+- Non-`SWC` assets are valued from their latest real `*/SWC` last price when available
 - Available and locked balances are both included in each asset total
-- If no market price exists for a non-SWC asset, that asset valuation remains pending and total equity excludes it
+- If no market price exists for a non-`SWC` asset, that asset valuation remains pending and total equity excludes it
 - No fake prices are generated
-- Dashboard and Wallet filters are display-only and never mutate balances or valuation data
 
 ## Transfers
 
@@ -83,11 +66,6 @@ The logged-in user can only transfer from their own `MAIN` wallet. Admin cannot 
 
 Admin bucket transfers are free and only move funds between the admin user's own wallet buckets for the same asset. They never move funds directly to normal users.
 
-To move system funds to a user:
-
-1. Admin bucket transfer: `FEE`, `TREASURY`, `AIRDROP`, or `HOT` to admin `MAIN`
-2. Normal transfer: admin `MAIN` to user `MAIN`
-
 ## Asset And Market Status
 
 Assets are either active or paused.
@@ -102,16 +80,15 @@ Markets such as `SWL/SWC`, `SWD/SWC`, and later admin-created `BASE/QUOTE` pairs
 - Order book and trade history remain viewable
 - Active users may still cancel existing open orders while the market is paused so locked funds can unlock
 
-## Future v1.x Blockchain Plan
+## Future Planning Boundary
 
-No blockchain features are implemented now.
+- No blockchain features are implemented now.
+- Future chain metadata, deposit, withdraw, custody, and reconciliation plans are documented separately and remain planned-only.
+- Internal transfers remain free.
+- The `HOT` wallet bucket is only a placeholder in `v0.x`.
 
-Future plans may add:
+See:
 
-- independent chain deposit addresses for every user/admin account
-- deposits that credit internal `MAIN` wallets after chain confirmation
-- withdrawals that debit or freeze `MAIN` wallets and may broadcast from a shared `HOT` wallet
-- no deposit platform fee in the current plan
-- possible network or platform fees for withdrawals later
-
-Internal transfers remain free. The `HOT` wallet bucket is only a placeholder in v0.x.
+- [EXCHANGE_BOUNDARY.md](./EXCHANGE_BOUNDARY.md)
+- [HOT_WALLET_MODEL.md](./HOT_WALLET_MODEL.md)
+- [V1_CHAIN_GATEWAY_PLAN.md](./V1_CHAIN_GATEWAY_PLAN.md)
