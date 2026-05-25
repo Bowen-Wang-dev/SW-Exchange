@@ -1,10 +1,10 @@
-export const CURRENT_MILESTONE_VERSION = "v0.18.1";
-export const CURRENT_MILESTONE_TITLE = "Light Mode / Theme Polish";
-export const NEXT_MILESTONE_VERSION = "v0.18.2";
-export const NEXT_MILESTONE_TITLE = "Admin Operations / Risk Controls Polish";
+export const CURRENT_MILESTONE_VERSION = "v0.18.2";
+export const CURRENT_MILESTONE_TITLE = "Admin Operations / Risk Controls Polish";
+export const NEXT_MILESTONE_VERSION = "v0.18.3";
+export const NEXT_MILESTONE_TITLE = "Pre-v1 Stabilization / Release Candidate";
 
 export const REAL_TIME_SYNC_COPY =
-  "Current app behavior includes multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, and admin status controls.";
+  "Current app behavior includes multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, safer admin confirmations, and searchable admin operations views.";
 
 export const TRADE_PAGE_COPY =
   "The current /trade surface uses a dense professional CEX-style terminal with a compact ticker bar, dominant chart, adjacent order book and recent trades, a fixed desktop order-entry rail, docked bottom activity tabs, and a persisted light/dark theme toggle while trading logic stays unchanged.";

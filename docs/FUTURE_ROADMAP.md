@@ -1,6 +1,6 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.18.1 Light Mode / Theme Polish`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v0.18.2 Admin Operations / Risk Controls Polish`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
@@ -20,6 +20,7 @@ This plan documents intended future work after `v0.18.1 Light Mode / Theme Polis
 - `v0.17.4 Trading Interaction Polish` is completed.
 - `v0.18 AI-Native Project Docs / Codex Context Pack` is completed.
 - `v0.18.1 Light Mode / Theme Polish` is completed.
+- `v0.18.2 Admin Operations / Risk Controls Polish` is completed.
 - Multiple internal markets are supported, including admin-created listings.
 - K-line candles are generated from existing trades with no fake chart data, and `/trade` now has an interactive exchange-style chart with hover OHLC and volume.
 - Market orders use IOC-like taker behavior and never rest on the order book.
@@ -31,7 +32,7 @@ This plan documents intended future work after `v0.18.1 Light Mode / Theme Polis
 
 ## Planned v0.x polish
 
-- `v0.18.2 Admin Operations / Risk Controls Polish` may refine admin workflows, moderation ergonomics, and operational guardrails.
+- `v0.18.3 Pre-v1 Stabilization / Release Candidate` may focus on final consistency, regression prevention, and release-readiness polish.
 
 ## Future scope remains uncommitted
 
@@ -47,4 +48,4 @@ This plan documents intended future work after `v0.18.1 Light Mode / Theme Polis
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.18.1
+- No blockchain feature is implemented in v0.18.2

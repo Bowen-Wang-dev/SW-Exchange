@@ -1,6 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  AdminConfirmationDialog,
+  type AdminConfirmationView,
+} from "@/components/admin/admin-confirmation-dialog";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
@@ -14,6 +19,13 @@ import { formatDateTime } from "@/lib/format";
 
 const DEFAULT_MARKET_SYMBOL = "SWL/SWC";
 
+type PendingFeeAction = {
+  marketSymbol: string;
+  buyerFeeRatePercent: string;
+  sellerFeeRatePercent: string;
+  note: string;
+};
+
 export default function AdminFeesPage() {
   const [settings, setSettings] = useState<FeeSettingsResponse | null>(null);
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
@@ -21,6 +33,7 @@ export default function AdminFeesPage() {
   const [buyerFeeRatePercent, setBuyerFeeRatePercent] = useState("0.1");
   const [sellerFeeRatePercent, setSellerFeeRatePercent] = useState("0.1");
   const [note, setNote] = useState("");
+  const [pendingAction, setPendingAction] = useState<PendingFeeAction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +87,7 @@ export default function AdminFeesPage() {
       setSettings(response);
       setBuyerFeeRatePercent(response.buyerFeeRatePercent);
       setSellerFeeRatePercent(response.sellerFeeRatePercent);
+      setNote("");
       setError(null);
     } catch (loadError) {
       setError(loadError instanceof ApiError ? loadError.message : "Unable to load fee settings.");
@@ -82,20 +96,20 @@ export default function AdminFeesPage() {
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setSuccess(null);
+  async function submitFeeUpdate() {
+    if (!pendingAction) {
+      return;
+    }
 
     try {
       setIsSaving(true);
       const response = await apiRequest<FeeSettingsResponse>("/admin/fee-settings", {
         method: "PATCH",
         body: {
-          marketSymbol: selectedMarketSymbol,
-          buyerFeeRatePercent: buyerFeeRatePercent.trim(),
-          sellerFeeRatePercent: sellerFeeRatePercent.trim(),
-          ...(note.trim() ? { note: note.trim() } : {}),
+          marketSymbol: pendingAction.marketSymbol,
+          buyerFeeRatePercent: pendingAction.buyerFeeRatePercent.trim(),
+          sellerFeeRatePercent: pendingAction.sellerFeeRatePercent.trim(),
+          ...(pendingAction.note.trim() ? { note: pendingAction.note.trim() } : {}),
         },
       });
 
@@ -103,6 +117,7 @@ export default function AdminFeesPage() {
       setBuyerFeeRatePercent(response.buyerFeeRatePercent);
       setSellerFeeRatePercent(response.sellerFeeRatePercent);
       setNote("");
+      setPendingAction(null);
       setSuccess("Fee settings saved. Changes apply only to future trades.");
     } catch (saveError) {
       setError(saveError instanceof ApiError ? saveError.message : "Unable to update fee settings.");
@@ -111,9 +126,28 @@ export default function AdminFeesPage() {
     }
   }
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setPendingAction({
+      marketSymbol: selectedMarketSymbol,
+      buyerFeeRatePercent,
+      sellerFeeRatePercent,
+      note,
+    });
+  }
+
   const feeBalances = settings?.feeWallet.balances ?? [];
   const quoteBalance = findBalance(feeBalances, quoteSymbol);
   const baseBalance = findBalance(feeBalances, baseSymbol);
+  const confirmation = useMemo(() => {
+    if (!pendingAction || !settings) {
+      return null;
+    }
+
+    return buildFeeConfirmation(pendingAction, settings, isSaving);
+  }, [pendingAction, settings, isSaving]);
 
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
@@ -122,16 +156,16 @@ export default function AdminFeesPage() {
           <PageHeader
             eyebrow="Admin Fees"
             title="Trading fee control"
-            description="Configure buyer and seller fee rates per market. New admin-created markets start with the current default rates until you update them."
+            description="Review selected market fee context, collected fee balances, and confirm fee changes before they affect future trades."
             action={<StatusBadge label="Live" tone="success" />}
           />
 
-          {error ? <Notice tone="danger" message={error} /> : null}
-          {success ? <Notice tone="success" message={success} /> : null}
-          {isLoading ? <Notice tone="info" message="Loading fee settings..." /> : null}
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
+          {success ? <AdminNotice tone="success" message={success} /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading fee settings..." /> : null}
 
           <section className="panel rounded-3xl p-5">
-            <div className="grid gap-4 md:grid-cols-[minmax(220px,1fr)_auto]">
+            <div className="grid gap-4 md:grid-cols-[minmax(220px,1fr)_auto_auto]">
               <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
                 Market
                 <select
@@ -149,6 +183,9 @@ export default function AdminFeesPage() {
               <div className="flex items-end">
                 <StatusBadge label={settings?.marketSymbol ?? selectedMarketSymbol} tone="info" />
               </div>
+              <div className="flex items-end">
+                <StatusBadge label={`Max ${settings?.maxFeeRateHuman ?? "5%"}`} tone="warning" />
+              </div>
             </div>
           </section>
 
@@ -156,29 +193,39 @@ export default function AdminFeesPage() {
             <StatCard
               label="Buyer Fee"
               badgeLabel={baseSymbol}
-              value={settings?.buyerFeeRateHuman ?? "-"}
+              value={settings?.buyerFeeRateHuman ?? "—"}
               hint="Charged from base asset received by buyers."
               tone="success"
+              extra={
+                <p className="text-xs text-[var(--foreground-muted)]">
+                  {settings ? `${settings.buyerFeeRateBps} bps` : "—"}
+                </p>
+              }
             />
             <StatCard
               label="Seller Fee"
               badgeLabel={quoteSymbol}
-              value={settings?.sellerFeeRateHuman ?? "-"}
+              value={settings?.sellerFeeRateHuman ?? "—"}
               hint="Charged from quote asset received by sellers."
               tone="warning"
+              extra={
+                <p className="text-xs text-[var(--foreground-muted)]">
+                  {settings ? `${settings.sellerFeeRateBps} bps` : "—"}
+                </p>
+              }
             />
             <StatCard
               label={`Fee ${baseSymbol}`}
               badgeLabel="FEE"
               value={`${baseBalance?.available ?? "0"} ${baseSymbol}`}
-              hint="Collected buyer fees for the selected market's base asset."
+              hint="Collected buyer fees for the selected market base asset."
               tone="info"
             />
             <StatCard
               label={`Fee ${quoteSymbol}`}
               badgeLabel="FEE"
               value={`${quoteBalance?.available ?? "0"} ${quoteSymbol}`}
-              hint="Collected seller fees for the selected market's quote asset."
+              hint="Collected seller fees for the selected market quote asset."
               tone="info"
             />
           </div>
@@ -190,9 +237,14 @@ export default function AdminFeesPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     {selectedMarketSymbol}
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Update fee rates</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+                    Update fee rates
+                  </h2>
                 </div>
-                <StatusBadge label={`Max ${settings?.maxFeeRateHuman ?? "5%"}`} tone="warning" />
+                <StatusBadge
+                  label={selectedMarket?.status ?? "ACTIVE"}
+                  tone={selectedMarket?.status === "PAUSED" ? "warning" : "success"}
+                />
               </div>
 
               <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
@@ -219,7 +271,7 @@ export default function AdminFeesPage() {
                 </label>
 
                 <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                  Note
+                  Audit note
                   <textarea
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
@@ -229,16 +281,17 @@ export default function AdminFeesPage() {
                   />
                 </label>
 
-                <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
-                  Rates are stored as basis points. Fees are floor-rounded in minimal units, so very tiny trades may produce a zero fee.
-                </div>
+                <AdminNotice
+                  tone="info"
+                  message="Rates are stored as basis points. Changes affect future trades only and do not rewrite historical fee amounts."
+                />
 
                 <button
                   type="submit"
-                  disabled={isSaving}
+                  disabled={isSaving || isLoading}
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSaving ? "Saving..." : "Save fee settings"}
+                  {isSaving ? "Saving..." : "Review fee changes"}
                 </button>
               </form>
             </section>
@@ -283,6 +336,26 @@ export default function AdminFeesPage() {
             </section>
           </div>
         </div>
+
+        <AdminConfirmationDialog
+          confirmation={
+            confirmation
+              ? {
+                  ...confirmation,
+                  noteValue: pendingAction?.note ?? "",
+                  onNoteChange: (value) =>
+                    setPendingAction((current) => (current ? { ...current, note: value } : current)),
+                }
+              : null
+          }
+          isSubmitting={isSaving}
+          onCancel={() => {
+            if (!isSaving) {
+              setPendingAction(null);
+            }
+          }}
+          onConfirm={() => void submitFeeUpdate()}
+        />
       </AppShell>
     </ProtectedRoute>
   );
@@ -292,13 +365,32 @@ function findBalance(balances: WalletBalance[], asset: string) {
   return balances.find((balance) => balance.asset === asset);
 }
 
-function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : tone === "success"
-        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
-        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
-
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+function buildFeeConfirmation(
+  pendingAction: PendingFeeAction,
+  settings: FeeSettingsResponse,
+  isSubmitting: boolean,
+): AdminConfirmationView {
+  return {
+    eyebrow: "Confirm Fee Update",
+    title: `Save fees for ${pendingAction.marketSymbol}?`,
+    description:
+      "This updates fee rates for future trades on the selected market only. Historical trades keep the fee amounts charged at execution time.",
+    confirmLabel: isSubmitting ? "Saving..." : "Confirm save",
+    tone: "warning",
+    details: [
+      { label: "Market", value: pendingAction.marketSymbol },
+      { label: "Current buyer fee", value: `${settings.buyerFeeRateHuman} (${settings.buyerFeeRateBps} bps)` },
+      { label: "Next buyer fee", value: `${pendingAction.buyerFeeRatePercent}%` },
+      { label: "Current seller fee", value: `${settings.sellerFeeRateHuman} (${settings.sellerFeeRateBps} bps)` },
+      { label: "Next seller fee", value: `${pendingAction.sellerFeeRatePercent}%` },
+    ],
+    impacts: [
+      "Buyer fees remain charged from base asset received by buyers.",
+      "Seller fees remain charged from quote asset received by sellers.",
+      "Only future trades use the new rates; historical trades stay unchanged.",
+    ],
+    warning: "Fee math, basis-point storage, and settlement destinations remain unchanged.",
+    noteLabel: "Audit note (optional)",
+    notePlaceholder: "Reason for changing fees",
+  };
 }

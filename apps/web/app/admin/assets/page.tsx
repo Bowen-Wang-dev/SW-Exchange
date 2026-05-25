@@ -1,12 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  AdminConfirmationDialog,
+  type AdminConfirmationView,
+} from "@/components/admin/admin-confirmation-dialog";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { AssetIcon, AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AssetRow } from "@/lib/api-types";
@@ -21,12 +27,23 @@ const INITIAL_CREATE_ASSET_FORM = {
   status: "ACTIVE" as "ACTIVE" | "PAUSED",
 };
 
+type AssetStatusFilter = "ALL" | "ACTIVE" | "PAUSED";
+
+type PendingAssetAction = {
+  asset: AssetRow;
+  status: "ACTIVE" | "PAUSED";
+  note: string;
+};
+
 export default function AdminAssetsPage() {
   const [assets, setAssets] = useState<AssetRow[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AssetStatusFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
   const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAssetAction | null>(null);
   const [createAssetForm, setCreateAssetForm] = useState(INITIAL_CREATE_ASSET_FORM);
   const [metadataForm, setMetadataForm] = useState({
     displayName: "",
@@ -65,6 +82,31 @@ export default function AdminAssetsPage() {
       }
     }
   }
+
+  const filteredAssets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return assets.filter((asset) => {
+      const status = assetStatus(asset);
+      if (statusFilter !== "ALL" && status !== statusFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [
+        asset.symbol,
+        asset.name,
+        asset.displayName ?? "",
+        asset.description ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [assets, searchQuery, statusFilter]);
 
   async function handleCreateAsset(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,11 +158,20 @@ export default function AdminAssetsPage() {
     }
   }
 
-  async function updateAssetStatus(asset: AssetRow, status: "ACTIVE" | "PAUSED") {
-    const noteInput = window.prompt(`Optional audit note for ${status.toLowerCase()} ${asset.symbol}:`);
-    if (noteInput === null) {
+  function requestAssetStatusUpdate(asset: AssetRow, status: "ACTIVE" | "PAUSED") {
+    setPendingAction({
+      asset,
+      status,
+      note: "",
+    });
+  }
+
+  async function confirmAssetStatusUpdate() {
+    if (!pendingAction) {
       return;
     }
+
+    const { asset, status, note } = pendingAction;
 
     try {
       setUpdatingKey(`asset:${asset.symbol}`);
@@ -130,7 +181,7 @@ export default function AdminAssetsPage() {
         method: "PATCH",
         body: {
           status,
-          ...(noteInput.trim() ? { note: noteInput.trim() } : {}),
+          ...(note.trim() ? { note: note.trim() } : {}),
         },
       });
 
@@ -139,6 +190,7 @@ export default function AdminAssetsPage() {
           currentAsset.id === updatedAsset.id ? updatedAsset : currentAsset,
         ),
       );
+      setPendingAction(null);
       setSuccess(`${updatedAsset.symbol} is now ${assetStatus(updatedAsset)}.`);
     } catch (updateError) {
       setError(
@@ -155,7 +207,8 @@ export default function AdminAssetsPage() {
       displayName: asset.displayName ?? "",
       iconUrl: asset.iconUrl ?? "",
       description: asset.description ?? "",
-      sortOrder: asset.sortOrder === null || asset.sortOrder === undefined ? "" : String(asset.sortOrder),
+      sortOrder:
+        asset.sortOrder === null || asset.sortOrder === undefined ? "" : String(asset.sortOrder),
     });
     setError(null);
     setSuccess(null);
@@ -210,6 +263,10 @@ export default function AdminAssetsPage() {
     }
   }
 
+  const confirmation = pendingAction
+    ? buildAssetConfirmation(pendingAction, updatingKey === `asset:${pendingAction.asset.symbol}`)
+    : null;
+
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -217,7 +274,7 @@ export default function AdminAssetsPage() {
           <PageHeader
             eyebrow="Admin Assets"
             title="Asset registry"
-            description="Create virtual assets, manage manual metadata, and control whether an asset is active for airdrop and new order flows."
+            description="Create virtual assets, manage metadata, and apply safer status controls for asset-level operations."
             action={
               <div className="flex flex-wrap gap-2">
                 <StatusBadge label="Live" tone="success" />
@@ -231,9 +288,88 @@ export default function AdminAssetsPage() {
             }
           />
 
-          {error ? <Notice tone="danger" message={error} /> : null}
-          {success ? <Notice tone="success" message={success} /> : null}
-          {isLoading ? <Notice tone="info" message="Loading asset controls..." /> : null}
+          <div className="grid gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Assets"
+              badgeLabel="Loaded"
+              value={String(assets.length)}
+              hint="Current listed assets returned by the API."
+              tone="info"
+            />
+            <StatCard
+              label="Active"
+              badgeLabel="ACTIVE"
+              value={String(assets.filter((asset) => assetStatus(asset) === "ACTIVE").length)}
+              hint="Assets currently eligible for transfer, airdrop, and new orders."
+              tone="success"
+            />
+            <StatCard
+              label="Paused"
+              badgeLabel="PAUSED"
+              value={String(assets.filter((asset) => assetStatus(asset) === "PAUSED").length)}
+              hint="Paused assets block transfer, airdrop, and new order activity."
+              tone="warning"
+            />
+            <StatCard
+              label="Metadata Ready"
+              badgeLabel="Manual"
+              value={String(assets.filter((asset) => Boolean(asset.displayName || asset.iconUrl)).length)}
+              hint="Assets with manual display or icon metadata."
+              tone="neutral"
+            />
+          </div>
+
+          <section className="panel rounded-3xl p-4">
+            <div className="grid gap-3 lg:grid-cols-[1.2fr_220px_auto]">
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Search assets
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Symbol, name, display name, or description"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Status
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as AssetStatusFilter)}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                >
+                  <option value="ALL">All</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="PAUSED">PAUSED</option>
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("ALL");
+                  }}
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <AdminNotice
+            tone="info"
+            message="Paused assets remain visible in wallet and history views, but block transfer, airdrop, and new order flows."
+          />
+          {assets.some((asset) => assetStatus(asset) === "PAUSED") ? (
+            <AdminNotice
+              tone="warning"
+              message="Paused assets exist. Review linked market state separately before re-enabling operations."
+            />
+          ) : null}
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
+          {success ? <AdminNotice tone="success" message={success} /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading asset controls..." /> : null}
 
           <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
             <section className="panel rounded-3xl p-5">
@@ -242,9 +378,14 @@ export default function AdminAssetsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Create Asset
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">List a virtual asset</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+                    List a virtual asset
+                  </h2>
                 </div>
-                <StatusBadge label={createAssetForm.status} tone={createAssetForm.status === "ACTIVE" ? "success" : "warning"} />
+                <StatusBadge
+                  label={createAssetForm.status}
+                  tone={createAssetForm.status === "ACTIVE" ? "success" : "warning"}
+                />
               </div>
 
               <form onSubmit={handleCreateAsset} className="mt-5 grid gap-4">
@@ -254,7 +395,10 @@ export default function AdminAssetsPage() {
                     <input
                       value={createAssetForm.symbol}
                       onChange={(event) =>
-                        setCreateAssetForm((current) => ({ ...current, symbol: event.target.value.toUpperCase() }))
+                        setCreateAssetForm((current) => ({
+                          ...current,
+                          symbol: event.target.value.toUpperCase(),
+                        }))
                       }
                       placeholder="SWT"
                       maxLength={16}
@@ -279,7 +423,10 @@ export default function AdminAssetsPage() {
                     <input
                       value={createAssetForm.displayName}
                       onChange={(event) =>
-                        setCreateAssetForm((current) => ({ ...current, displayName: event.target.value }))
+                        setCreateAssetForm((current) => ({
+                          ...current,
+                          displayName: event.target.value,
+                        }))
                       }
                       placeholder="SW Test"
                       className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
@@ -291,7 +438,10 @@ export default function AdminAssetsPage() {
                     <input
                       value={createAssetForm.decimals}
                       onChange={(event) =>
-                        setCreateAssetForm((current) => ({ ...current, decimals: event.target.value }))
+                        setCreateAssetForm((current) => ({
+                          ...current,
+                          decimals: event.target.value,
+                        }))
                       }
                       inputMode="numeric"
                       placeholder="18"
@@ -304,7 +454,10 @@ export default function AdminAssetsPage() {
                     <input
                       value={createAssetForm.iconUrl}
                       onChange={(event) =>
-                        setCreateAssetForm((current) => ({ ...current, iconUrl: event.target.value }))
+                        setCreateAssetForm((current) => ({
+                          ...current,
+                          iconUrl: event.target.value,
+                        }))
                       }
                       placeholder="https://example.com/icon.png"
                       className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
@@ -316,7 +469,10 @@ export default function AdminAssetsPage() {
                     <textarea
                       value={createAssetForm.description}
                       onChange={(event) =>
-                        setCreateAssetForm((current) => ({ ...current, description: event.target.value }))
+                        setCreateAssetForm((current) => ({
+                          ...current,
+                          description: event.target.value,
+                        }))
                       }
                       rows={3}
                       placeholder="Manual simulation asset note"
@@ -342,9 +498,10 @@ export default function AdminAssetsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
-                  New assets create zero-balance MAIN wallets for existing users and zero-balance admin bucket wallets without touching existing balances.
-                </div>
+                <AdminNotice
+                  tone="info"
+                  message="New assets create zero-balance MAIN wallets for users and zero-balance admin bucket coverage without touching existing balances."
+                />
 
                 <button
                   type="submit"
@@ -361,13 +518,24 @@ export default function AdminAssetsPage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                   Asset Controls
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Manage existing assets</h2>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+                  Manage existing assets
+                </h2>
               </div>
 
               <div className="mt-5">
                 <DataTable
-                  columns={["Icon", "Symbol", "Name", "Display Name", "Decimals", "Status", "Actions"]}
-                  rows={assets.map((asset) => [
+                  columns={[
+                    "Icon",
+                    "Symbol",
+                    "Name",
+                    "Display Name",
+                    "Decimals",
+                    "Status",
+                    "Notes",
+                    "Actions",
+                  ]}
+                  rows={filteredAssets.map((asset) => [
                     <AssetIcon
                       key={`${asset.symbol}-icon`}
                       symbol={asset.symbol}
@@ -383,6 +551,13 @@ export default function AdminAssetsPage() {
                       label={assetStatus(asset)}
                       tone={asset.isActive ? "success" : "warning"}
                     />,
+                    asset.description ? (
+                      <span key={`${asset.symbol}-description`} className="line-clamp-2 max-w-[280px]">
+                        {asset.description}
+                      </span>
+                    ) : (
+                      "—"
+                    ),
                     <div key={`${asset.symbol}-actions`} className="flex flex-wrap gap-2">
                       <StatusButton
                         label="Edit metadata"
@@ -394,7 +569,9 @@ export default function AdminAssetsPage() {
                         label={asset.isActive ? "Pause" : "Resume"}
                         disabled={updatingKey === `asset:${asset.symbol}`}
                         tone={asset.isActive ? "warning" : "success"}
-                        onClick={() => void updateAssetStatus(asset, asset.isActive ? "PAUSED" : "ACTIVE")}
+                        onClick={() =>
+                          requestAssetStatusUpdate(asset, asset.isActive ? "PAUSED" : "ACTIVE")
+                        }
                       />
                     </div>,
                   ])}
@@ -410,7 +587,9 @@ export default function AdminAssetsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Asset Metadata
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Edit {editingAsset.symbol}</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+                    Edit {editingAsset.symbol}
+                  </h2>
                 </div>
                 <AssetIdentity
                   symbol={editingAsset.symbol}
@@ -427,7 +606,10 @@ export default function AdminAssetsPage() {
                   <input
                     value={metadataForm.displayName}
                     onChange={(event) =>
-                      setMetadataForm((current) => ({ ...current, displayName: event.target.value }))
+                      setMetadataForm((current) => ({
+                        ...current,
+                        displayName: event.target.value,
+                      }))
                     }
                     placeholder={editingAsset.name}
                     className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
@@ -451,7 +633,10 @@ export default function AdminAssetsPage() {
                   <input
                     value={metadataForm.sortOrder}
                     onChange={(event) =>
-                      setMetadataForm((current) => ({ ...current, sortOrder: event.target.value }))
+                      setMetadataForm((current) => ({
+                        ...current,
+                        sortOrder: event.target.value,
+                      }))
                     }
                     placeholder="10"
                     inputMode="numeric"
@@ -464,7 +649,10 @@ export default function AdminAssetsPage() {
                   <textarea
                     value={metadataForm.description}
                     onChange={(event) =>
-                      setMetadataForm((current) => ({ ...current, description: event.target.value }))
+                      setMetadataForm((current) => ({
+                        ...current,
+                        description: event.target.value,
+                      }))
                     }
                     rows={3}
                     className="resize-none rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
@@ -490,6 +678,26 @@ export default function AdminAssetsPage() {
             </section>
           ) : null}
         </div>
+
+        <AdminConfirmationDialog
+          confirmation={
+            confirmation
+              ? {
+                  ...confirmation,
+                  noteValue: pendingAction?.note ?? "",
+                  onNoteChange: (value) =>
+                    setPendingAction((current) => (current ? { ...current, note: value } : current)),
+                }
+              : null
+          }
+          isSubmitting={Boolean(pendingAction && updatingKey === `asset:${pendingAction.asset.symbol}`)}
+          onCancel={() => {
+            if (!updatingKey?.startsWith("asset:")) {
+              setPendingAction(null);
+            }
+          }}
+          onConfirm={() => void confirmAssetStatusUpdate()}
+        />
       </AppShell>
     </ProtectedRoute>
   );
@@ -529,13 +737,48 @@ function StatusButton({
   );
 }
 
-function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : tone === "success"
-        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
-        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
+function buildAssetConfirmation(
+  pendingAction: PendingAssetAction,
+  isSubmitting: boolean,
+): AdminConfirmationView {
+  const { asset, status } = pendingAction;
+  const isPausing = status === "PAUSED";
 
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+  return {
+    eyebrow: "Confirm Asset Status",
+    title: `${isPausing ? "Pause" : "Resume"} ${asset.symbol}?`,
+    description: isPausing
+      ? "This blocks transfer, airdrop, and new order activity for the asset while preserving balances and history."
+      : "This restores normal asset availability for eligible operations.",
+    confirmLabel: isSubmitting
+      ? isPausing
+        ? "Pausing..."
+        : "Resuming..."
+      : isPausing
+        ? "Confirm pause"
+        : "Confirm resume",
+    tone: isPausing ? "warning" : "success",
+    details: [
+      { label: "Asset", value: asset.symbol },
+      { label: "Name", value: asset.displayName ?? asset.name },
+      { label: "Current status", value: assetStatus(asset) },
+      { label: "Next status", value: status },
+    ],
+    impacts: isPausing
+      ? [
+          "Paused assets block transfer, airdrop, and new orders.",
+          "Existing balances, metadata, and ledger records remain intact.",
+          "Linked markets may still require separate market-level review.",
+        ]
+      : [
+          "Resumed assets become eligible for transfer, airdrop, and new order flows again.",
+          "Historical balances and ledger records are not rewritten.",
+          "Market-level pause controls remain separate from asset status.",
+        ],
+    warning: isPausing
+      ? "Use pause when the asset should remain visible but operationally inactive."
+      : "Resuming the asset does not automatically resume any paused markets that use it.",
+    noteLabel: "Audit note (optional)",
+    notePlaceholder: isPausing ? "Reason for pausing this asset" : "Reason for resuming this asset",
+  };
 }

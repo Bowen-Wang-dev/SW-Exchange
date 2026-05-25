@@ -1,21 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { AdminConfirmationDialog, type AdminConfirmationView } from "@/components/admin/admin-confirmation-dialog";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AdminUser } from "@/lib/api-types";
 import { formatDateTime, shortId } from "@/lib/format";
 import { useAuth } from "@/providers/auth-provider";
 
+type UserStatusFilter = "ALL" | AdminUser["status"];
+
+type PendingUserAction = {
+  user: AdminUser;
+  status: AdminUser["status"];
+  note: string;
+};
+
 export default function AdminUsersPage() {
   const { loadMe, user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingUserAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -48,39 +62,51 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function updateStatus(targetUser: AdminUser, status: AdminUser["status"]) {
-    if (targetUser.id === currentUser?.id && status !== "ACTIVE") {
-      setError("You cannot freeze or ban your own admin account.");
-      setSuccess(null);
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return users.filter((user) => {
+      if (statusFilter !== "ALL" && user.status !== statusFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [user.id, user.username, user.email, user.nickname ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [searchQuery, statusFilter, users]);
+
+  async function confirmStatusUpdate() {
+    if (!pendingAction) {
       return;
     }
 
-    const noteInput = window.prompt(
-      `Optional audit note for ${status.toLowerCase()} ${targetUser.username}:`,
-    );
-    if (noteInput === null) {
-      return;
-    }
-    const note = noteInput.trim();
+    const { user, status, note } = pendingAction;
 
     try {
-      setUpdatingUserId(targetUser.id);
+      setUpdatingUserId(user.id);
       setError(null);
       setSuccess(null);
-      const updatedUser = await apiRequest<AdminUser>(`/admin/users/${targetUser.id}/status`, {
+      const updatedUser = await apiRequest<AdminUser>(`/admin/users/${user.id}/status`, {
         method: "PATCH",
         body: {
           status,
-          ...(note ? { note } : {}),
+          ...(note.trim() ? { note: note.trim() } : {}),
         },
       });
 
       setUsers((currentUsers) =>
-        currentUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user)),
+        currentUsers.map((current) => (current.id === updatedUser.id ? updatedUser : current)),
       );
       if (updatedUser.id === currentUser?.id) {
         await loadMe();
       }
+      setPendingAction(null);
       setSuccess(`${updatedUser.username} is now ${updatedUser.status}.`);
     } catch (updateError) {
       setError(
@@ -91,6 +117,24 @@ export default function AdminUsersPage() {
     }
   }
 
+  function requestStatusUpdate(targetUser: AdminUser, status: AdminUser["status"]) {
+    if (targetUser.id === currentUser?.id && status !== "ACTIVE") {
+      setError("You cannot freeze or ban your own admin account.");
+      setSuccess(null);
+      return;
+    }
+
+    setPendingAction({
+      user: targetUser,
+      status,
+      note: "",
+    });
+  }
+
+  const confirmation = pendingAction
+    ? buildUserConfirmation(pendingAction, updatingUserId === pendingAction.user.id)
+    : null;
+
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -98,33 +142,96 @@ export default function AdminUsersPage() {
           <PageHeader
             eyebrow="Admin Users"
             title="User management"
-            description="Review account role, status, and profile metadata. Password hashes are never returned."
+            description="Review account identity, current status, and safer status operations without weakening backend protections."
             action={<StatusBadge label="Live" tone="success" />}
           />
 
-          {error ? <Notice tone="danger" message={error} /> : null}
-          {success ? <Notice tone="success" message={success} /> : null}
-          {isLoading ? <Notice tone="info" message="Loading users..." /> : null}
+          <div className="grid gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Total Users"
+              badgeLabel="Loaded"
+              value={String(users.length)}
+              hint="Normal and admin accounts in the current response."
+              tone="info"
+            />
+            <StatCard
+              label="Active"
+              badgeLabel="ACTIVE"
+              value={String(users.filter((user) => user.status === "ACTIVE").length)}
+              hint="Users currently allowed to trade and transfer."
+              tone="success"
+            />
+            <StatCard
+              label="Frozen"
+              badgeLabel="FROZEN"
+              value={String(users.filter((user) => user.status === "FROZEN").length)}
+              hint="Users blocked from transfers and order actions."
+              tone="warning"
+            />
+            <StatCard
+              label="Banned"
+              badgeLabel="BANNED"
+              value={String(users.filter((user) => user.status === "BANNED").length)}
+              hint="Users blocked from logging in."
+              tone="danger"
+            />
+          </div>
+
+          <section className="panel rounded-3xl p-4">
+            <div className="grid gap-3 lg:grid-cols-[1.2fr_220px_auto]">
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Search users
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Username, email, nickname, or user ID"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Status
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as UserStatusFilter)}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                >
+                  <option value="ALL">All</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="FROZEN">FROZEN</option>
+                  <option value="BANNED">BANNED</option>
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("ALL");
+                  }}
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <AdminNotice
+            tone="info"
+            message="Self-freeze and self-ban remain blocked by the UI and backend. Use Reactivate only when restoring an already non-active user."
+          />
+
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
+          {success ? <AdminNotice tone="success" message={success} /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading users..." /> : null}
 
           {!isLoading && !error ? (
-            users.length > 0 ? (
+            filteredUsers.length > 0 ? (
               <DataTable
-                columns={[
-                  "ID",
-                  "Email",
-                  "Username",
-                  "Nickname",
-                  "Role",
-                  "Status",
-                  "Created",
-                  "Updated",
-                  "Actions",
-                ]}
-                rows={users.map((user) => [
+                columns={["User", "ID", "Role", "Status", "Created", "Updated", "Actions"]}
+                rows={filteredUsers.map((user) => [
+                  <UserCell key={`${user.id}-user`} user={user} />,
                   shortId(user.id),
-                  user.email,
-                  user.username,
-                  user.isSystem ? "System account" : user.nickname ?? "-",
                   <StatusBadge
                     key={`${user.id}-role`}
                     label={user.isSystem ? "SYSTEM" : user.role}
@@ -148,17 +255,47 @@ export default function AdminUsersPage() {
                     user={user}
                     currentUserId={currentUser?.id}
                     isUpdating={updatingUserId === user.id}
-                    onUpdate={updateStatus}
+                    onUpdate={requestStatusUpdate}
                   />,
                 ])}
               />
             ) : (
-              <Notice tone="info" message="No users found." />
+              <AdminNotice tone="info" message="No users match the selected filters." />
             )
           ) : null}
         </div>
+
+        <AdminConfirmationDialog
+          confirmation={
+            confirmation
+              ? {
+                  ...confirmation,
+                  noteValue: pendingAction?.note ?? "",
+                  onNoteChange: (value) =>
+                    setPendingAction((current) => (current ? { ...current, note: value } : current)),
+                }
+              : null
+          }
+          isSubmitting={Boolean(pendingAction && updatingUserId === pendingAction.user.id)}
+          onCancel={() => {
+            if (!updatingUserId) {
+              setPendingAction(null);
+            }
+          }}
+          onConfirm={() => void confirmStatusUpdate()}
+        />
       </AppShell>
     </ProtectedRoute>
+  );
+}
+
+function UserCell({ user }: { user: AdminUser }) {
+  return (
+    <div className="space-y-1">
+      <p className="font-medium text-[var(--foreground)]">{user.username}</p>
+      <p className="text-xs text-[var(--foreground-muted)]">{user.email}</p>
+      {user.nickname ? <p className="text-xs text-[var(--foreground-muted)]">{user.nickname}</p> : null}
+    </div>
   );
 }
 
@@ -182,18 +319,8 @@ function UserStatusActions({
   if (user.status === "ACTIVE") {
     return (
       <div className="flex flex-wrap gap-2">
-        <StatusButton
-          label="Freeze"
-          disabled={isUpdating}
-          tone="warning"
-          onClick={() => onUpdate(user, "FROZEN")}
-        />
-        <StatusButton
-          label="Ban"
-          disabled={isUpdating}
-          tone="danger"
-          onClick={() => onUpdate(user, "BANNED")}
-        />
+        <ActionButton label="Freeze" disabled={isUpdating} tone="warning" onClick={() => onUpdate(user, "FROZEN")} />
+        <ActionButton label="Ban" disabled={isUpdating} tone="danger" onClick={() => onUpdate(user, "BANNED")} />
       </div>
     );
   }
@@ -201,33 +328,18 @@ function UserStatusActions({
   if (user.status === "FROZEN") {
     return (
       <div className="flex flex-wrap gap-2">
-        <StatusButton
-          label="Unfreeze"
-          disabled={isUpdating}
-          tone="success"
-          onClick={() => onUpdate(user, "ACTIVE")}
-        />
-        <StatusButton
-          label="Ban"
-          disabled={isUpdating}
-          tone="danger"
-          onClick={() => onUpdate(user, "BANNED")}
-        />
+        <ActionButton label="Reactivate" disabled={isUpdating} tone="success" onClick={() => onUpdate(user, "ACTIVE")} />
+        <ActionButton label="Ban" disabled={isUpdating} tone="danger" onClick={() => onUpdate(user, "BANNED")} />
       </div>
     );
   }
 
   return (
-    <StatusButton
-      label="Unban"
-      disabled={isUpdating}
-      tone="success"
-      onClick={() => onUpdate(user, "ACTIVE")}
-    />
+    <ActionButton label="Reactivate" disabled={isUpdating} tone="success" onClick={() => onUpdate(user, "ACTIVE")} />
   );
 }
 
-function StatusButton({
+function ActionButton({
   label,
   disabled,
   tone,
@@ -257,13 +369,79 @@ function StatusButton({
   );
 }
 
-function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : tone === "success"
-        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
-        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
+function buildUserConfirmation(
+  pendingAction: PendingUserAction,
+  isSubmitting: boolean,
+): AdminConfirmationView {
+  const { user, status } = pendingAction;
 
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+  if (status === "BANNED") {
+    return {
+      eyebrow: "Confirm User Status",
+      title: `Ban ${user.username}?`,
+      description: "This admin action blocks future login attempts while preserving balances and records.",
+      confirmLabel: isSubmitting ? "Banning..." : "Confirm ban",
+      tone: "danger",
+      details: [
+        { label: "Target", value: user.username },
+        { label: "Email", value: user.email },
+        { label: "Current status", value: user.status },
+        { label: "Next status", value: "BANNED" },
+      ],
+      impacts: [
+        "BANNED users cannot log in.",
+        "Authenticated API requests from banned sessions are rejected.",
+        "Historical orders, trades, ledger, and balances remain preserved.",
+      ],
+      warning: "Use ban for hard access removal. Reactivation is a separate admin action.",
+      noteLabel: "Audit note (optional)",
+      notePlaceholder: "Reason for banning this user",
+    };
+  }
+
+  if (status === "FROZEN") {
+    return {
+      eyebrow: "Confirm User Status",
+      title: `Freeze ${user.username}?`,
+      description: "This keeps the account visible but blocks operational actions.",
+      confirmLabel: isSubmitting ? "Freezing..." : "Confirm freeze",
+      tone: "warning",
+      details: [
+        { label: "Target", value: user.username },
+        { label: "Email", value: user.email },
+        { label: "Current status", value: user.status },
+        { label: "Next status", value: "FROZEN" },
+      ],
+      impacts: [
+        "FROZEN users can still log in and review balances, orders, and history.",
+        "FROZEN users cannot transfer, place orders, cancel orders, or trade through matching.",
+        "Existing records remain unchanged.",
+      ],
+      warning: "Freeze is safer than ban when the account should stay reviewable but inactive.",
+      noteLabel: "Audit note (optional)",
+      notePlaceholder: "Reason for freezing this user",
+    };
+  }
+
+  return {
+    eyebrow: "Confirm User Status",
+    title: `Reactivate ${user.username}?`,
+    description: "This restores normal access for the selected account.",
+    confirmLabel: isSubmitting ? "Reactivating..." : "Confirm reactivation",
+    tone: "success",
+    details: [
+      { label: "Target", value: user.username },
+      { label: "Email", value: user.email },
+      { label: "Current status", value: user.status },
+      { label: "Next status", value: "ACTIVE" },
+    ],
+    impacts: [
+      "ACTIVE users can log in normally.",
+      "ACTIVE users can transfer and place or cancel orders again.",
+      "Backend status protections remain unchanged.",
+    ],
+    warning: "Historical trades and balances are not rewritten; only future eligibility changes.",
+    noteLabel: "Audit note (optional)",
+    notePlaceholder: "Reason for reactivating this user",
+  };
 }

@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
+Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
-Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -86,6 +86,7 @@ Current scope:
 - Best Bid, Best Ask, and Last quick price controls on `/trade`
 - Current-market Cancel All, Cancel Buy, and Cancel Sell controls for user open limit orders
 - Persisted Light / Dark theme toggle with token-based exchange UI surfaces
+- Admin operations console polish with safer confirmations, search/filter controls, audit/ledger export filtering, and clearer wallet bucket guidance
 
 ## Milestone status
 
@@ -116,14 +117,25 @@ Current scope:
 - `v0.17.4 Trading Interaction Polish` completed
 - `v0.18 AI-Native Project Docs / Codex Context Pack` completed
 - `v0.18.1 Light Mode / Theme Polish` completed
+- `v0.18.2 Admin Operations / Risk Controls Polish` completed
 
-- Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
-- Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+- Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+- Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 ## Planned milestones
 
-- `v0.18.2 Admin Operations / Risk Controls Polish`
+- `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v1.x Chain Gateway`
+
+## v0.18.2 Admin Operations / Risk Controls Polish
+
+v0.18.2 sharpens admin workflows without changing trading-core, fee, wallet, or transfer behavior.
+
+- Added safer confirmation dialogs for user status changes, asset status changes, market status changes, fee updates, large airdrops, and admin bucket transfers
+- Added admin search/filter polish across users, assets, markets, audit logs, and ledger review
+- Clarified wallet bucket roles for `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT`
+- Improved admin dashboard and reporting readability with clearer operational cards and recent activity emphasis
+- No matching logic, market-order behavior, fee calculation rules, wallet rules, transfer rules, schema, deposit, withdraw, or blockchain behavior changed
 
 ## v0.18.1 Light Mode / Theme Polish
 

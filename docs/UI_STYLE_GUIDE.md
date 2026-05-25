@@ -34,6 +34,7 @@
 - Avoid horizontal scroll as the primary solution for core exchange UI
 - Keep market rows and asset rows scannable at desktop widths
 - Maintain fixed or predictable desktop panel proportions unless a task explicitly revisits layout behavior
+- Admin pages should feel like an operations console: compact cards, clear badges, obvious warnings, and lightweight filter bars instead of oversized marketing layouts
 
 ## Theme / Scope Rules
 
@@ -47,5 +48,6 @@
 ## Copy / State Rules
 
 - Display current status clearly: `ACTIVE`, `PAUSED`, `FROZEN`, `BANNED`
+- Use confirmation dialogs for high-impact admin actions such as status changes, fee updates, and bucket movements
 - Keep simulation boundaries visible where relevant
 - Do not imply deposit, withdraw, blockchain, or real-money functionality is live

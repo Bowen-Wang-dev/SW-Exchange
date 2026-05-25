@@ -1,11 +1,18 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AdminConfirmationDialog,
+  type AdminConfirmationView,
+} from "@/components/admin/admin-confirmation-dialog";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AssetRow, MarketRow, MarketStatus, MarketSummary } from "@/lib/api-types";
@@ -20,14 +27,25 @@ const INITIAL_CREATE_MARKET_FORM = {
   minNotional: "",
 };
 
+type MarketStatusFilter = "ALL" | MarketStatus;
+
+type PendingMarketAction = {
+  market: MarketRow;
+  status: MarketStatus;
+  note: string;
+};
+
 export default function AdminMarketsPage() {
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [markets, setMarkets] = useState<MarketRow[]>([]);
   const [summaries, setSummaries] = useState<MarketSummary[]>([]);
   const [form, setForm] = useState(INITIAL_CREATE_MARKET_FORM);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<MarketStatusFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingMarketAction | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -45,6 +63,33 @@ export default function AdminMarketsPage() {
     () => `${form.baseAssetSymbol || "BASE"}/${form.quoteAssetSymbol || "QUOTE"}`,
     [form.baseAssetSymbol, form.quoteAssetSymbol],
   );
+
+  const filteredMarkets = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return markets.filter((market) => {
+      if (statusFilter !== "ALL" && market.status !== statusFilter) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [
+        market.symbol,
+        market.baseAssetSymbol ?? "",
+        market.quoteAssetSymbol ?? "",
+        market.baseAssetName ?? "",
+        market.quoteAssetName ?? "",
+        market.baseAssetDisplayName ?? "",
+        market.quoteAssetDisplayName ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [markets, searchQuery, statusFilter]);
 
   async function loadPage(active = true) {
     try {
@@ -133,11 +178,20 @@ export default function AdminMarketsPage() {
     }
   }
 
-  async function updateMarketStatus(market: MarketRow, status: MarketStatus) {
-    const noteInput = window.prompt(`Optional audit note for ${status.toLowerCase()} ${market.symbol}:`);
-    if (noteInput === null) {
+  function requestMarketStatusUpdate(market: MarketRow, status: MarketStatus) {
+    setPendingAction({
+      market,
+      status,
+      note: "",
+    });
+  }
+
+  async function confirmMarketStatusUpdate() {
+    if (!pendingAction) {
       return;
     }
+
+    const { market, status, note } = pendingAction;
 
     try {
       setUpdatingKey(market.symbol);
@@ -149,7 +203,7 @@ export default function AdminMarketsPage() {
           method: "PATCH",
           body: {
             status,
-            ...(noteInput.trim() ? { note: noteInput.trim() } : {}),
+            ...(note.trim() ? { note: note.trim() } : {}),
           },
         },
       );
@@ -160,12 +214,13 @@ export default function AdminMarketsPage() {
         ),
       );
       setSummaries((currentSummaries) =>
-        currentSummaries.map((currentMarket) =>
-          currentMarket.marketSymbol === updatedMarket.symbol
-            ? { ...currentMarket, status: updatedMarket.status }
-            : currentMarket,
+        currentSummaries.map((currentSummary) =>
+          currentSummary.marketSymbol === updatedMarket.symbol
+            ? { ...currentSummary, status: updatedMarket.status }
+            : currentSummary,
         ),
       );
+      setPendingAction(null);
       setSuccess(`${updatedMarket.symbol} market is now ${updatedMarket.status}.`);
     } catch (updateError) {
       setError(
@@ -176,6 +231,10 @@ export default function AdminMarketsPage() {
     }
   }
 
+  const confirmation = pendingAction
+    ? buildMarketConfirmation(pendingAction, updatingKey === pendingAction.market.symbol)
+    : null;
+
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -183,13 +242,102 @@ export default function AdminMarketsPage() {
           <PageHeader
             eyebrow="Admin Markets"
             title="Market registry"
-            description="Create spot markets from listed base and quote assets. New pairs start empty and inherit the existing matching, fee, ticker, and valuation foundation."
-            action={<StatusBadge label="Live" tone="success" />}
+            description="Create spot markets, review pair configuration, and apply safer pause/resume operations without changing matching rules."
+            action={
+              <div className="flex flex-wrap gap-2">
+                <StatusBadge label="Live" tone="success" />
+                <Link
+                  href="/admin/fees"
+                  className="rounded-2xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+                >
+                  Fee Settings
+                </Link>
+              </div>
+            }
           />
 
-          {error ? <Notice tone="danger" message={error} /> : null}
-          {success ? <Notice tone="success" message={success} /> : null}
-          {isLoading ? <Notice tone="info" message="Loading market controls..." /> : null}
+          <div className="grid gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Markets"
+              badgeLabel="Loaded"
+              value={String(markets.length)}
+              hint="Current listed spot markets returned by the API."
+              tone="info"
+            />
+            <StatCard
+              label="Active"
+              badgeLabel="ACTIVE"
+              value={String(markets.filter((market) => market.status === "ACTIVE").length)}
+              hint="Markets currently eligible for new orders."
+              tone="success"
+            />
+            <StatCard
+              label="Paused"
+              badgeLabel="PAUSED"
+              value={String(markets.filter((market) => market.status === "PAUSED").length)}
+              hint="Paused markets block new orders while allowing cancellation."
+              tone="warning"
+            />
+            <StatCard
+              label="With Trades"
+              badgeLabel="Summary"
+              value={String(summaries.filter((summary) => Number(summary.totalTradeCount ?? 0) > 0).length)}
+              hint="Markets with settled trade history in the loaded summaries."
+              tone="neutral"
+            />
+          </div>
+
+          <section className="panel rounded-3xl p-4">
+            <div className="grid gap-3 lg:grid-cols-[1.2fr_220px_auto]">
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Search markets
+                <input
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Pair, base, quote, or asset name"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                />
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Status
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as MarketStatusFilter)}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                >
+                  <option value="ALL">All</option>
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="PAUSED">PAUSED</option>
+                </select>
+              </label>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("ALL");
+                  }}
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+                >
+                  Clear filters
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <AdminNotice
+            tone="info"
+            message="Paused markets remain viewable and still allow order cancellation, but block new orders and new matching."
+          />
+          {markets.some((market) => market.status === "PAUSED") ? (
+            <AdminNotice
+              tone="warning"
+              message="Paused markets exist. Review asset-level status separately before resuming pair activity."
+            />
+          ) : null}
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
+          {success ? <AdminNotice tone="success" message={success} /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading market controls..." /> : null}
 
           <div className="grid gap-4 xl:grid-cols-[0.92fr_1.08fr]">
             <section className="panel rounded-3xl p-5">
@@ -198,9 +346,14 @@ export default function AdminMarketsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Create Market
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">List a trading pair</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+                    List a trading pair
+                  </h2>
                 </div>
-                <StatusBadge label={form.status} tone={form.status === "ACTIVE" ? "success" : "warning"} />
+                <StatusBadge
+                  label={form.status}
+                  tone={form.status === "ACTIVE" ? "success" : "warning"}
+                />
               </div>
 
               <form onSubmit={handleCreateMarket} className="mt-5 grid gap-4">
@@ -328,9 +481,10 @@ export default function AdminMarketsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
-                  Active markets require both assets to already be ACTIVE. New markets start with no fake trades, no seeded order book, and default fee settings until you change them.
-                </div>
+                <AdminNotice
+                  tone="info"
+                  message="New markets start empty, inherit current matching and fee foundations, and require separate fee review if you want non-default rates."
+                />
 
                 <button
                   type="submit"
@@ -347,13 +501,23 @@ export default function AdminMarketsPage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                   Market Controls
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Existing spot markets</h2>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+                  Existing spot markets
+                </h2>
               </div>
 
               <div className="mt-5">
                 <DataTable
-                  columns={["Market", "Base", "Quote", "Status", "Last Price", "Config", "Action"]}
-                  rows={markets.map((market) => {
+                  columns={[
+                    "Market",
+                    "Base",
+                    "Quote",
+                    "Status",
+                    "Last Price",
+                    "Config",
+                    "Action",
+                  ]}
+                  rows={filteredMarkets.map((market) => {
                     const summary = summaries.find((item) => item.marketSymbol === market.symbol);
 
                     return [
@@ -378,21 +542,31 @@ export default function AdminMarketsPage() {
                         tone={market.status === "ACTIVE" ? "success" : "warning"}
                       />,
                       summary?.lastPrice ? `${summary.lastPrice} ${summary.quoteAssetSymbol}` : "—",
-                      `P ${market.priceDecimals} / A ${market.amountDecimals} / Min ${market.minOrderAmount ?? "0"} ${
-                        market.baseAssetSymbol ?? ""
-                      } / Notional ${market.minNotional ?? "0"} ${market.quoteAssetSymbol ?? ""}`,
-                      <StatusButton
-                        key={`${market.symbol}-action`}
-                        label={market.status === "ACTIVE" ? "Pause" : "Resume"}
-                        disabled={updatingKey === market.symbol}
-                        tone={market.status === "ACTIVE" ? "warning" : "success"}
-                        onClick={() =>
-                          void updateMarketStatus(
-                            market,
-                            market.status === "ACTIVE" ? "PAUSED" : "ACTIVE",
-                          )
-                        }
-                      />,
+                      `P ${market.priceDecimals} / A ${market.amountDecimals} / Min ${market.minOrderAmount ?? "0"} ${market.baseAssetSymbol ?? ""} / Notional ${market.minNotional ?? "0"} ${market.quoteAssetSymbol ?? ""}`,
+                      <div key={`${market.symbol}-actions`} className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => requestMarketStatusUpdate(market, market.status === "ACTIVE" ? "PAUSED" : "ACTIVE")}
+                          disabled={updatingKey === market.symbol}
+                          className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                            market.status === "ACTIVE"
+                              ? "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)] hover:border-[var(--warning)]"
+                              : "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)] hover:border-[var(--success)]"
+                          }`}
+                        >
+                          {updatingKey === market.symbol
+                            ? "Updating..."
+                            : market.status === "ACTIVE"
+                              ? "Pause"
+                              : "Resume"}
+                        </button>
+                        <Link
+                          href={`/admin/fees?market=${encodeURIComponent(market.symbol)}`}
+                          className="rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+                        >
+                          Fees
+                        </Link>
+                      </div>,
                     ];
                   })}
                 />
@@ -400,15 +574,32 @@ export default function AdminMarketsPage() {
             </section>
           </div>
         </div>
+
+        <AdminConfirmationDialog
+          confirmation={
+            confirmation
+              ? {
+                  ...confirmation,
+                  noteValue: pendingAction?.note ?? "",
+                  onNoteChange: (value) =>
+                    setPendingAction((current) => (current ? { ...current, note: value } : current)),
+                }
+              : null
+          }
+          isSubmitting={Boolean(pendingAction && updatingKey === pendingAction.market.symbol)}
+          onCancel={() => {
+            if (!updatingKey) {
+              setPendingAction(null);
+            }
+          }}
+          onConfirm={() => void confirmMarketStatusUpdate()}
+        />
       </AppShell>
     </ProtectedRoute>
   );
 }
 
-function normalizeMarketForm(
-  form: typeof INITIAL_CREATE_MARKET_FORM,
-  assets: AssetRow[],
-) {
+function normalizeMarketForm(form: typeof INITIAL_CREATE_MARKET_FORM, assets: AssetRow[]) {
   if (assets.length === 0) {
     return form;
   }
@@ -425,51 +616,56 @@ function normalizeMarketForm(
     return { ...form, baseAssetSymbol, quoteAssetSymbol };
   }
 
-  const fallbackQuote =
-    assets.find((asset) => asset.symbol !== baseAssetSymbol)?.symbol ?? quoteAssetSymbol;
-
   return {
     ...form,
     baseAssetSymbol,
-    quoteAssetSymbol: fallbackQuote,
+    quoteAssetSymbol:
+      assets.find((asset) => asset.symbol !== baseAssetSymbol)?.symbol ?? quoteAssetSymbol,
   };
 }
 
-function StatusButton({
-  label,
-  disabled,
-  tone,
-  onClick,
-}: {
-  label: string;
-  disabled: boolean;
-  tone: "success" | "warning";
-  onClick: () => void;
-}) {
-  const classes =
-    tone === "success"
-      ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)] hover:border-[var(--success)]"
-      : "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)] hover:border-[var(--warning)]";
+function buildMarketConfirmation(
+  pendingAction: PendingMarketAction,
+  isSubmitting: boolean,
+): AdminConfirmationView {
+  const { market, status } = pendingAction;
+  const isPausing = status === "PAUSED";
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${classes}`}
-    >
-      {disabled ? "Updating..." : label}
-    </button>
-  );
-}
-
-function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : tone === "success"
-        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
-        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
-
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+  return {
+    eyebrow: "Confirm Market Status",
+    title: `${isPausing ? "Pause" : "Resume"} ${market.symbol}?`,
+    description: isPausing
+      ? "This blocks new orders and new matching for the market while preserving visibility and cancellation paths."
+      : "This restores normal new-order eligibility for the selected market.",
+    confirmLabel: isSubmitting
+      ? isPausing
+        ? "Pausing..."
+        : "Resuming..."
+      : isPausing
+        ? "Confirm pause"
+        : "Confirm resume",
+    tone: isPausing ? "warning" : "success",
+    details: [
+      { label: "Market", value: market.symbol },
+      { label: "Base asset", value: market.baseAssetSymbol ?? "—" },
+      { label: "Quote asset", value: market.quoteAssetSymbol ?? "—" },
+      { label: "Next status", value: status },
+    ],
+    impacts: isPausing
+      ? [
+          "Paused markets block new orders and new matching.",
+          "Existing open limit orders remain cancellable so funds can unlock.",
+          "Order book, trade history, and market views remain visible.",
+        ]
+      : [
+          "Resumed markets allow new orders and new matching again.",
+          "Historical trades, candles, and order records are unchanged.",
+          "Asset-level pause rules still apply separately.",
+        ],
+    warning: isPausing
+      ? "Pause the market when the pair should stay reviewable but operationally inactive."
+      : "Resuming the market does not override paused asset status for its base or quote asset.",
+    noteLabel: "Audit note (optional)",
+    notePlaceholder: isPausing ? "Reason for pausing this market" : "Reason for resuming this market",
+  };
 }

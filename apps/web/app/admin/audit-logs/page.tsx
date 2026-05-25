@@ -1,20 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { DataTable } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AdminAuditLog } from "@/lib/api-types";
 import { downloadCsv } from "@/lib/csv";
-import { formatDateTime, shortId, stringifyAuditValue, stringifyAuditValuePretty } from "@/lib/format";
+import {
+  formatDateTime,
+  shortId,
+  stringifyAuditValue,
+  stringifyAuditValuePretty,
+} from "@/lib/format";
 
 export default function AdminAuditLogsPage() {
   const [logs, setLogs] = useState<AdminAuditLog[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [actionFilter, setActionFilter] = useState("ALL");
+  const [actorFilter, setActorFilter] = useState("ALL");
   const [targetTypeFilter, setTargetTypeFilter] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,9 +42,7 @@ export default function AdminAuditLogsPage() {
         }
       } catch (loadError) {
         if (active) {
-          setError(
-            loadError instanceof ApiError ? loadError.message : "Unable to load audit logs.",
-          );
+          setError(loadError instanceof ApiError ? loadError.message : "Unable to load audit logs.");
         }
       } finally {
         if (active) {
@@ -50,18 +59,51 @@ export default function AdminAuditLogsPage() {
   }, []);
 
   const actionOptions = uniqueOptions(logs.map((log) => log.action));
+  const actorOptions = uniqueOptions(logs.map((log) => log.adminUser.username));
   const targetTypeOptions = uniqueOptions(logs.map((log) => log.targetType));
-  const filteredLogs = logs.filter((log) => {
-    if (actionFilter !== "ALL" && log.action !== actionFilter) {
-      return false;
-    }
 
-    if (targetTypeFilter !== "ALL" && log.targetType !== targetTypeFilter) {
-      return false;
-    }
+  const filteredLogs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
 
-    return true;
-  });
+    return logs.filter((log) => {
+      if (actionFilter !== "ALL" && log.action !== actionFilter) {
+        return false;
+      }
+
+      if (actorFilter !== "ALL" && log.adminUser.username !== actorFilter) {
+        return false;
+      }
+
+      if (targetTypeFilter !== "ALL" && log.targetType !== targetTypeFilter) {
+        return false;
+      }
+
+      if (dateFrom && new Date(log.createdAt) < new Date(`${dateFrom}T00:00:00Z`)) {
+        return false;
+      }
+
+      if (dateTo && new Date(log.createdAt) > new Date(`${dateTo}T23:59:59Z`)) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      return [
+        log.action,
+        log.targetType,
+        log.adminUser.username,
+        log.adminUser.email,
+        formatTarget(log),
+        auditSummary(log),
+        stringifyAuditValue(log.afterValue),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query);
+    });
+  }, [actionFilter, actorFilter, dateFrom, dateTo, logs, searchQuery, targetTypeFilter]);
 
   function exportFilteredLogs() {
     downloadCsv(
@@ -86,36 +128,76 @@ export default function AdminAuditLogsPage() {
           <PageHeader
             eyebrow="Admin Audit"
             title="Audit log review"
-            description="Review admin actions newest first. Airdrops, fee settings, admin bucket transfers, and status controls record before and after state here."
+            description="Review admin actions with client-side filtering for actor, action, target, date, and text search."
             action={<StatusBadge label="Ops Trail" tone="warning" />}
           />
 
-          {error ? <Notice tone="danger" message={error} /> : null}
-          {isLoading ? <Notice tone="info" message="Loading audit logs..." /> : null}
+          <div className="grid gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Loaded Logs"
+              badgeLabel="Current"
+              value={String(logs.length)}
+              hint="Currently loaded audit rows."
+              tone="info"
+            />
+            <StatCard
+              label="Visible"
+              badgeLabel="Filtered"
+              value={String(filteredLogs.length)}
+              hint="Rows matching the active filters."
+              tone="success"
+            />
+            <StatCard
+              label="Action Types"
+              badgeLabel="Distinct"
+              value={String(actionOptions.length)}
+              hint="Unique admin action categories in the loaded data."
+              tone="neutral"
+            />
+            <StatCard
+              label="Actors"
+              badgeLabel="Distinct"
+              value={String(actorOptions.length)}
+              hint="Unique admin usernames in the loaded data."
+              tone="neutral"
+            />
+          </div>
+
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading audit logs..." /> : null}
 
           {!isLoading && !error ? (
             logs.length > 0 ? (
               <div className="space-y-4">
                 <FilterBar
+                  searchQuery={searchQuery}
                   actionFilter={actionFilter}
+                  actorFilter={actorFilter}
                   targetTypeFilter={targetTypeFilter}
+                  dateFrom={dateFrom}
+                  dateTo={dateTo}
                   actionOptions={actionOptions}
+                  actorOptions={actorOptions}
                   targetTypeOptions={targetTypeOptions}
+                  onSearchQueryChange={setSearchQuery}
                   onActionFilterChange={setActionFilter}
+                  onActorFilterChange={setActorFilter}
                   onTargetTypeFilterChange={setTargetTypeFilter}
+                  onDateFromChange={setDateFrom}
+                  onDateToChange={setDateTo}
                   onExport={exportFilteredLogs}
+                  onClear={() => {
+                    setSearchQuery("");
+                    setActionFilter("ALL");
+                    setActorFilter("ALL");
+                    setTargetTypeFilter("ALL");
+                    setDateFrom("");
+                    setDateTo("");
+                  }}
                 />
                 {filteredLogs.length > 0 ? (
                   <DataTable
-                    columns={[
-                      "Time",
-                      "Admin",
-                      "Action",
-                      "Target Type",
-                      "Target",
-                      "Summary",
-                      "Details",
-                    ]}
+                    columns={["Time", "Admin", "Action", "Target", "Summary", "Details"]}
                     rows={filteredLogs.map((log) => [
                       formatDateTime(log.createdAt),
                       <AdminCell key={`${log.id}-admin`} log={log} />,
@@ -124,33 +206,23 @@ export default function AdminAuditLogsPage() {
                         label={log.action}
                         tone={auditActionTone(log.action)}
                       />,
-                      <StatusBadge key={`${log.id}-target-type`} label={log.targetType} tone="neutral" />,
-                      formatTarget(log),
+                      <TargetCell key={`${log.id}-target`} log={log} />,
                       auditSummary(log),
                       <AuditDetails key={`${log.id}-details`} log={log} />,
                     ])}
                   />
                 ) : (
-                  <Notice tone="info" message="No audit logs match the selected filters." />
+                  <AdminNotice tone="info" message="No audit logs match the selected filters." />
                 )}
               </div>
             ) : (
-              <Notice tone="info" message="No audit logs found." />
+              <AdminNotice tone="info" message="No audit logs found." />
             )
           ) : null}
         </div>
       </AppShell>
     </ProtectedRoute>
   );
-}
-
-function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
-
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }
 
 function AdminCell({ log }: { log: AdminAuditLog }) {
@@ -162,9 +234,18 @@ function AdminCell({ log }: { log: AdminAuditLog }) {
   );
 }
 
+function TargetCell({ log }: { log: AdminAuditLog }) {
+  return (
+    <div className="space-y-1">
+      <StatusBadge label={log.targetType} tone="neutral" />
+      <p className="text-xs text-[var(--foreground-soft)]">{formatTarget(log)}</p>
+    </div>
+  );
+}
+
 function AuditDetails({ log }: { log: AdminAuditLog }) {
   return (
-    <details className="min-w-[300px] max-w-[520px] rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-3">
+    <details className="min-w-[280px] max-w-[520px] rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-3">
       <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
         View JSON
       </summary>
@@ -190,41 +271,66 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
 }
 
 function FilterBar({
+  searchQuery,
   actionFilter,
+  actorFilter,
   targetTypeFilter,
+  dateFrom,
+  dateTo,
   actionOptions,
+  actorOptions,
   targetTypeOptions,
+  onSearchQueryChange,
   onActionFilterChange,
+  onActorFilterChange,
   onTargetTypeFilterChange,
+  onDateFromChange,
+  onDateToChange,
   onExport,
+  onClear,
 }: {
+  searchQuery: string;
   actionFilter: string;
+  actorFilter: string;
   targetTypeFilter: string;
+  dateFrom: string;
+  dateTo: string;
   actionOptions: string[];
+  actorOptions: string[];
   targetTypeOptions: string[];
+  onSearchQueryChange: (value: string) => void;
   onActionFilterChange: (value: string) => void;
+  onActorFilterChange: (value: string) => void;
   onTargetTypeFilterChange: (value: string) => void;
+  onDateFromChange: (value: string) => void;
+  onDateToChange: (value: string) => void;
   onExport: () => void;
+  onClear: () => void;
 }) {
   return (
     <div className="panel rounded-3xl p-4">
-      <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+      <div className="grid gap-3 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr_0.8fr_0.8fr_auto_auto]">
+        <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+          Search
+          <input
+            value={searchQuery}
+            onChange={(event) => onSearchQueryChange(event.target.value)}
+            placeholder="Action, admin, target, or summary"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+          />
+        </label>
         <FilterSelect label="Action" value={actionFilter} options={actionOptions} onChange={onActionFilterChange} />
+        <FilterSelect label="Actor" value={actorFilter} options={actorOptions} onChange={onActorFilterChange} />
         <FilterSelect
           label="Target type"
           value={targetTypeFilter}
           options={targetTypeOptions}
           onChange={onTargetTypeFilterChange}
         />
-        <div className="flex items-end">
-          <button
-            type="button"
-            onClick={onExport}
-            className="w-full rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
-          >
-            Export CSV
-          </button>
-        </div>
+        <DateInput label="From" value={dateFrom} onChange={onDateFromChange} />
+        <DateInput label="To" value={dateTo} onChange={onDateToChange} />
+        <ActionButton label="Export CSV" onClick={onExport} />
+        <SecondaryButton label="Clear" onClick={onClear} />
       </div>
     </div>
   );
@@ -257,6 +363,56 @@ function FilterSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+function DateInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+      {label}
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+      />
+    </label>
+  );
+}
+
+function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div className="flex items-end">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
+function SecondaryButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div className="flex items-end">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+      >
+        {label}
+      </button>
+    </div>
   );
 }
 
@@ -313,7 +469,7 @@ function valueAsRecord(value: unknown) {
 
 function stringValue(value: unknown) {
   if (value === null || value === undefined || value === "") {
-    return "-";
+    return "—";
   }
 
   return String(value);

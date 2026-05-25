@@ -4,9 +4,16 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
+Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
-Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+
+### v0.18.2 Admin Operations / Risk Controls Polish - Completed
+
+- Added safer admin confirmation dialogs for user, asset, market, fee, large-airdrop, and bucket-transfer actions
+- Added search/filter polish for admin users, assets, markets, audit logs, and ledger review
+- Clarified admin wallet bucket roles and improved operational dashboard readability
+- No matching logic, market-order behavior, fee logic, wallet rules, transfer rules, schema, or migrations changed
 
 ### v0.18.1 Light Mode / Theme Polish - Completed
 

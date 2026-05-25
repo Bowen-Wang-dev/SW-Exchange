@@ -41,6 +41,11 @@ export function AdminDashboardContent() {
 
   const feeSwc = summary?.feeWalletBalances.find((balance) => balance.asset === "SWC");
   const feeSwl = summary?.feeWalletBalances.find((balance) => balance.asset === "SWL");
+  const trackedMarketCount = summary?.marketSummaries?.length;
+  const activeMarketCount =
+    summary?.marketSummaries?.filter((market) => market.status === "ACTIVE").length;
+  const recentAuditCount = summary?.recentAuditLogs?.length;
+  const recentTradeCount = summary?.recentTrades?.length;
 
   return (
     <div className="space-y-4">
@@ -162,6 +167,34 @@ export function AdminDashboardContent() {
           value={formatCount(summary?.pausedMarketCount)}
           hint="Markets paused by admin controls."
           tone="danger"
+        />
+        <StatCard
+          label="Tracked Markets"
+          badgeLabel="Summary"
+          value={formatCount(trackedMarketCount)}
+          hint="Markets currently returned in admin reporting summaries."
+          tone="info"
+        />
+        <StatCard
+          label="Active Markets"
+          badgeLabel="Summary"
+          value={formatCount(activeMarketCount)}
+          hint="Markets currently open for new order flow."
+          tone="success"
+        />
+        <StatCard
+          label="Recent Trades"
+          badgeLabel="Recent"
+          value={formatCount(recentTradeCount)}
+          hint="Recent trade rows currently shown on this dashboard."
+          tone="success"
+        />
+        <StatCard
+          label="Recent Audit"
+          badgeLabel="Recent"
+          value={formatCount(recentAuditCount)}
+          hint="Recent admin audit rows currently shown on this dashboard."
+          tone="warning"
         />
       </div>
 

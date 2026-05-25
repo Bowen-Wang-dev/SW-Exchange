@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
 import { AssetIdentity } from "@/components/ui/asset-icon";
 import { DataTable } from "@/components/ui/data-table";
+import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AdminLedgerEntry } from "@/lib/api-types";
@@ -53,26 +55,29 @@ export default function AdminLedgerPage() {
   const assetOptions = uniqueOptions(entries.map((entry) => entry.asset));
   const typeOptions = uniqueOptions(entries.map((entry) => entry.type));
   const walletTypeOptions = uniqueOptions(entries.map((entry) => displayWalletType(entry)));
-  const filteredEntries = entries.filter((entry) => {
+  const filteredEntries = useMemo(() => {
     const searchText = userFilter.trim().toLowerCase();
-    if (searchText && !`${entry.user.username} ${entry.user.email}`.toLowerCase().includes(searchText)) {
-      return false;
-    }
 
-    if (assetFilter !== "ALL" && entry.asset !== assetFilter) {
-      return false;
-    }
+    return entries.filter((entry) => {
+      if (searchText && !`${entry.user.username} ${entry.user.email}`.toLowerCase().includes(searchText)) {
+        return false;
+      }
 
-    if (typeFilter !== "ALL" && entry.type !== typeFilter) {
-      return false;
-    }
+      if (assetFilter !== "ALL" && entry.asset !== assetFilter) {
+        return false;
+      }
 
-    if (walletTypeFilter !== "ALL" && displayWalletType(entry) !== walletTypeFilter) {
-      return false;
-    }
+      if (typeFilter !== "ALL" && entry.type !== typeFilter) {
+        return false;
+      }
 
-    return true;
-  });
+      if (walletTypeFilter !== "ALL" && displayWalletType(entry) !== walletTypeFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [assetFilter, entries, typeFilter, userFilter, walletTypeFilter]);
 
   function exportFilteredEntries() {
     downloadCsv(
@@ -101,12 +106,43 @@ export default function AdminLedgerPage() {
           <PageHeader
             eyebrow="Admin Ledger"
             title="Ledger review"
-            description="Inspect wallet balance changes across normal MAIN wallets and admin wallet buckets. Fee income is shown as admin FEE wallet activity."
+            description="Inspect balance changes across MAIN and admin bucket wallets with exportable, client-side filtering."
             action={<StatusBadge label="Source of Truth" tone="info" />}
           />
 
-          {error ? <Notice tone="danger" message={error} /> : null}
-          {isLoading ? <Notice tone="info" message="Loading ledger entries..." /> : null}
+          <div className="grid gap-4 lg:grid-cols-4">
+            <StatCard
+              label="Loaded Entries"
+              badgeLabel="Current"
+              value={String(entries.length)}
+              hint="Current ledger rows returned by the API."
+              tone="info"
+            />
+            <StatCard
+              label="Visible"
+              badgeLabel="Filtered"
+              value={String(filteredEntries.length)}
+              hint="Rows matching the active filters."
+              tone="success"
+            />
+            <StatCard
+              label="Assets"
+              badgeLabel="Distinct"
+              value={String(assetOptions.length)}
+              hint="Distinct assets in the currently loaded ledger."
+              tone="neutral"
+            />
+            <StatCard
+              label="Wallet Types"
+              badgeLabel="Distinct"
+              value={String(walletTypeOptions.length)}
+              hint="Distinct wallet bucket types represented in the rows."
+              tone="neutral"
+            />
+          </div>
+
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading ledger entries..." /> : null}
 
           {!isLoading && !error ? (
             entries.length > 0 ? (
@@ -124,6 +160,12 @@ export default function AdminLedgerPage() {
                   onTypeFilterChange={setTypeFilter}
                   onWalletTypeFilterChange={setWalletTypeFilter}
                   onExport={exportFilteredEntries}
+                  onClear={() => {
+                    setUserFilter("");
+                    setAssetFilter("ALL");
+                    setTypeFilter("ALL");
+                    setWalletTypeFilter("ALL");
+                  }}
                 />
                 {filteredEntries.length > 0 ? (
                   <DataTable
@@ -173,11 +215,11 @@ export default function AdminLedgerPage() {
                     ])}
                   />
                 ) : (
-                  <Notice tone="info" message="No ledger entries match the selected filters." />
+                  <AdminNotice tone="info" message="No ledger entries match the selected filters." />
                 )}
               </div>
             ) : (
-              <Notice tone="info" message="No ledger entries found." />
+              <AdminNotice tone="info" message="No ledger entries found." />
             )
           ) : null}
         </div>
@@ -186,17 +228,13 @@ export default function AdminLedgerPage() {
   );
 }
 
-function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
-
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
-}
-
 function ledgerTypeTone(type: string): "neutral" | "success" | "warning" | "danger" | "info" {
-  if (type === "ORDER_LOCK" || type === "TRANSFER_OUT" || type === "ADMIN_BUCKET_TRANSFER_OUT" || type === "FEE") {
+  if (
+    type === "ORDER_LOCK" ||
+    type === "TRANSFER_OUT" ||
+    type === "ADMIN_BUCKET_TRANSFER_OUT" ||
+    type === "FEE"
+  ) {
     return "warning";
   }
 
@@ -222,7 +260,7 @@ function ledgerNote(entry: AdminLedgerEntry) {
   }
 
   if (entry.type === "TRADE_SELL") {
-    return "Sold SWL and received SWC.";
+    return "Sold asset and received quote settlement.";
   }
 
   if (entry.type === "FEE") {
@@ -235,11 +273,11 @@ function ledgerNote(entry: AdminLedgerEntry) {
 
   if (entry.type === "ORDER_UNLOCK") {
     return entry.note?.includes("Better price")
-      ? "Better-price refund/unlock."
+      ? "Better-price refund or unlock."
       : "Remaining locked balance unlocked.";
   }
 
-  return entry.note ?? "-";
+  return entry.note ?? "—";
 }
 
 function OwnerCell({ entry }: { entry: AdminLedgerEntry }) {
@@ -274,6 +312,7 @@ function FilterBar({
   onTypeFilterChange,
   onWalletTypeFilterChange,
   onExport,
+  onClear,
 }: {
   userFilter: string;
   assetFilter: string;
@@ -287,10 +326,11 @@ function FilterBar({
   onTypeFilterChange: (value: string) => void;
   onWalletTypeFilterChange: (value: string) => void;
   onExport: () => void;
+  onClear: () => void;
 }) {
   return (
     <div className="panel rounded-3xl p-4">
-      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.8fr_0.9fr_0.9fr_auto]">
+      <div className="grid gap-3 lg:grid-cols-[1.1fr_0.8fr_0.9fr_0.9fr_auto_auto]">
         <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
           User / email
           <input
@@ -308,15 +348,8 @@ function FilterBar({
           options={walletTypeOptions}
           onChange={onWalletTypeFilterChange}
         />
-        <div className="flex items-end">
-          <button
-            type="button"
-            onClick={onExport}
-            className="w-full rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
-          >
-            Export CSV
-          </button>
-        </div>
+        <ActionButton label="Export CSV" onClick={onExport} />
+        <SecondaryButton label="Clear" onClick={onClear} />
       </div>
     </div>
   );
@@ -349,6 +382,34 @@ function FilterSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div className="flex items-end">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full rounded-2xl border border-[var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)] transition hover:border-[var(--accent-strong)]"
+      >
+        {label}
+      </button>
+    </div>
+  );
+}
+
+function SecondaryButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div className="flex items-end">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
+      >
+        {label}
+      </button>
+    </div>
   );
 }
 

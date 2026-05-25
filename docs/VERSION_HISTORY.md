@@ -1,13 +1,29 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
+Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
-Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 ## Upcoming plan
 
-- `v0.18.2 Admin Operations / Risk Controls Polish`
+- `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v1.x Chain Gateway`
+
+## v0.18.2 Admin Operations / Risk Controls Polish
+
+This milestone improves admin safety, filtering, and operational clarity without changing backend trading behavior.
+
+### Highlights
+
+- Added confirmation dialogs for user status changes, asset status changes, market status changes, fee updates, large airdrops, and admin wallet bucket transfers
+- Added admin search/filter polish across users, assets, markets, audit logs, and ledger review
+- Clarified admin wallet bucket roles and improved dashboard/report readability
+- Kept matching logic, fee logic, wallet rules, transfer rules, schema, API behavior, deposit, withdraw, and blockchain behavior unchanged
+
+### Developer and operational notes
+
+- This milestone is admin UI/product polish only
+- No schema or migration change is required for v0.18.2
 
 ## v0.18.1 Light Mode / Theme Polish
 

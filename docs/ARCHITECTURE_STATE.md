@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v0.18.1 Light Mode / Theme Polish`
+Current milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
 ## Current Stack
 
@@ -21,6 +21,7 @@ Current milestone: `v0.18.1 Light Mode / Theme Polish`
 - `v0.17.4 Trading Interaction Polish`
 - `v0.18 AI-Native Project Docs / Codex Context Pack`
 - `v0.18.1 Light Mode / Theme Polish`
+- `v0.18.2 Admin Operations / Risk Controls Polish`
 
 ## Current Supported Assets / Markets
 
@@ -88,6 +89,8 @@ Current milestone: `v0.18.1 Light Mode / Theme Polish`
 - Fee settings review/update
 - Admin airdrop
 - Admin wallet bucket transfers
+- Safer admin confirmations for high-impact actions
+- Admin filtering/search on users, assets, markets, audit logs, and ledger
 - Admin reports, ledger, trades, transfers, orders, audit logs
 
 ## Current UI State
@@ -97,6 +100,7 @@ Current milestone: `v0.18.1 Light Mode / Theme Polish`
 - Compact ticker strip, dominant chart, adjacent order book / tape, fixed order rail
 - Bottom trading activity tabs
 - Portfolio and markets views are searchable and sortable
+- Admin operations pages are filterable and use confirmation dialogs for high-impact actions
 - Favorites on `/markets` are local browser state
 - Theme preference is stored in `localStorage`
 
@@ -111,5 +115,5 @@ Current milestone: `v0.18.1 Light Mode / Theme Polish`
 
 ## Current Milestone
 
-- Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
-- Next planned milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+- Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+- Next planned milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`

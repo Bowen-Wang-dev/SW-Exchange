@@ -1,6 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  AdminConfirmationDialog,
+  type AdminConfirmationView,
+} from "@/components/admin/admin-confirmation-dialog";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
@@ -9,12 +14,22 @@ import { apiRequest, ApiError } from "@/lib/api-client";
 import type { AirdropResponse, AssetRow } from "@/lib/api-types";
 import { shortId } from "@/lib/format";
 
+type PendingAirdropAction = {
+  target: string;
+  assetSymbol: string;
+  amount: string;
+  note: string;
+};
+
+const LARGE_AIRDROP_THRESHOLD = 1000;
+
 export default function AdminAirdropPage() {
   const [target, setTarget] = useState("");
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [assetSymbol, setAssetSymbol] = useState("SWC");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [pendingAction, setPendingAction] = useState<PendingAirdropAction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<AirdropResponse | null>(null);
@@ -46,7 +61,7 @@ export default function AdminAirdropPage() {
     };
   }, [assetSymbol]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
@@ -57,31 +72,52 @@ export default function AdminAirdropPage() {
       return;
     }
 
+    const nextAction = {
+      target: trimmedTarget,
+      assetSymbol,
+      amount: amount.trim(),
+      note,
+    };
+
+    if (isLargeAirdrop(nextAction.amount)) {
+      setPendingAction(nextAction);
+      return;
+    }
+
+    void submitAirdrop(nextAction);
+  }
+
+  async function submitAirdrop(action: PendingAirdropAction) {
     try {
       setIsSubmitting(true);
       const response = await apiRequest<AirdropResponse>("/admin/airdrop", {
         method: "POST",
         body: {
-          ...buildTargetPayload(trimmedTarget),
-          assetSymbol,
-          amount: amount.trim(),
-          ...(note.trim() ? { note: note.trim() } : {}),
+          ...buildTargetPayload(action.target),
+          assetSymbol: action.assetSymbol,
+          amount: action.amount,
+          ...(action.note.trim() ? { note: action.note.trim() } : {}),
         },
       });
 
       setSuccess(response);
+      setPendingAction(null);
       setAmount("");
       setNote("");
     } catch (submitError) {
-      setError(
-        submitError instanceof ApiError
-          ? submitError.message
-          : "Unable to complete airdrop.",
-      );
+      setError(submitError instanceof ApiError ? submitError.message : "Unable to complete airdrop.");
     } finally {
       setIsSubmitting(false);
     }
   }
+
+  const confirmation = useMemo(() => {
+    if (!pendingAction) {
+      return null;
+    }
+
+    return buildAirdropConfirmation(pendingAction, isSubmitting);
+  }, [pendingAction, isSubmitting]);
 
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
@@ -90,7 +126,7 @@ export default function AdminAirdropPage() {
           <PageHeader
             eyebrow="Admin Airdrop"
             title="Airdrop asset"
-            description="Credit a user's available wallet balance. Every airdrop writes wallet, ledger, and admin audit records together."
+            description="Credit a user's available wallet balance with clearer guardrails and confirmation for large funding actions."
             action={<StatusBadge label="Live" tone="success" />}
           />
 
@@ -132,12 +168,13 @@ export default function AdminAirdropPage() {
                     value={amount}
                     onChange={(event) => setAmount(event.target.value)}
                     placeholder="1000 or 12.5"
+                    inputMode="decimal"
                     className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
                 <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-                  Note
+                  Audit note
                   <textarea
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
@@ -147,9 +184,18 @@ export default function AdminAirdropPage() {
                   />
                 </label>
 
-                {error ? <Notice tone="danger" message={error} /> : null}
+                <AdminNotice
+                  tone={isLargeAirdrop(amount) ? "warning" : "info"}
+                  message={
+                    isLargeAirdrop(amount)
+                      ? `Large airdrop confirmation will appear for amounts at or above ${LARGE_AIRDROP_THRESHOLD}.`
+                      : "Airdrops write wallet, ledger, and admin audit records together."
+                  }
+                />
+
+                {error ? <AdminNotice tone="danger" message={error} /> : null}
                 {success ? (
-                  <Notice
+                  <AdminNotice
                     tone="success"
                     message={`Airdropped ${success.amount} ${success.assetSymbol} to ${success.targetUser.username}. New available balance: ${success.newAvailable}. Ledger: ${shortId(success.ledgerEntryId)}.`}
                   />
@@ -174,7 +220,7 @@ export default function AdminAirdropPage() {
                   "Only active assets are allowed.",
                   "Target users must be ACTIVE; FROZEN and BANNED accounts cannot receive airdrops.",
                   "Amounts must be positive plain decimal strings, never scientific notation.",
-                  "Airdrops write wallet, ledger, and audit records in one transaction.",
+                  "Current airdrop remains unlimited in v0.x and does not consume the AIRDROP bucket.",
                   "Only a single full-permission admin exists in v0.x.",
                 ].map((item) => (
                   <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
@@ -185,6 +231,30 @@ export default function AdminAirdropPage() {
             </section>
           </div>
         </div>
+
+        <AdminConfirmationDialog
+          confirmation={
+            confirmation
+              ? {
+                  ...confirmation,
+                  noteValue: pendingAction?.note ?? "",
+                  onNoteChange: (value) =>
+                    setPendingAction((current) => (current ? { ...current, note: value } : current)),
+                }
+              : null
+          }
+          isSubmitting={isSubmitting}
+          onCancel={() => {
+            if (!isSubmitting) {
+              setPendingAction(null);
+            }
+          }}
+          onConfirm={() => {
+            if (pendingAction) {
+              void submitAirdrop(pendingAction);
+            }
+          }}
+        />
       </AppShell>
     </ProtectedRoute>
   );
@@ -211,17 +281,35 @@ function buildTargetPayload(target: string) {
   return { username: target };
 }
 
-function Notice({
-  tone,
-  message,
-}: {
-  tone: "success" | "danger";
-  message: string;
-}) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]";
+function isLargeAirdrop(amount: string) {
+  const value = Number(amount);
+  return Number.isFinite(value) && value >= LARGE_AIRDROP_THRESHOLD;
+}
 
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
+function buildAirdropConfirmation(
+  pendingAction: PendingAirdropAction,
+  isSubmitting: boolean,
+): AdminConfirmationView {
+  return {
+    eyebrow: "Confirm Large Airdrop",
+    title: `Airdrop ${pendingAction.amount} ${pendingAction.assetSymbol}?`,
+    description:
+      "This large airdrop directly credits the target user's MAIN wallet and writes paired ledger and audit records.",
+    confirmLabel: isSubmitting ? "Airdropping..." : "Confirm airdrop",
+    tone: "warning",
+    details: [
+      { label: "Target", value: pendingAction.target },
+      { label: "Asset", value: pendingAction.assetSymbol },
+      { label: "Amount", value: pendingAction.amount || "—" },
+      { label: "Threshold", value: String(LARGE_AIRDROP_THRESHOLD) },
+    ],
+    impacts: [
+      "Target user must be ACTIVE and the asset must be ACTIVE.",
+      "The user's available MAIN balance increases immediately on success.",
+      "Current v0.x airdrop does not consume the AIRDROP bucket.",
+    ],
+    warning: "This is an operational funding action. Historical records remain visible after execution.",
+    noteLabel: "Audit note (optional)",
+    notePlaceholder: "Reason for this large airdrop",
+  };
 }

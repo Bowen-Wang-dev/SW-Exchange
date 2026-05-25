@@ -1,6 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  AdminConfirmationDialog,
+  type AdminConfirmationView,
+} from "@/components/admin/admin-confirmation-dialog";
+import { AdminNotice } from "@/components/admin/admin-notice";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { AppShell } from "@/components/shell/app-shell";
 import { PageHeader } from "@/components/shell/page-header";
@@ -10,14 +15,22 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest, ApiError } from "@/lib/api-client";
 import type {
   AdminWalletBucketBalance,
-  AssetRow,
   AdminWalletBucketTransferResponse,
+  AssetRow,
   WalletBalance,
   WalletType,
 } from "@/lib/api-types";
 import { shortId } from "@/lib/format";
 
 type ActiveTab = "admin" | "system";
+
+type PendingTransferAction = {
+  fromWalletType: WalletType;
+  toWalletType: WalletType;
+  assetSymbol: string;
+  amount: string;
+  note: string;
+};
 
 const WALLET_TYPES: WalletType[] = ["MAIN", "FEE", "TREASURY", "AIRDROP", "HOT"];
 
@@ -31,6 +44,7 @@ export default function AdminWalletsPage() {
   const [assetSymbol, setAssetSymbol] = useState("SWC");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [pendingAction, setPendingAction] = useState<PendingTransferAction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,10 +84,23 @@ export default function AdminWalletsPage() {
     }
   }
 
-  async function handleBucketTransfer(event: FormEvent<HTMLFormElement>) {
+  function handleBucketTransfer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setSuccess(null);
+    setPendingAction({
+      fromWalletType,
+      toWalletType,
+      assetSymbol,
+      amount: amount.trim(),
+      note,
+    });
+  }
+
+  async function confirmBucketTransfer() {
+    if (!pendingAction) {
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -82,16 +109,17 @@ export default function AdminWalletsPage() {
         {
           method: "POST",
           body: {
-            fromWalletType,
-            toWalletType,
-            assetSymbol,
-            amount: amount.trim(),
-            ...(note.trim() ? { note: note.trim() } : {}),
+            fromWalletType: pendingAction.fromWalletType,
+            toWalletType: pendingAction.toWalletType,
+            assetSymbol: pendingAction.assetSymbol,
+            amount: pendingAction.amount,
+            ...(pendingAction.note.trim() ? { note: pendingAction.note.trim() } : {}),
           },
         },
       );
 
       setSuccess(response);
+      setPendingAction(null);
       setAmount("");
       setNote("");
       await loadWallets();
@@ -106,6 +134,14 @@ export default function AdminWalletsPage() {
     }
   }
 
+  const confirmation = useMemo(() => {
+    if (!pendingAction) {
+      return null;
+    }
+
+    return buildTransferConfirmation(pendingAction, isSubmitting);
+  }, [pendingAction, isSubmitting]);
+
   return (
     <ProtectedRoute requireAdmin fallbackPath="/dashboard">
       <AppShell>
@@ -113,7 +149,7 @@ export default function AdminWalletsPage() {
           <PageHeader
             eyebrow="Admin Wallets"
             title="Wallet buckets"
-            description="Review the admin MAIN wallet and platform wallet buckets for all listed assets."
+            description="Review admin MAIN balances and platform bucket roles with safer transfer confirmations."
             action={<StatusBadge label="Wallet Buckets" tone="info" />}
           />
 
@@ -126,14 +162,18 @@ export default function AdminWalletsPage() {
             </TabButton>
           </div>
 
-          {error ? <Notice tone="danger" message={error} /> : null}
+          <AdminNotice
+            tone="info"
+            message="FEE receives trading fees, TREASURY is the platform treasury bucket, AIRDROP currently exists but airdrop flow does not consume it yet, and HOT remains a future chain placeholder."
+          />
+          {error ? <AdminNotice tone="danger" message={error} /> : null}
           {success ? (
-            <Notice
+            <AdminNotice
               tone="success"
               message={`Moved ${success.amount} ${success.assetSymbol} from ${success.fromWalletType} to ${success.toWalletType}. Audit: ${shortId(success.auditLogId)}.`}
             />
           ) : null}
-          {isLoading ? <Notice tone="info" message="Loading wallets..." /> : null}
+          {isLoading ? <AdminNotice tone="info" message="Loading wallets..." /> : null}
 
           {!isLoading && activeTab === "admin" ? <AdminWalletTab wallets={adminWallets} /> : null}
           {!isLoading && activeTab === "system" ? (
@@ -155,6 +195,26 @@ export default function AdminWalletsPage() {
             />
           ) : null}
         </div>
+
+        <AdminConfirmationDialog
+          confirmation={
+            confirmation
+              ? {
+                  ...confirmation,
+                  noteValue: pendingAction?.note ?? "",
+                  onNoteChange: (value) =>
+                    setPendingAction((current) => (current ? { ...current, note: value } : current)),
+                }
+              : null
+          }
+          isSubmitting={isSubmitting}
+          onCancel={() => {
+            if (!isSubmitting) {
+              setPendingAction(null);
+            }
+          }}
+          onConfirm={() => void confirmBucketTransfer()}
+        />
       </AppShell>
     </ProtectedRoute>
   );
@@ -163,9 +223,9 @@ export default function AdminWalletsPage() {
 function AdminWalletTab({ wallets }: { wallets: WalletBalance[] }) {
   return (
     <div className="space-y-4">
-      <Notice
+      <AdminNotice
         tone="info"
-        message="Admin Wallet is the admin user's own internal MAIN wallet. It is separate from platform system wallet buckets."
+        message="Admin Wallet is the admin user's own internal MAIN wallet. It is separate from the platform's FEE, TREASURY, AIRDROP, and HOT buckets."
       />
       {wallets.length > 0 ? (
         <DataTable
@@ -185,7 +245,7 @@ function AdminWalletTab({ wallets }: { wallets: WalletBalance[] }) {
           ])}
         />
       ) : (
-        <Notice tone="info" message="No admin MAIN wallets found." />
+        <AdminNotice tone="info" message="No admin MAIN wallets found." />
       )}
     </div>
   );
@@ -225,39 +285,29 @@ function SystemWalletsTab({
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
       <section className="space-y-4">
-        <Notice
-          tone="info"
-          message={
-            "System wallets are admin-controlled platform wallet buckets. Fee Wallet is active, Airdrop is a placeholder for future funding rules, and Hot Wallet is a future chain placeholder."
-          }
+        <DataTable
+          columns={["Wallet", "Status", "Asset", "Available", "Locked", "Total"]}
+          rows={wallets.map((wallet) => [
+            <span key={`${wallet.id}-wallet`} className="font-medium text-[var(--foreground)]">
+              {wallet.displayName}
+            </span>,
+            <StatusBadge
+              key={`${wallet.id}-status`}
+              label={wallet.status}
+              tone={bucketStatusTone(wallet.status)}
+            />,
+            <AssetIdentity
+              key={`${wallet.id}-asset`}
+              symbol={wallet.asset}
+              name={wallet.name}
+              displayName={wallet.displayName}
+              iconUrl={wallet.iconUrl}
+            />,
+            wallet.available,
+            wallet.locked,
+            wallet.total,
+          ])}
         />
-        {wallets.length > 0 ? (
-          <DataTable
-            columns={["Wallet", "Status", "Asset", "Available", "Locked", "Total"]}
-            rows={wallets.map((wallet) => [
-              <span key={`${wallet.id}-wallet`} className="font-medium text-[var(--foreground)]">
-                {wallet.displayName}
-              </span>,
-              <StatusBadge
-                key={`${wallet.id}-status`}
-                label={wallet.status}
-                tone={bucketStatusTone(wallet.status)}
-              />,
-              <AssetIdentity
-                key={`${wallet.id}-asset`}
-                symbol={wallet.asset}
-                name={wallet.name}
-                displayName={wallet.displayName}
-                iconUrl={wallet.iconUrl}
-              />,
-              wallet.available,
-              wallet.locked,
-              wallet.total,
-            ])}
-          />
-        ) : (
-          <Notice tone="info" message="No system wallet buckets found." />
-        )}
       </section>
 
       <section className="panel rounded-3xl p-5">
@@ -266,14 +316,16 @@ function SystemWalletsTab({
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
               Bucket Transfer
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Move admin bucket funds</h2>
+            <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
+              Move admin bucket funds
+            </h2>
           </div>
-          <StatusBadge label="Free" tone="success" />
+          <StatusBadge label="Internal" tone="success" />
         </div>
 
         <p className="mt-3 text-sm text-[var(--foreground-soft)]">
-          Admin bucket transfers are internal and free. To send system funds to a user, first
-          transfer from a system wallet to Admin Main Wallet, then use normal internal transfer.
+          Bucket transfers are internal admin-only wallet movements. They do not create deposit or
+          withdraw behavior and do not send funds directly to normal users.
         </p>
 
         <form onSubmit={onSubmit} className="mt-5 grid gap-4">
@@ -334,7 +386,7 @@ function SystemWalletsTab({
           </label>
 
           <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
-            Note
+            Audit note
             <textarea
               value={note}
               onChange={(event) => onNoteChange(event.target.value)}
@@ -349,7 +401,7 @@ function SystemWalletsTab({
             disabled={isSubmitting}
             className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Moving funds..." : "Transfer bucket funds"}
+            {isSubmitting ? "Moving funds..." : "Review bucket transfer"}
           </button>
         </form>
       </section>
@@ -364,6 +416,35 @@ function buildAssetOptions(assets: AssetRow[], selectedAsset: string) {
   }
 
   return [...options].filter(Boolean);
+}
+
+function buildTransferConfirmation(
+  pendingAction: PendingTransferAction,
+  isSubmitting: boolean,
+): AdminConfirmationView {
+  return {
+    eyebrow: "Confirm Bucket Transfer",
+    title: `Move ${pendingAction.amount || "—"} ${pendingAction.assetSymbol}?`,
+    description:
+      "This performs an internal admin bucket transfer only. It does not create deposit, withdraw, or blockchain behavior.",
+    confirmLabel: isSubmitting ? "Moving..." : "Confirm transfer",
+    tone: "warning",
+    details: [
+      { label: "From", value: pendingAction.fromWalletType },
+      { label: "To", value: pendingAction.toWalletType },
+      { label: "Asset", value: pendingAction.assetSymbol },
+      { label: "Amount", value: pendingAction.amount || "—" },
+    ],
+    impacts: [
+      "Only available balance is moved between admin-owned buckets.",
+      "Normal users do not directly receive funds from this action.",
+      "A paired audit and ledger trail remains in place.",
+    ],
+    warning:
+      "HOT remains a placeholder bucket for future chain integration and is not a live on-chain wallet in v0.x.",
+    noteLabel: "Audit note (optional)",
+    notePlaceholder: "Reason for moving bucket funds",
+  };
 }
 
 function bucketStatusTone(status: AdminWalletBucketBalance["status"]) {
@@ -400,21 +481,4 @@ function TabButton({
       {children}
     </button>
   );
-}
-
-function Notice({
-  tone,
-  message,
-}: {
-  tone: "success" | "danger" | "info";
-  message: string;
-}) {
-  const classes =
-    tone === "danger"
-      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
-      : tone === "success"
-        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
-        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
-
-  return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }
