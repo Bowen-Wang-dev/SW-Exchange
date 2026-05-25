@@ -98,7 +98,7 @@ export function PortfolioAssetPanel({
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
             {eyebrow}
           </p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{title}</h2>
+          <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">{title}</h2>
           <p className="mt-2 text-sm text-[var(--foreground-soft)]">
             Sort, search, and hide dust balances without changing wallet data.
           </p>
@@ -118,7 +118,7 @@ export function PortfolioAssetPanel({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Symbol or name"
-            className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
+            className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
           />
         </label>
 
@@ -129,7 +129,7 @@ export function PortfolioAssetPanel({
           <select
             value={sortKey}
             onChange={(event) => setSortKey(event.target.value as AssetSortKey)}
-            className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+            className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value} className="bg-slate-950">
@@ -167,7 +167,7 @@ export function PortfolioAssetPanel({
             />
           ))
         ) : (
-          <div className="rounded-2xl border border-[var(--border)] bg-white/[0.02] px-4 py-5 text-sm text-[var(--foreground-muted)]">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-5 text-sm text-[var(--foreground-muted)]">
             {emptyMessage}
           </div>
         )}
@@ -193,7 +193,7 @@ function PortfolioAssetRow({
   const tradeHref = marketSymbol ? `/trade?market=${encodeURIComponent(marketSymbol)}` : null;
 
   return (
-    <article className="rounded-2xl border border-[var(--border)] bg-white/[0.025] px-4 py-3 transition hover:border-white/18 hover:bg-white/[0.04]">
+    <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 transition hover:border-white/18 hover:bg-[var(--surface-emphasis)]">
       <div className="grid gap-4 xl:grid-cols-[minmax(180px,1.05fr)_minmax(260px,1.25fr)_minmax(170px,0.75fr)_auto] xl:items-center">
         <AssetIdentity
           symbol={asset.assetSymbol}
@@ -243,7 +243,7 @@ function PortfolioToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-[42px] items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/[0.02] px-3 py-2 text-sm text-[var(--foreground-soft)]">
+    <label className="flex min-h-[42px] items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--foreground-soft)]">
       <input
         type="checkbox"
         checked={checked}
@@ -268,7 +268,7 @@ function MiniMetric({
     <div className="min-w-0">
       <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)]">{label}</p>
       <p
-        className={`mt-1 truncate text-sm ${emphasis ? "font-semibold text-white" : "font-medium text-[var(--foreground-soft)]"}`}
+        className={`mt-1 truncate text-sm ${emphasis ? "font-semibold text-[var(--foreground)]" : "font-medium text-[var(--foreground-soft)]"}`}
         title={value}
       >
         {value}

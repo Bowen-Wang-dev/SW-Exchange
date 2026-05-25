@@ -74,7 +74,7 @@ export default function OrdersPage() {
             eyebrow="Orders"
             title="Order history"
             description="Review market and limit spot orders with clearer execution summaries, cancelled remainders, and open-limit cancel controls."
-            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
+            action={<StatusBadge label="Live" tone="success" />}
           />
 
           <MarketFilter
@@ -116,7 +116,7 @@ export default function OrdersPage() {
                       type="button"
                       onClick={() => void cancelOrder(order.id)}
                       disabled={cancellingId === order.id}
-                      className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:border-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-xl border border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] px-3 py-1.5 text-xs font-medium text-[var(--notice-danger-text)] transition hover:border-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {cancellingId === order.id ? "Cancelling..." : "Cancel"}
                     </button>
@@ -153,7 +153,7 @@ function MarketFilter({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
         >
           <option value="">All markets</option>
           {markets.map((market) => (
@@ -180,10 +180,10 @@ function Notice({
 }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

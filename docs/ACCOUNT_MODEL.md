@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
+Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
 
 ## Account Status
 
@@ -42,6 +42,7 @@ v0.17.2 improves Dashboard and Wallet portfolio asset sorting, filtering, search
 v0.17.3 improves `/markets` sorting, search, filters, local favorites, and market-row navigation without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 v0.17.4 improves `/trade` price click-to-fill, quick price buttons, and current-market open-order bulk cancellation without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 v0.18 adds an AI-native documentation/context pack without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
+v0.18.1 adds light/dark theme support without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 
 ## Asset Metadata
 

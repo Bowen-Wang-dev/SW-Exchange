@@ -123,7 +123,7 @@ export default function AdminFeesPage() {
             eyebrow="Admin Fees"
             title="Trading fee control"
             description="Configure buyer and seller fee rates per market. New admin-created markets start with the current default rates until you update them."
-            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
+            action={<StatusBadge label="Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -137,7 +137,7 @@ export default function AdminFeesPage() {
                 <select
                   value={selectedMarketSymbol}
                   onChange={(event) => setSelectedMarketSymbol(event.target.value)}
-                  className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm font-semibold text-white outline-none transition focus:border-[var(--accent)]"
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                 >
                   {markets.map((market) => (
                     <option key={market.marketSymbol} value={market.marketSymbol}>
@@ -190,7 +190,7 @@ export default function AdminFeesPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     {selectedMarketSymbol}
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">Update fee rates</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Update fee rates</h2>
                 </div>
                 <StatusBadge label={`Max ${settings?.maxFeeRateHuman ?? "5%"}`} tone="warning" />
               </div>
@@ -203,7 +203,7 @@ export default function AdminFeesPage() {
                     onChange={(event) => setBuyerFeeRatePercent(event.target.value)}
                     placeholder="0.1"
                     inputMode="decimal"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -214,7 +214,7 @@ export default function AdminFeesPage() {
                     onChange={(event) => setSellerFeeRatePercent(event.target.value)}
                     placeholder="0.1"
                     inputMode="decimal"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -225,11 +225,11 @@ export default function AdminFeesPage() {
                     onChange={(event) => setNote(event.target.value)}
                     placeholder="Reason for changing fees"
                     rows={3}
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
-                <div className="rounded-2xl border border-blue-300/20 bg-blue-300/10 px-4 py-3 text-sm text-blue-100">
+                <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
                   Rates are stored as basis points. Fees are floor-rounded in minimal units, so very tiny trades may produce a zero fee.
                 </div>
 
@@ -250,7 +250,7 @@ export default function AdminFeesPage() {
                     <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                       Admin Fee Wallet
                     </p>
-                    <h2 className="mt-2 text-xl font-semibold text-white">
+                    <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">
                       {settings?.feeWallet.displayName ?? "Fee Wallet"}
                     </h2>
                   </div>
@@ -277,7 +277,7 @@ export default function AdminFeesPage() {
                 ])}
               />
 
-              <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-sm text-[var(--foreground-soft)]">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--foreground-soft)]">
                 Last updated: {formatDateTime(settings?.updatedAt)}
               </div>
             </section>
@@ -295,10 +295,10 @@ function findBalance(balances: WalletBalance[], asset: string) {
 function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

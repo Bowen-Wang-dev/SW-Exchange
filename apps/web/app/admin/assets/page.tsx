@@ -220,10 +220,10 @@ export default function AdminAssetsPage() {
             description="Create virtual assets, manage manual metadata, and control whether an asset is active for airdrop and new order flows."
             action={
               <div className="flex flex-wrap gap-2">
-                <StatusBadge label="v0.16.3 Live" tone="success" />
+                <StatusBadge label="Live" tone="success" />
                 <Link
                   href="/admin/markets"
-                  className="rounded-2xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white"
+                  className="rounded-2xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
                 >
                   Open Markets
                 </Link>
@@ -242,7 +242,7 @@ export default function AdminAssetsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Create Asset
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">List a virtual asset</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">List a virtual asset</h2>
                 </div>
                 <StatusBadge label={createAssetForm.status} tone={createAssetForm.status === "ACTIVE" ? "success" : "warning"} />
               </div>
@@ -258,7 +258,7 @@ export default function AdminAssetsPage() {
                       }
                       placeholder="SWT"
                       maxLength={16}
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -270,7 +270,7 @@ export default function AdminAssetsPage() {
                         setCreateAssetForm((current) => ({ ...current, name: event.target.value }))
                       }
                       placeholder="SW Test"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -282,7 +282,7 @@ export default function AdminAssetsPage() {
                         setCreateAssetForm((current) => ({ ...current, displayName: event.target.value }))
                       }
                       placeholder="SW Test"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -295,7 +295,7 @@ export default function AdminAssetsPage() {
                       }
                       inputMode="numeric"
                       placeholder="18"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -307,7 +307,7 @@ export default function AdminAssetsPage() {
                         setCreateAssetForm((current) => ({ ...current, iconUrl: event.target.value }))
                       }
                       placeholder="https://example.com/icon.png"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -320,7 +320,7 @@ export default function AdminAssetsPage() {
                       }
                       rows={3}
                       placeholder="Manual simulation asset note"
-                      className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="resize-none rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -334,7 +334,7 @@ export default function AdminAssetsPage() {
                           status: event.target.value as "ACTIVE" | "PAUSED",
                         }))
                       }
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     >
                       <option value="ACTIVE">ACTIVE</option>
                       <option value="PAUSED">PAUSED</option>
@@ -342,7 +342,7 @@ export default function AdminAssetsPage() {
                   </label>
                 </div>
 
-                <div className="rounded-2xl border border-blue-300/20 bg-blue-300/10 px-4 py-3 text-sm text-blue-100">
+                <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
                   New assets create zero-balance MAIN wallets for existing users and zero-balance admin bucket wallets without touching existing balances.
                 </div>
 
@@ -361,7 +361,7 @@ export default function AdminAssetsPage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                   Asset Controls
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-white">Manage existing assets</h2>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Manage existing assets</h2>
               </div>
 
               <div className="mt-5">
@@ -410,7 +410,7 @@ export default function AdminAssetsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Asset Metadata
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">Edit {editingAsset.symbol}</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Edit {editingAsset.symbol}</h2>
                 </div>
                 <AssetIdentity
                   symbol={editingAsset.symbol}
@@ -430,7 +430,7 @@ export default function AdminAssetsPage() {
                       setMetadataForm((current) => ({ ...current, displayName: event.target.value }))
                     }
                     placeholder={editingAsset.name}
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -442,7 +442,7 @@ export default function AdminAssetsPage() {
                       setMetadataForm((current) => ({ ...current, iconUrl: event.target.value }))
                     }
                     placeholder="https://example.com/icon.png"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -455,7 +455,7 @@ export default function AdminAssetsPage() {
                     }
                     placeholder="10"
                     inputMode="numeric"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -467,7 +467,7 @@ export default function AdminAssetsPage() {
                       setMetadataForm((current) => ({ ...current, description: event.target.value }))
                     }
                     rows={3}
-                    className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="resize-none rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
               </div>
@@ -482,7 +482,7 @@ export default function AdminAssetsPage() {
                 <button
                   type="button"
                   onClick={() => setEditingAsset(null)}
-                  className="rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white"
+                  className="rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
                 >
                   Cancel
                 </button>
@@ -512,10 +512,10 @@ function StatusButton({
 }) {
   const classes =
     tone === "success"
-      ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200 hover:border-emerald-200"
+      ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)] hover:border-[var(--success)]"
       : tone === "info"
-        ? "border-blue-300/30 bg-blue-300/10 text-blue-100 hover:border-blue-200"
-        : "border-amber-300/30 bg-amber-300/10 text-amber-200 hover:border-amber-200";
+        ? "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)] hover:border-[var(--info)]"
+        : "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)] hover:border-[var(--warning)]";
 
   return (
     <button
@@ -532,10 +532,10 @@ function StatusButton({
 function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

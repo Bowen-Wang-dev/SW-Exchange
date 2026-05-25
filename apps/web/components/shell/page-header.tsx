@@ -16,7 +16,7 @@ export function PageHeader({ eyebrow, title, description, action }: PageHeaderPr
             {eyebrow}
           </p>
           <div>
-            <h1 className={typeof title === "string" ? "text-2xl font-semibold tracking-tight text-white sm:text-3xl" : undefined}>
+            <h1 className={typeof title === "string" ? "text-2xl font-semibold tracking-tight text-[var(--foreground)] sm:text-3xl" : undefined}>
               {title}
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--foreground-soft)]">

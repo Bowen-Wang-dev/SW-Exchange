@@ -4,11 +4,11 @@ type StatusBadgeProps = {
 };
 
 const toneClasses: Record<NonNullable<StatusBadgeProps["tone"]>, string> = {
-  neutral: "border-white/10 bg-white/5 text-[var(--foreground-soft)]",
-  success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-  warning: "border-amber-400/20 bg-amber-400/10 text-amber-300",
-  danger: "border-rose-400/20 bg-rose-400/10 text-rose-300",
-  info: "border-blue-400/20 bg-blue-400/10 text-blue-300",
+  neutral: "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--foreground-soft)]",
+  success: "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]",
+  warning: "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)]",
+  danger: "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]",
+  info: "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]",
 };
 
 export function StatusBadge({ label, tone = "neutral" }: StatusBadgeProps) {

@@ -11,7 +11,7 @@ export function DataTable({ columns, rows }: DataTableProps) {
       <div className="overflow-x-auto exchange-scrollbar">
         <table className="min-w-max border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-[var(--border)] bg-white/[0.02]">
+            <tr className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
               {columns.map((column) => (
                 <th
                   key={column}

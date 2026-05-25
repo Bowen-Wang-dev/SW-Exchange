@@ -61,7 +61,7 @@ export default function TradesPage() {
             eyebrow="Trades"
             title="Executed trade history"
             description={TRADE_HISTORY_COPY}
-            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
+            action={<StatusBadge label="Live" tone="success" />}
           />
 
           <MarketFilter
@@ -93,7 +93,7 @@ export default function TradesPage() {
             )
           ) : null}
 
-          <div className="rounded-2xl border border-emerald-300/16 bg-emerald-300/8 px-4 py-3 text-sm text-emerald-100">
+          <div className="rounded-2xl border border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] px-4 py-3 text-sm text-[var(--notice-success-text)]">
             Fees are live. Buyer fees are charged in the traded base asset and seller fees are charged in the quote asset at execution time.
           </div>
         </div>
@@ -118,7 +118,7 @@ function MarketFilter({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+          className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
         >
           <option value="">All markets</option>
           {markets.map((market) => (
@@ -134,7 +134,7 @@ function MarketFilter({
 
 function SideText({ side }: { side: OrderSide }) {
   return (
-    <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
+    <span className={side === "BUY" ? "text-[var(--success)]" : "text-[var(--danger)]"}>{side}</span>
   );
 }
 
@@ -147,7 +147,7 @@ function MarketCell({ marketSymbol }: { marketSymbol: string }) {
         <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
         <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
       </span>
-      <span className="font-medium text-white">{marketSymbol}</span>
+      <span className="font-medium text-[var(--foreground)]">{marketSymbol}</span>
     </span>
   );
 }
@@ -155,8 +155,8 @@ function MarketCell({ marketSymbol }: { marketSymbol: string }) {
 function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

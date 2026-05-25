@@ -9,14 +9,11 @@ import type {
   UTCTimestamp,
 } from "lightweight-charts";
 import type { CandleInterval, MarketCandle } from "@/lib/api-types";
+import { useTheme } from "@/providers/theme-provider";
 
 const INTERVAL_OPTIONS: CandleInterval[] = ["1m", "5m", "15m", "1h", "1d"];
 const UP_COLOR = "#02c076";
 const DOWN_COLOR = "#f6465d";
-const GRID_COLOR = "rgba(154, 166, 199, 0.09)";
-const AXIS_COLOR = "rgba(154, 166, 199, 0.22)";
-const TEXT_COLOR = "#9aa6c7";
-const CHART_BACKGROUND = "#070d1a";
 
 type KlineChartProps = {
   marketSymbol: string;
@@ -52,9 +49,11 @@ export function KlineChart({
   chartHeightClassName,
   onIntervalChange,
 }: KlineChartProps) {
+  const { theme } = useTheme();
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const [hoveredTime, setHoveredTime] = useState<number | null>(null);
   const chartRows = useMemo(() => buildChartRows(candles), [candles]);
+  const chartColors = useMemo(() => buildChartColors(theme), [theme]);
   const rowByTime = useMemo(
     () => new Map(chartRows.map((row) => [Number(row.time), row])),
     [chartRows],
@@ -97,17 +96,17 @@ export function KlineChart({
         width: currentContainer.clientWidth || 960,
         height: currentContainer.clientHeight || 430,
         layout: {
-          background: { type: ColorType.Solid, color: CHART_BACKGROUND },
-          textColor: TEXT_COLOR,
+          background: { type: ColorType.Solid, color: chartColors.background },
+          textColor: chartColors.text,
           fontFamily: "IBM Plex Sans, Segoe UI, sans-serif",
         },
         grid: {
-          vertLines: { color: GRID_COLOR },
-          horzLines: { color: GRID_COLOR },
+          vertLines: { color: chartColors.grid },
+          horzLines: { color: chartColors.grid },
         },
         rightPriceScale: {
           visible: true,
-          borderColor: AXIS_COLOR,
+          borderColor: chartColors.axis,
           scaleMargins: {
             top: 0.14,
             bottom: 0.08,
@@ -117,7 +116,7 @@ export function KlineChart({
           visible: false,
         },
         timeScale: {
-          borderColor: AXIS_COLOR,
+          borderColor: chartColors.axis,
           timeVisible: interval !== "1d",
           secondsVisible: false,
           rightOffset: 8,
@@ -127,14 +126,14 @@ export function KlineChart({
         crosshair: {
           mode: CrosshairMode.Normal,
           vertLine: {
-            color: "rgba(240, 185, 11, 0.52)",
+            color: chartColors.crosshair,
             width: 1,
-            labelBackgroundColor: "#111a2f",
+            labelBackgroundColor: chartColors.labelBackground,
           },
           horzLine: {
-            color: "rgba(240, 185, 11, 0.42)",
+            color: chartColors.crosshairSoft,
             width: 1,
-            labelBackgroundColor: "#111a2f",
+            labelBackgroundColor: chartColors.labelBackground,
           },
         },
         handleScroll: {
@@ -184,14 +183,14 @@ export function KlineChart({
       });
 
       priceSeries.priceScale().applyOptions({
-        borderColor: AXIS_COLOR,
+        borderColor: chartColors.axis,
         scaleMargins: {
           top: 0.14,
           bottom: 0.08,
         },
       });
       volumeSeries.priceScale().applyOptions({
-        borderColor: AXIS_COLOR,
+        borderColor: chartColors.axis,
         scaleMargins: {
           top: 0.18,
           bottom: 0.04,
@@ -222,7 +221,7 @@ export function KlineChart({
       unsubscribeCrosshair?.();
       chart?.remove();
     };
-  }, [baseSymbol, chartRows, error, interval, isLoading, marketSymbol]);
+  }, [baseSymbol, chartColors, chartRows, error, interval, isLoading, marketSymbol]);
 
   return (
     <section className="panel flex h-full min-h-0 flex-col rounded-3xl p-3">
@@ -231,11 +230,11 @@ export function KlineChart({
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
             K-line
           </p>
-          <h2 className="mt-1 break-words text-base font-semibold text-white sm:text-lg">
+          <h2 className="mt-1 break-words text-base font-semibold text-[var(--foreground)] sm:text-lg">
             {marketSymbol} candlestick
           </h2>
         </div>
-        <div className="grid grid-cols-5 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-1">
+        <div className="grid grid-cols-5 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-1">
           {INTERVAL_OPTIONS.map((option) => (
             <button
               key={option}
@@ -249,7 +248,7 @@ export function KlineChart({
               className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
                 interval === option
                   ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                  : "text-[var(--foreground-muted)] hover:text-white"
+                  : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {option}
@@ -258,7 +257,7 @@ export function KlineChart({
         </div>
       </div>
 
-      <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[#070d1a]">
+      <div className="mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--chart-surface)]">
         {isLoading ? (
           <ChartState message="Loading candles..." />
         ) : error ? (
@@ -293,7 +292,7 @@ function ChartState({
   return (
     <div
       className={`flex min-h-[390px] flex-1 items-center justify-center px-4 text-center text-sm ${
-        tone === "danger" ? "text-rose-200" : "text-[var(--foreground-muted)]"
+        tone === "danger" ? "text-[var(--danger)]" : "text-[var(--foreground-muted)]"
       }`}
     >
       {message}
@@ -314,7 +313,7 @@ function OhlcPanel({
   const movementTone = movement ? toneForNumber(movement.change) : "neutral";
 
   return (
-    <div className="grid gap-3 border-b border-[var(--border)] bg-[#09101f] px-3 py-2.5 text-[11px] lg:grid-cols-[1.35fr_repeat(9,minmax(0,1fr))]">
+    <div className="grid gap-3 border-b border-[var(--border)] bg-[var(--chart-header)] px-3 py-2.5 text-[11px] lg:grid-cols-[1.35fr_repeat(9,minmax(0,1fr))]">
       <OhlcItem label="Time" value={row ? formatPanelTime(row.source.startTime) : "—"} />
       <OhlcItem label="Open" value={formatDisplayNumber(row?.source.open)} suffix={quoteSymbol} />
       <OhlcItem label="High" value={formatDisplayNumber(row?.source.high)} suffix={quoteSymbol} />
@@ -360,10 +359,10 @@ function OhlcItem({
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-300"
+      ? "text-[var(--success)]"
       : tone === "negative"
-        ? "text-rose-300"
-        : "text-white";
+        ? "text-[var(--danger)]"
+        : "text-[var(--foreground)]";
 
   return (
     <div className="min-w-0">
@@ -507,6 +506,30 @@ function formatAxisTime(time: unknown) {
   }
 
   return "";
+}
+
+function buildChartColors(theme: "dark" | "light") {
+  if (theme === "light") {
+    return {
+      background: "#ffffff",
+      text: "#5f708a",
+      grid: "rgba(109, 125, 149, 0.14)",
+      axis: "rgba(109, 125, 149, 0.28)",
+      crosshair: "rgba(212, 154, 0, 0.5)",
+      crosshairSoft: "rgba(212, 154, 0, 0.38)",
+      labelBackground: "#dfe7f2",
+    };
+  }
+
+  return {
+    background: "#070d1a",
+    text: "#9aa6c7",
+    grid: "rgba(154, 166, 199, 0.09)",
+    axis: "rgba(154, 166, 199, 0.22)",
+    crosshair: "rgba(240, 185, 11, 0.52)",
+    crosshairSoft: "rgba(240, 185, 11, 0.42)",
+    labelBackground: "#111a2f",
+  };
 }
 
 function formatPanelTime(value: string) {

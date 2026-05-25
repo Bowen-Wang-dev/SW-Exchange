@@ -91,7 +91,7 @@ export default function AdminAirdropPage() {
             eyebrow="Admin Airdrop"
             title="Airdrop asset"
             description="Credit a user's available wallet balance. Every airdrop writes wallet, ledger, and admin audit records together."
-            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
+            action={<StatusBadge label="Live" tone="success" />}
           />
 
           <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
@@ -107,7 +107,7 @@ export default function AdminAirdropPage() {
                     value={target}
                     onChange={(event) => setTarget(event.target.value)}
                     placeholder="User ID, username, or email"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -116,7 +116,7 @@ export default function AdminAirdropPage() {
                   <select
                     value={assetSymbol}
                     onChange={(event) => setAssetSymbol(event.target.value)}
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   >
                     {buildAssetOptions(assets, assetSymbol).map((asset) => (
                       <option key={asset} value={asset}>
@@ -132,7 +132,7 @@ export default function AdminAirdropPage() {
                     value={amount}
                     onChange={(event) => setAmount(event.target.value)}
                     placeholder="1000 or 12.5"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -143,7 +143,7 @@ export default function AdminAirdropPage() {
                     onChange={(event) => setNote(event.target.value)}
                     placeholder="Optional admin note"
                     rows={3}
-                    className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="resize-none rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -220,8 +220,8 @@ function Notice({
 }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-emerald-300/20 bg-emerald-300/10 text-emerald-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

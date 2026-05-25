@@ -37,8 +37,10 @@
 
 ## Theme / Scope Rules
 
-- Current theme is dark-only
-- Do not start Light Mode work unless explicitly requested
+- Dark mode remains the default professional exchange experience
+- Light mode must reuse the same dense exchange layout and color semantics instead of redesigning the app
+- Prefer shared CSS theme tokens over page-local hardcoded colors
+- Persist theme preference locally when theme work is in scope
 - Do not redesign the entire app during feature work
 - No mobile-specific redesign or optimization unless explicitly requested
 

@@ -234,7 +234,7 @@ export default function MarketsPage() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
                 Market table
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">All spot markets</h2>
+              <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">All spot markets</h2>
             </div>
             <StatusBadge label={`${markets.length} Listed`} tone="info" />
           </div>
@@ -248,7 +248,7 @@ export default function MarketsPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Symbol, asset, or name"
-                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
               />
             </label>
 
@@ -259,7 +259,7 @@ export default function MarketsPage() {
               <select
                 value={sortKey}
                 onChange={(event) => setSortKey(event.target.value as MarketSortKey)}
-                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
               >
                 {MARKET_SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value} className="bg-slate-950">
@@ -276,7 +276,7 @@ export default function MarketsPage() {
               <select
                 value={quoteFilter}
                 onChange={(event) => setQuoteFilter(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
               >
                 {quoteOptions.map((quote) => (
                   <option key={quote} value={quote} className="bg-slate-950">
@@ -293,7 +293,7 @@ export default function MarketsPage() {
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as MarketStatusFilter)}
-                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-black/20 px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                className="mt-2 w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
               >
                 <option value="ALL" className="bg-slate-950">All</option>
                 <option value="ACTIVE" className="bg-slate-950">Active</option>
@@ -301,7 +301,7 @@ export default function MarketsPage() {
               </select>
             </label>
 
-            <label className="flex min-h-[42px] items-center gap-2 rounded-2xl border border-[var(--border)] bg-white/[0.02] px-3 py-2 text-sm text-[var(--foreground-soft)]">
+            <label className="flex min-h-[42px] items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--foreground-soft)]">
               <input
                 type="checkbox"
                 checked={favoritesOnly}
@@ -319,7 +319,7 @@ export default function MarketsPage() {
           ) : null}
 
           <div className="mt-4 overflow-hidden rounded-3xl border border-[var(--border)]">
-            <div className="hidden grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] gap-4 border-b border-[var(--border)] bg-white/[0.03] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)] xl:grid">
+            <div className="hidden grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] gap-4 border-b border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)] xl:grid">
               <span>Market</span>
               <span>Last Price</span>
               <span>24h Change</span>
@@ -378,7 +378,7 @@ function MarketSection({
             <Link
               key={market.marketSymbol}
               href={`/trade?market=${encodeURIComponent(market.marketSymbol)}`}
-            className="grid grid-cols-[minmax(0,1.45fr)_minmax(74px,0.55fr)_minmax(66px,0.45fr)] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-sm transition first:border-t-0 hover:bg-white/[0.04]"
+            className="grid grid-cols-[minmax(0,1.45fr)_minmax(74px,0.55fr)_minmax(66px,0.45fr)] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-sm transition first:border-t-0 hover:bg-[var(--surface-emphasis)]"
           >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <AssetPairIcons
@@ -392,7 +392,7 @@ function MarketSection({
                   quoteSize={18}
                 />
                 <span className="min-w-0">
-                  <span className="block truncate font-medium text-white">{market.marketSymbol}</span>
+                  <span className="block truncate font-medium text-[var(--foreground)]">{market.marketSymbol}</span>
                   <span className="block truncate text-xs text-[var(--foreground-muted)]">
                     {market.baseAssetDisplayName ?? market.baseAssetName ?? market.baseAssetSymbol}
                     {" / "}
@@ -400,7 +400,7 @@ function MarketSection({
                   </span>
                 </span>
               </span>
-              <span className="font-medium text-white">
+              <span className="font-medium text-[var(--foreground)]">
                 {formatValue(market.lastPrice, market.quoteAssetSymbol)}
               </span>
               <span className={changeToneClass(market.change24hPercent)}>
@@ -448,7 +448,7 @@ function MarketListRow({
       onClick={openMarket}
       onKeyDown={handleKeyDown}
       className={`group block border-t border-[var(--border)] px-4 py-3 text-sm transition first:border-t-0 ${
-        market.status === "ACTIVE" ? "cursor-pointer bg-white/[0.01] hover:bg-white/[0.05]" : "cursor-pointer bg-[var(--accent-soft)]/10 hover:bg-white/[0.05]"
+        market.status === "ACTIVE" ? "cursor-pointer bg-[var(--surface-faint)] hover:bg-[var(--surface-hover)]" : "cursor-pointer bg-[var(--accent-soft)]/10 hover:bg-[var(--surface-hover)]"
       }`}
     >
       <div className="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,0.75fr)_minmax(0,0.7fr)_minmax(0,0.95fr)_minmax(0,0.95fr)_auto] xl:items-center xl:gap-4">
@@ -464,8 +464,8 @@ function MarketListRow({
             onKeyDown={(event) => event.stopPropagation()}
             className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-base transition ${
               isFavorite
-                ? "border-amber-300/50 bg-amber-300/15 text-amber-200"
-                : "border-[var(--border)] bg-white/[0.02] text-[var(--foreground-muted)] hover:border-amber-300/40 hover:text-amber-200"
+                ? "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)]"
+                : "border-[var(--border)] bg-[var(--surface-subtle)] text-[var(--foreground-muted)] hover:border-[var(--warning)] hover:text-[var(--notice-warning-text)]"
             }`}
           >
             {isFavorite ? "★" : "☆"}
@@ -482,7 +482,7 @@ function MarketListRow({
           />
           <span className="min-w-0">
             <span className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="truncate font-semibold text-white">{market.marketSymbol}</span>
+              <span className="truncate font-semibold text-[var(--foreground)]">{market.marketSymbol}</span>
               {renderStatusCell(market.status)}
             </span>
             <span className="block truncate text-xs text-[var(--foreground-muted)]">
@@ -531,7 +531,7 @@ function MarketRowValue({
       <span className="mb-1 block text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] xl:hidden">
         {label}
       </span>
-      <span className={`block truncate ${strong ? "font-semibold text-white" : "text-[var(--foreground-soft)]"} ${className}`}>
+      <span className={`block truncate ${strong ? "font-semibold text-[var(--foreground)]" : "text-[var(--foreground-soft)]"} ${className}`}>
         {value}
       </span>
     </span>
@@ -592,7 +592,7 @@ function changeToneClass(value: string | null | undefined) {
     return "text-[var(--foreground-soft)]";
   }
 
-  return value.startsWith("-") ? "text-rose-300" : "text-emerald-300";
+  return value.startsWith("-") ? "text-[var(--danger)]" : "text-[var(--success)]";
 }
 
 function compareByChangeDesc(left: MarketOverviewRow, right: MarketOverviewRow) {

@@ -105,7 +105,7 @@ export default function AdminTransfersPage() {
                     email={transfer.to.email}
                   />,
                   transfer.assetSymbol,
-                  <span key={`${transfer.id}-amount`} className="font-medium text-white">
+                  <span key={`${transfer.id}-amount`} className="font-medium text-[var(--foreground)]">
                     {transfer.amount}
                   </span>,
                   <StatusBadge
@@ -129,7 +129,7 @@ export default function AdminTransfersPage() {
 function UserCell({ username, email }: { username: string; email: string }) {
   return (
     <div className="space-y-1">
-      <p className="font-medium text-white">{username}</p>
+      <p className="font-medium text-[var(--foreground)]">{username}</p>
       <p className="text-xs text-[var(--foreground-muted)]">{email || "-"}</p>
     </div>
   );
@@ -138,8 +138,8 @@ function UserCell({ username, email }: { username: string; email: string }) {
 function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

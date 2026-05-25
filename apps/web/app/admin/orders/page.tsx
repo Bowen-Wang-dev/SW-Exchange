@@ -78,7 +78,7 @@ export default function AdminOrdersPage() {
             eyebrow="Admin Orders"
             title="Order review"
             description="Inspect market and limit orders with clearer execution details, cancelled remainders, and final states newest first."
-            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
+            action={<StatusBadge label="Live" tone="success" />}
           />
 
           <AdminOrderFilters
@@ -112,7 +112,7 @@ export default function AdminOrdersPage() {
                   formatDateTime(order.createdAt),
                   <OrderIdentityCell key={`${order.id}-identity`} order={order} />,
                   <div key={`${order.id}-user`} className="space-y-1">
-                    <p className="font-medium text-white">{order.user.username}</p>
+                    <p className="font-medium text-[var(--foreground)]">{order.user.username}</p>
                     <p className="text-xs text-[var(--foreground-muted)]">{order.user.email}</p>
                   </div>,
                   <MarketCell key={`${order.id}-market`} marketSymbol={order.marketSymbol} />,
@@ -162,7 +162,7 @@ function AdminOrderFilters({
           <select
             value={marketFilter}
             onChange={(event) => onMarketFilterChange(event.target.value)}
-            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
           >
             <option value="">All markets</option>
             {markets.map((market) => (
@@ -177,7 +177,7 @@ function AdminOrderFilters({
           <select
             value={statusFilter}
             onChange={(event) => onStatusFilterChange(event.target.value)}
-            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
           >
             <option value="">All statuses</option>
             {["OPEN", "PARTIAL_FILLED", "FILLED", "PARTIAL_FILLED_CANCELLED", "CANCELLED", "REJECTED"].map((status) => (
@@ -193,7 +193,7 @@ function AdminOrderFilters({
             value={userFilter}
             onChange={(event) => onUserFilterChange(event.target.value)}
             placeholder="username, email, or user ID"
-            className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
           />
         </label>
       </div>
@@ -204,8 +204,8 @@ function AdminOrderFilters({
 function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

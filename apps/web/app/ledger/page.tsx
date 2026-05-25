@@ -143,8 +143,8 @@ export default function LedgerPage() {
 function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }
@@ -199,10 +199,10 @@ function ledgerNote(entry: LedgerEntry) {
 
 function AmountText({ value }: { value: string }) {
   const classes = value.startsWith("+")
-    ? "text-emerald-300"
+    ? "text-[var(--success)]"
     : value.startsWith("-")
-      ? "text-rose-300"
-      : "text-white";
+      ? "text-[var(--danger)]"
+      : "text-[var(--foreground)]";
 
   return <span className={`font-semibold tabular-nums ${classes}`}>{value}</span>;
 }
@@ -249,7 +249,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
       >
         <option value="ALL">All {label.toLowerCase()}s</option>
         {options.map((option) => (

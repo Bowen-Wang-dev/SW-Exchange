@@ -126,7 +126,7 @@ export default function WalletPage() {
             </div>
           ) : null}
 
-          <div className="rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
+          <div className="rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
             Funding rails remain out of scope in v0.x. Internal transfers are available from the Transfer page.
           </div>
         </div>
@@ -138,8 +138,8 @@ export default function WalletPage() {
 function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

@@ -39,7 +39,7 @@ export function AssetIcon({ symbol, name, iconUrl, size = 28 }: AssetIconProps) 
         alt={`${name ?? symbol} icon`}
         width={size}
         height={size}
-        className="shrink-0 rounded-full border border-[var(--border)] bg-white/[0.04] object-cover"
+        className="shrink-0 rounded-full border border-[var(--border)] bg-[var(--surface-emphasis)] object-cover"
         style={{ width: size, height: size }}
         onError={() => setFailedUrl(resolvedIconUrl)}
       />
@@ -89,7 +89,7 @@ export function AssetIdentity({
     <span className="inline-flex min-w-0 items-center gap-2">
       <AssetIcon symbol={symbol} name={label} iconUrl={iconUrl} size={size} />
       <span className="min-w-0">
-        <span className="block font-medium text-white">{symbol}</span>
+        <span className="block font-medium text-[var(--foreground)]">{symbol}</span>
         {label !== symbol ? (
           <span className="block truncate text-xs text-[var(--foreground-muted)]">{label}</span>
         ) : null}

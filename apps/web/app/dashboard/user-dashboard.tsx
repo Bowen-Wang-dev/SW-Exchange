@@ -125,27 +125,27 @@ export function DashboardContent() {
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                 Account Snapshot
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Profile status</h2>
+              <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Profile status</h2>
             </div>
             <StatusBadge label={user?.role ?? "USER"} tone="info" />
           </div>
 
           <div className="data-divider mt-5 rounded-2xl border border-[var(--border)]">
             <div className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
-              Username: <span className="font-medium text-white">{user?.username ?? "-"}</span>
+              Username: <span className="font-medium text-[var(--foreground)]">{user?.username ?? "-"}</span>
             </div>
             <div className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
-              Email: <span className="font-medium text-white">{user?.email ?? "-"}</span>
+              Email: <span className="font-medium text-[var(--foreground)]">{user?.email ?? "-"}</span>
             </div>
             <div className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
-              Role: <span className="font-medium text-white">{user?.role ?? "USER"}</span>
+              Role: <span className="font-medium text-[var(--foreground)]">{user?.role ?? "USER"}</span>
             </div>
             <div className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
-              Status: <span className="font-medium text-white">{user?.status ?? "ACTIVE"}</span>
+              Status: <span className="font-medium text-[var(--foreground)]">{user?.status ?? "ACTIVE"}</span>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
+          <div className="mt-4 rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
             SW Exchange v0.x is a simulated exchange. No deposit or withdraw in v0.x.
           </div>
         </section>

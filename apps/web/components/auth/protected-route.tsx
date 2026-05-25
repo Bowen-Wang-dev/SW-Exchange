@@ -58,7 +58,7 @@ function AccessState({ title, description }: { title: string; description: strin
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
           SW Exchange
         </p>
-        <h1 className="mt-4 text-2xl font-semibold text-white">{title}</h1>
+        <h1 className="mt-4 text-2xl font-semibold text-[var(--foreground)]">{title}</h1>
         <p className="mt-3 text-sm text-[var(--foreground-soft)]">{description}</p>
       </div>
     </div>

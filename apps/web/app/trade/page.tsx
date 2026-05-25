@@ -695,12 +695,12 @@ export default function TradePage() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
                     Execution
                   </p>
-                  <h2 className="mt-1 text-lg font-semibold text-white">Place order</h2>
+                  <h2 className="mt-1 text-lg font-semibold text-[var(--foreground)]">Place order</h2>
                 </div>
                 <StatusBadge label="Spot" tone="info" />
               </div>
 
-              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-white/[0.03] px-3 py-3">
+              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-3">
                 <div className="flex items-center gap-3">
                   <AssetPairIcons
                     baseSymbol={baseSymbol}
@@ -715,7 +715,7 @@ export default function TradePage() {
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
                       Selected market
                     </p>
-                    <p className="mt-1 truncate text-sm font-semibold text-white">
+                    <p className="mt-1 truncate text-sm font-semibold text-[var(--foreground)]">
                       {selectedMarketSymbol}
                     </p>
                     <p className="mt-1 text-xs text-[var(--foreground-soft)]">
@@ -730,7 +730,7 @@ export default function TradePage() {
               </div>
 
               <div className="mt-3 grid gap-2">
-                <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-1">
+                <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-1">
                   {(["LIMIT", "MARKET"] as const).map((option) => (
                     <button
                       key={option}
@@ -743,7 +743,7 @@ export default function TradePage() {
                       className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                         orderType === option
                           ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                          : "text-[var(--foreground-muted)] hover:text-white"
+                          : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
                       }`}
                     >
                       {option === "LIMIT" ? "Limit" : "Market"}
@@ -751,7 +751,7 @@ export default function TradePage() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-white/[0.03] p-1">
+                <div className="grid grid-cols-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-1">
                   {(["BUY", "SELL"] as const).map((option) => (
                     <button
                       key={option}
@@ -760,9 +760,9 @@ export default function TradePage() {
                       className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                         side === option
                           ? option === "BUY"
-                            ? "bg-emerald-400/14 text-emerald-200"
-                            : "bg-rose-400/14 text-rose-200"
-                          : "text-[var(--foreground-muted)] hover:text-white"
+                            ? "bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+                            : "bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+                          : "text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
                       }`}
                     >
                       {option}
@@ -781,7 +781,7 @@ export default function TradePage() {
                         onChange={(event) => setPrice(event.target.value)}
                         placeholder="2"
                         inputMode="decimal"
-                        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                        className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                       />
                     </label>
 
@@ -800,7 +800,7 @@ export default function TradePage() {
                         onChange={(event) => setAmount(event.target.value)}
                         placeholder="10"
                         inputMode="decimal"
-                        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                        className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                       />
                     </label>
 
@@ -852,7 +852,7 @@ export default function TradePage() {
                         onChange={(event) => setMarketInput(event.target.value)}
                         placeholder={side === "BUY" ? "100" : "50"}
                         inputMode="decimal"
-                        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                        className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                       />
                     </label>
 
@@ -963,11 +963,11 @@ export default function TradePage() {
 
 function BalanceTile({ label, value }: { label: ReactNode; value: string }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-3 py-2.5">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2.5">
       <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
         {typeof label === "string" ? label : label}
       </div>
-      <p className="mt-1 break-words text-sm font-semibold text-white">{value}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -1004,13 +1004,13 @@ function TickerMetric({
 }) {
   const toneClass =
     tone === "positive"
-      ? "text-emerald-300"
+      ? "text-[var(--success)]"
       : tone === "negative"
-        ? "text-rose-300"
-        : "text-white";
+        ? "text-[var(--danger)]"
+        : "text-[var(--foreground)]";
 
   return (
-    <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-white/[0.025] px-3 py-2">
+    <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
       <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
         {label}
       </p>
@@ -1023,7 +1023,7 @@ function TickerMetric({
 
 function SideText({ side }: { side: OrderSide }) {
   return (
-    <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>{side}</span>
+    <span className={side === "BUY" ? "text-[var(--success)]" : "text-[var(--danger)]"}>{side}</span>
   );
 }
 
@@ -1038,7 +1038,7 @@ function RecentTradesTable({
 }) {
   return (
     <div className={`overflow-hidden rounded-2xl border border-[var(--border)] ${compact ? "h-full" : "mt-4"}`}>
-      <div className="grid grid-cols-[0.95fr_1fr_1fr_1fr] gap-2 bg-white/[0.03] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
+      <div className="grid grid-cols-[0.95fr_1fr_1fr_1fr] gap-2 bg-[var(--surface-strong)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
         <span>Time</span>
         <span>Price</span>
         <span>Amount</span>
@@ -1055,7 +1055,7 @@ function RecentTradesTable({
               <button
                 type="button"
                 onClick={() => onPriceSelect?.(trade.price, "recent trade")}
-                className="truncate rounded-md text-left text-white transition hover:bg-white/[0.06] hover:text-[var(--accent-strong)]"
+                className="truncate rounded-md text-left text-[var(--foreground)] transition hover:bg-[var(--surface-hover-strong)] hover:text-[var(--accent-strong)]"
                 title="Use this trade price"
               >
                 {trade.price}
@@ -1097,7 +1097,7 @@ function ExecutionSummaryPanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
             Execution summary
           </p>
-          <h2 className="mt-1 text-lg font-semibold text-white">{order.marketSymbol}</h2>
+          <h2 className="mt-1 text-lg font-semibold text-[var(--foreground)]">{order.marketSymbol}</h2>
         </div>
         <StatusBadge label={order.status} tone={orderStatusTone(order.status)} />
       </div>
@@ -1159,7 +1159,7 @@ function QuickFillControls({
           type="button"
           disabled={disabled}
           onClick={() => onFill(percent)}
-          className="rounded-full border border-[var(--border)] bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--accent)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {percent}%
         </button>
@@ -1196,7 +1196,7 @@ function PriceQuickFillControls({
   ];
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.025] p-2">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] p-2">
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
         Quick price
       </p>
@@ -1207,12 +1207,12 @@ function PriceQuickFillControls({
             type="button"
             disabled={!option.value}
             onClick={() => onFill(option.value, option.source)}
-            className="min-w-0 rounded-xl border border-[var(--border)] bg-white/[0.03] px-2 py-2 text-left transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-45"
+            className="min-w-0 rounded-xl border border-[var(--border)] bg-[var(--surface-strong)] px-2 py-2 text-left transition hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <span className="block truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)]">
               {option.label}
             </span>
-            <span className="mt-1 block truncate text-xs font-semibold text-white" title={formatTickerValue(option.value, quoteSymbol)}>
+            <span className="mt-1 block truncate text-xs font-semibold text-[var(--foreground)]" title={formatTickerValue(option.value, quoteSymbol)}>
               {formatTickerValue(option.value, quoteSymbol)}
             </span>
           </button>
@@ -1410,10 +1410,10 @@ function Notice({
 }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }
@@ -1479,10 +1479,10 @@ function TradeTerminalHeader({ marketStatus }: { marketStatus: string }) {
             Trade
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-xl font-semibold tracking-tight text-white sm:text-2xl">
+            <h1 className="text-xl font-semibold tracking-tight text-[var(--foreground)] sm:text-2xl">
               Spot terminal
             </h1>
-            <span className="rounded-full border border-[var(--border)] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
+            <span className="rounded-full border border-[var(--border)] bg-[var(--surface-emphasis)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-soft)]">
               {CURRENT_MILESTONE_VERSION}
             </span>
             <StatusBadge
@@ -1574,13 +1574,13 @@ function OrderBookTradesColumn({
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
             Market depth
           </p>
-          <h2 className="mt-1 text-base font-semibold text-white">Order book</h2>
+          <h2 className="mt-1 text-base font-semibold text-[var(--foreground)]">Order book</h2>
         </div>
         <StatusBadge label="Live tape" tone="info" />
       </div>
 
       <div className="mt-3 grid min-h-0 flex-1 gap-3 xl:grid-rows-[minmax(0,1.2fr)_minmax(0,0.88fr)]">
-        <div className="min-h-0 rounded-2xl border border-[var(--border)] bg-white/[0.02] p-2">
+        <div className="min-h-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] p-2">
           <div className="grid grid-cols-[1fr_1fr_64px] gap-2 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--foreground-muted)]">
             <span>Price {quoteSymbol}</span>
             <span>Amount {baseSymbol}</span>
@@ -1593,7 +1593,7 @@ function OrderBookTradesColumn({
               levels={orderBook?.asks ?? []}
               onPriceSelect={onPriceSelect}
             />
-            <div className="rounded-xl border border-[var(--border)] bg-[#09101f] px-3 py-2 text-center">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--chart-header)] px-3 py-2 text-center">
               <p className={`text-sm font-semibold ${toneClassForChange(lastPriceTone)}`}>
                 {formatTickerValue(lastPrice, quoteSymbol)}
               </p>
@@ -1609,7 +1609,7 @@ function OrderBookTradesColumn({
           </div>
         </div>
 
-        <div className="min-h-0 rounded-2xl border border-[var(--border)] bg-white/[0.02] p-2">
+        <div className="min-h-0 rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] p-2">
           <div className="flex items-center justify-between gap-3 px-1 pb-2">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--foreground-muted)]">
@@ -1671,7 +1671,7 @@ function BottomTerminalPanel({
               className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
                 activeTab === tab
                   ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                  : "bg-white/[0.03] text-[var(--foreground-muted)] hover:text-white"
+                  : "bg-[var(--surface-strong)] text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
               }`}
             >
               {label}
@@ -1739,10 +1739,10 @@ function CompactOrderBookList({
             key={`${side}-${level.priceRaw}`}
             type="button"
             onClick={() => onPriceSelect(level.price, side === "BUY" ? "best bid row" : "best ask row")}
-            className="grid w-full grid-cols-[1fr_1fr_64px] gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition hover:bg-white/[0.06]"
+            className="grid w-full grid-cols-[1fr_1fr_64px] gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] transition hover:bg-[var(--surface-hover-strong)]"
             title={`Use ${level.price} as limit price`}
           >
-            <span className={side === "BUY" ? "text-emerald-300" : "text-rose-300"}>
+            <span className={side === "BUY" ? "text-[var(--success)]" : "text-[var(--danger)]"}>
               {level.price}
             </span>
             <span className="truncate text-[var(--foreground-soft)]">{level.amount}</span>
@@ -1796,7 +1796,7 @@ function OrdersActivityTable({
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       {variant === "open" && cancellableOrders.length > 0 && onCancelOpenOrders ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-white/[0.025] px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
           <p className="text-xs text-[var(--foreground-soft)]">
             {cancellableOrders.length} cancellable limit order{cancellableOrders.length === 1 ? "" : "s"} on this market.
           </p>
@@ -1849,7 +1849,7 @@ function OrdersActivityTable({
             return (
               <article
                 key={order.id}
-                className="grid gap-3 border-t border-[var(--border)] bg-white/[0.01] px-3 py-3 first:border-t-0 xl:grid-cols-[minmax(100px,0.8fr)_72px_70px_minmax(100px,0.8fr)_minmax(120px,1fr)_minmax(120px,1fr)_minmax(110px,0.8fr)_auto] xl:items-center"
+                className="grid gap-3 border-t border-[var(--border)] bg-[var(--surface-faint)] px-3 py-3 first:border-t-0 xl:grid-cols-[minmax(100px,0.8fr)_72px_70px_minmax(100px,0.8fr)_minmax(120px,1fr)_minmax(120px,1fr)_minmax(110px,0.8fr)_auto] xl:items-center"
               >
                 <OrderMiniMetric label="Time" value={formatCompactDateTime(order.createdAt)} />
                 <OrderMiniMetric label="Type" value={order.type} strong />
@@ -1871,7 +1871,7 @@ function OrdersActivityTable({
                       type="button"
                       onClick={() => onCancelOrder(order.id)}
                       disabled={cancellingId === order.id}
-                      className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:border-rose-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-xl border border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] px-3 py-1.5 text-xs font-medium text-[var(--notice-danger-text)] transition hover:border-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {cancellingId === order.id ? "Cancelling..." : "Cancel"}
                     </button>
@@ -1908,7 +1908,7 @@ function BulkCancelButton({
       type="button"
       disabled={count === 0 || activeScope !== null}
       onClick={() => onCancel(scope)}
-      className="rounded-xl border border-rose-300/30 bg-rose-300/10 px-3 py-1.5 text-xs font-medium text-rose-200 transition hover:border-rose-200 disabled:cursor-not-allowed disabled:opacity-50"
+      className="rounded-xl border border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] px-3 py-1.5 text-xs font-medium text-[var(--notice-danger-text)] transition hover:border-[var(--danger)] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {activeScope === scope ? "Cancelling..." : `${label} (${count})`}
     </button>
@@ -1928,7 +1928,7 @@ function OrderMiniMetric({
     <div className="min-w-0">
       <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--foreground-muted)] xl:hidden">{label}</p>
       <p
-        className={`mt-1 truncate text-sm xl:mt-0 ${strong ? "font-semibold text-white" : "text-[var(--foreground-soft)]"}`}
+        className={`mt-1 truncate text-sm xl:mt-0 ${strong ? "font-semibold text-[var(--foreground)]" : "text-[var(--foreground-soft)]"}`}
         title={value}
       >
         {value}
@@ -1946,7 +1946,7 @@ function TradeHistoryTable({ trades }: { trades: TradeEntry[] }) {
     <div className="exchange-scrollbar h-full overflow-y-auto rounded-2xl border border-[var(--border)]">
       <table className="w-full table-fixed border-collapse text-left">
         <thead>
-          <tr className="border-b border-[var(--border)] bg-white/[0.03]">
+          <tr className="border-b border-[var(--border)] bg-[var(--surface-strong)]">
             {["Time", "Side", "Price", "Amount", "Total", "Buyer Fee", "Seller Fee"].map((column) => (
               <th
                 key={column}
@@ -1964,9 +1964,9 @@ function TradeHistoryTable({ trades }: { trades: TradeEntry[] }) {
                 <span className="block truncate">{formatCompactDateTime(trade.createdAt)}</span>
               </td>
               <td className="px-3 py-2 text-sm">
-                {trade.side ? <SideText side={trade.side} /> : <span className="text-white">—</span>}
+                {trade.side ? <SideText side={trade.side} /> : <span className="text-[var(--foreground)]">—</span>}
               </td>
-              <td className="px-3 py-2 text-sm text-white"><span className="block truncate">{trade.price}</span></td>
+              <td className="px-3 py-2 text-sm text-[var(--foreground)]"><span className="block truncate">{trade.price}</span></td>
               <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]"><span className="block truncate">{trade.amount}</span></td>
               <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]"><span className="block truncate">{trade.quoteAmount}</span></td>
               <td className="px-3 py-2 text-sm text-[var(--foreground-soft)]">
@@ -2010,7 +2010,7 @@ function AssetBalanceCard({
   symbol: string;
 }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] p-4">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-4">
       <div className="flex items-center gap-3">
         <AssetIcon
           symbol={symbol}
@@ -2022,7 +2022,7 @@ function AssetBalanceCard({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
             Asset balance
           </p>
-          <h3 className="mt-1 text-base font-semibold text-white">{symbol}</h3>
+          <h3 className="mt-1 text-base font-semibold text-[var(--foreground)]">{symbol}</h3>
         </div>
       </div>
       <div className="mt-4 grid gap-2">
@@ -2036,7 +2036,7 @@ function AssetBalanceCard({
 
 function EmptyTerminalState({ message }: { message: string }) {
   return (
-    <div className="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-[var(--border)] bg-white/[0.02] px-4 text-center text-sm text-[var(--foreground-muted)]">
+    <div className="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-subtle)] px-4 text-center text-sm text-[var(--foreground-muted)]">
       {message}
     </div>
   );
@@ -2064,12 +2064,12 @@ function marketStatusTone(status: string): "success" | "warning" {
 
 function toneClassForChange(tone: "neutral" | "positive" | "negative") {
   if (tone === "positive") {
-    return "text-emerald-300";
+    return "text-[var(--success)]";
   }
 
   if (tone === "negative") {
-    return "text-rose-300";
+    return "text-[var(--danger)]";
   }
 
-  return "text-white";
+  return "text-[var(--foreground)]";
 }

@@ -34,7 +34,6 @@ These items are intentionally out of scope in the current system state. Do not d
 ## UI Scope
 
 - Mobile-specific trading UI is not optimized.
-- Light Mode is not implemented.
 - Large UI redesign work is out of scope unless explicitly requested.
 
 ## Current Operational Boundaries

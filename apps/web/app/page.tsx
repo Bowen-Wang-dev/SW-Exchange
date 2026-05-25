@@ -19,12 +19,12 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional, dark-theme simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Market data, market orders, interactive K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Dark mode remains the default terminal experience, and light mode is now available as a polished alternate theme. Market data, market orders, interactive K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/login"
-                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground-soft)] transition hover:text-white"
+                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground-soft)] transition hover:text-[var(--foreground)]"
               >
                 Login
               </Link>
@@ -76,7 +76,7 @@ export default function HomePage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                   Product Boundaries
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-white">v0.x scope discipline</h2>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">v0.x scope discipline</h2>
               </div>
               <StatusBadge label="Simulation" tone="info" />
             </div>

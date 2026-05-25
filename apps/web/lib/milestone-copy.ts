@@ -1,13 +1,13 @@
-export const CURRENT_MILESTONE_VERSION = "v0.18";
-export const CURRENT_MILESTONE_TITLE = "AI-Native Project Docs / Codex Context Pack";
-export const NEXT_MILESTONE_VERSION = "v0.18.1";
-export const NEXT_MILESTONE_TITLE = "Light Mode / Theme Polish";
+export const CURRENT_MILESTONE_VERSION = "v0.18.1";
+export const CURRENT_MILESTONE_TITLE = "Light Mode / Theme Polish";
+export const NEXT_MILESTONE_VERSION = "v0.18.2";
+export const NEXT_MILESTONE_TITLE = "Admin Operations / Risk Controls Polish";
 
 export const REAL_TIME_SYNC_COPY =
-  "Current app behavior includes multi-market matching, market-order taker flow, ticker and candle market data, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, and admin status controls.";
+  "Current app behavior includes multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, and admin status controls.";
 
 export const TRADE_PAGE_COPY =
-  "The current /trade surface uses a dense professional CEX-style terminal with a compact ticker bar, dominant chart, adjacent order book and recent trades, a fixed desktop order-entry rail, and docked bottom activity tabs while trading logic stays unchanged.";
+  "The current /trade surface uses a dense professional CEX-style terminal with a compact ticker bar, dominant chart, adjacent order book and recent trades, a fixed desktop order-entry rail, docked bottom activity tabs, and a persisted light/dark theme toggle while trading logic stays unchanged.";
 
 export const PORTFOLIO_PAGE_COPY =
   "Dashboard and Wallet include searchable, sortable portfolio asset rows with hide-zero and hide-dust controls, SWC valuation summaries, and Trade links for assets with active markets while backend trading and wallet behavior stay unchanged.";

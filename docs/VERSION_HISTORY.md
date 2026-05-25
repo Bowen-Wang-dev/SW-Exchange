@@ -1,13 +1,29 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
+Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
 
-Next milestone: `v0.18.1 Light Mode / Theme Polish`
+Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
 ## Upcoming plan
 
-- `v0.18.1 Light Mode / Theme Polish`
+- `v0.18.2 Admin Operations / Risk Controls Polish`
 - `v1.x Chain Gateway`
+
+## v0.18.1 Light Mode / Theme Polish
+
+This milestone adds a polished alternate light theme while keeping dark mode as the default professional trading experience.
+
+### Highlights
+
+- Added CSS theme tokens for page, panel, border, text, input, chart-shell, and semantic status surfaces
+- Added a global Light / Dark toggle with `localStorage` persistence
+- Updated `/trade`, `/dashboard`, `/wallet`, `/markets`, `/orders`, `/trades`, `/ledger`, and admin pages for light-mode readability
+- Kept matching logic, fee logic, wallet rules, transfer rules, schema, API behavior, deposit, withdraw, and blockchain behavior unchanged
+
+### Developer and operational notes
+
+- This milestone is frontend theme/UI polish only
+- No schema or migration change is required for v0.18.1
 
 ## v0.18 AI-Native Project Docs / Codex Context Pack
 

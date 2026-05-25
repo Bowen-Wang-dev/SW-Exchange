@@ -17,7 +17,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-3 px-3 py-3 sm:px-4 xl:h-screen xl:min-h-0">
         <TopNav />
         {user?.status === "FROZEN" ? (
-          <div className="shrink-0 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+          <div className="shrink-0 rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
             Your account is frozen. You can view balances and history but cannot perform transfers or
             trades.
           </div>

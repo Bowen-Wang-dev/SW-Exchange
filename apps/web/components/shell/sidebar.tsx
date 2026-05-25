@@ -49,7 +49,7 @@ function NavSection({
               className={`rounded-2xl px-3 py-2.5 text-sm transition ${
                 active
                   ? "bg-[var(--accent-soft)] font-medium text-[var(--accent-strong)]"
-                  : "text-[var(--foreground-soft)] hover:bg-white/[0.04] hover:text-white"
+                  : "text-[var(--foreground-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
               }`}
             >
               {item.label}

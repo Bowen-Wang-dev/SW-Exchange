@@ -40,7 +40,7 @@ export function RegisterForm() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[var(--accent)]">
           SW Exchange
         </p>
-        <h1 className="mt-4 text-3xl font-semibold text-white">Create your account</h1>
+        <h1 className="mt-4 text-3xl font-semibold text-[var(--foreground)]">Create your account</h1>
         <p className="mt-3 text-sm leading-6 text-[var(--foreground-soft)]">
           Registration is public in v0.x. Your account opens an internal-only simulated trading
           profile with no deposit or withdraw features.
@@ -81,13 +81,13 @@ export function RegisterForm() {
             type="password"
           />
 
-          <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-xs leading-5 text-[var(--foreground-soft)]">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-xs leading-5 text-[var(--foreground-soft)]">
             The nickname field is optional. The backend stores email, username, password, and
             nickname for admin review.
           </div>
 
           {error ? (
-            <div className="rounded-2xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">
+            <div className="rounded-2xl border border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] px-4 py-3 text-sm text-[var(--notice-danger-text)]">
               {error}
             </div>
           ) : null}
@@ -143,7 +143,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         required={label !== "Nickname"}
-        className="w-full rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
       />
     </label>
   );

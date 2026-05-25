@@ -25,7 +25,7 @@ export function StatCard({
           <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
             {label}
           </p>
-          <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+          <p className="mt-3 text-2xl font-semibold text-[var(--foreground)]">{value}</p>
         </div>
         <StatusBadge label={badgeLabel ?? label} tone={tone} />
       </div>

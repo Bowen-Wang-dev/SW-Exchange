@@ -184,7 +184,7 @@ export default function AdminMarketsPage() {
             eyebrow="Admin Markets"
             title="Market registry"
             description="Create spot markets from listed base and quote assets. New pairs start empty and inherit the existing matching, fee, ticker, and valuation foundation."
-            action={<StatusBadge label="v0.16.3 Live" tone="success" />}
+            action={<StatusBadge label="Live" tone="success" />}
           />
 
           {error ? <Notice tone="danger" message={error} /> : null}
@@ -198,7 +198,7 @@ export default function AdminMarketsPage() {
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     Create Market
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">List a trading pair</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">List a trading pair</h2>
                 </div>
                 <StatusBadge label={form.status} tone={form.status === "ACTIVE" ? "success" : "warning"} />
               </div>
@@ -217,7 +217,7 @@ export default function AdminMarketsPage() {
                           ),
                         )
                       }
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     >
                       {assets.map((asset) => (
                         <option key={`base-${asset.symbol}`} value={asset.symbol}>
@@ -239,7 +239,7 @@ export default function AdminMarketsPage() {
                           ),
                         )
                       }
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     >
                       {assets.map((asset) => (
                         <option key={`quote-${asset.symbol}`} value={asset.symbol}>
@@ -254,7 +254,7 @@ export default function AdminMarketsPage() {
                     <input
                       value={marketSymbolPreview}
                       readOnly
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm font-semibold text-white outline-none"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm font-semibold text-[var(--foreground)] outline-none"
                     />
                   </label>
 
@@ -268,7 +268,7 @@ export default function AdminMarketsPage() {
                           status: event.target.value as "ACTIVE" | "PAUSED",
                         }))
                       }
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     >
                       <option value="ACTIVE">ACTIVE</option>
                       <option value="PAUSED">PAUSED</option>
@@ -284,7 +284,7 @@ export default function AdminMarketsPage() {
                       }
                       inputMode="numeric"
                       placeholder="18"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -297,7 +297,7 @@ export default function AdminMarketsPage() {
                       }
                       inputMode="numeric"
                       placeholder="18"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -310,7 +310,7 @@ export default function AdminMarketsPage() {
                       }
                       placeholder="0.1"
                       inputMode="decimal"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
 
@@ -323,12 +323,12 @@ export default function AdminMarketsPage() {
                       }
                       placeholder="1"
                       inputMode="decimal"
-                      className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                     />
                   </label>
                 </div>
 
-                <div className="rounded-2xl border border-blue-300/20 bg-blue-300/10 px-4 py-3 text-sm text-blue-100">
+                <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
                   Active markets require both assets to already be ACTIVE. New markets start with no fake trades, no seeded order book, and default fee settings until you change them.
                 </div>
 
@@ -347,7 +347,7 @@ export default function AdminMarketsPage() {
                 <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                   Market Controls
                 </p>
-                <h2 className="mt-2 text-xl font-semibold text-white">Existing spot markets</h2>
+                <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Existing spot markets</h2>
               </div>
 
               <div className="mt-5">
@@ -448,8 +448,8 @@ function StatusButton({
 }) {
   const classes =
     tone === "success"
-      ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200 hover:border-emerald-200"
-      : "border-amber-300/30 bg-amber-300/10 text-amber-200 hover:border-amber-200";
+      ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)] hover:border-[var(--success)]"
+      : "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)] hover:border-[var(--warning)]";
 
   return (
     <button
@@ -466,10 +466,10 @@ function StatusButton({
 function Notice({ tone, message }: { tone: "info" | "danger" | "success"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

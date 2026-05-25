@@ -235,7 +235,7 @@ function SystemWalletsTab({
           <DataTable
             columns={["Wallet", "Status", "Asset", "Available", "Locked", "Total"]}
             rows={wallets.map((wallet) => [
-              <span key={`${wallet.id}-wallet`} className="font-medium text-white">
+              <span key={`${wallet.id}-wallet`} className="font-medium text-[var(--foreground)]">
                 {wallet.displayName}
               </span>,
               <StatusBadge
@@ -266,7 +266,7 @@ function SystemWalletsTab({
             <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
               Bucket Transfer
             </p>
-            <h2 className="mt-2 text-xl font-semibold text-white">Move admin bucket funds</h2>
+            <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Move admin bucket funds</h2>
           </div>
           <StatusBadge label="Free" tone="success" />
         </div>
@@ -282,7 +282,7 @@ function SystemWalletsTab({
             <select
               value={fromWalletType}
               onChange={(event) => onFromWalletTypeChange(event.target.value as WalletType)}
-              className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
             >
               {WALLET_TYPES.map((walletType) => (
                 <option key={walletType} value={walletType}>
@@ -297,7 +297,7 @@ function SystemWalletsTab({
             <select
               value={toWalletType}
               onChange={(event) => onToWalletTypeChange(event.target.value as WalletType)}
-              className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
             >
               {WALLET_TYPES.map((walletType) => (
                 <option key={walletType} value={walletType}>
@@ -312,7 +312,7 @@ function SystemWalletsTab({
             <select
               value={assetSymbol}
               onChange={(event) => onAssetSymbolChange(event.target.value)}
-              className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
             >
               {buildAssetOptions(assets, assetSymbol).map((asset) => (
                 <option key={asset} value={asset}>
@@ -329,7 +329,7 @@ function SystemWalletsTab({
               onChange={(event) => onAmountChange(event.target.value)}
               placeholder="100 or 12.34"
               inputMode="decimal"
-              className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
@@ -340,7 +340,7 @@ function SystemWalletsTab({
               onChange={(event) => onNoteChange(event.target.value)}
               placeholder="Optional audit note"
               rows={3}
-              className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="resize-none rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
             />
           </label>
 
@@ -394,7 +394,7 @@ function TabButton({
       className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${
         active
           ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-          : "border-[var(--border)] bg-white/[0.03] text-[var(--foreground-soft)] hover:border-[var(--border-strong)] hover:text-white"
+          : "border-[var(--border)] bg-[var(--surface-strong)] text-[var(--foreground-soft)] hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
       }`}
     >
       {children}
@@ -411,10 +411,10 @@ function Notice({
 }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

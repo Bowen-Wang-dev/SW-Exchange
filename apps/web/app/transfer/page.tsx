@@ -106,7 +106,7 @@ export default function TransferPage() {
                     value={recipient}
                     onChange={(event) => setRecipient(event.target.value)}
                     placeholder="username or name@example.com"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -115,16 +115,16 @@ export default function TransferPage() {
                   <select
                     value={assetSymbol}
                     onChange={(event) => setAssetSymbol(event.target.value as "SWC" | "SWL")}
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   >
                     <option value="SWC">SWC</option>
                     <option value="SWL">SWL</option>
                   </select>
                 </label>
 
-                <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3 text-sm text-[var(--foreground-soft)]">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm text-[var(--foreground-soft)]">
                   Available:{" "}
-                  <span className="font-medium text-white">
+                  <span className="font-medium text-[var(--foreground)]">
                     {selectedWallet?.available ?? "0"} {assetSymbol}
                   </span>
                 </div>
@@ -136,7 +136,7 @@ export default function TransferPage() {
                     onChange={(event) => setAmount(event.target.value)}
                     placeholder="100 or 12.34"
                     inputMode="decimal"
-                    className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -147,7 +147,7 @@ export default function TransferPage() {
                     onChange={(event) => setNote(event.target.value)}
                     placeholder="Optional transfer note"
                     rows={3}
-                    className="resize-none rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                    className="resize-none rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
                   />
                 </label>
 
@@ -203,7 +203,7 @@ export default function TransferPage() {
                     tone={entry.direction === "IN" ? "success" : "warning"}
                   />,
                   <div key={`${entry.id}-counterparty`} className="space-y-1">
-                    <p className="font-medium text-white">{entry.counterparty.username}</p>
+                    <p className="font-medium text-[var(--foreground)]">{entry.counterparty.username}</p>
                     <p className="text-xs text-[var(--foreground-muted)]">
                       {entry.counterparty.email || "-"}
                     </p>
@@ -211,7 +211,7 @@ export default function TransferPage() {
                   entry.assetSymbol,
                   <span
                     key={`${entry.id}-amount`}
-                    className={entry.direction === "IN" ? "text-emerald-300" : "text-amber-200"}
+                    className={entry.direction === "IN" ? "text-[var(--success)]" : "text-[var(--notice-warning-text)]"}
                   >
                     {entry.direction === "IN" ? "+" : "-"}
                     {entry.amount}
@@ -243,10 +243,10 @@ function Notice({
 }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
       : tone === "success"
-        ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
-        : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+        ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)]"
+        : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }

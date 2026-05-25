@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
+Current milestone: `v0.18.1 Light Mode / Theme Polish`
 
 ## Current Stack
 
@@ -20,6 +20,7 @@ Current milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
 - `v0.17.3 Markets Sorting / Favorites Polish`
 - `v0.17.4 Trading Interaction Polish`
 - `v0.18 AI-Native Project Docs / Codex Context Pack`
+- `v0.18.1 Light Mode / Theme Polish`
 
 ## Current Supported Assets / Markets
 
@@ -91,12 +92,13 @@ Current milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
 
 ## Current UI State
 
-- Dark-only exchange style
+- Dark-first exchange style with alternate Light mode
 - Desktop-first terminal on `/trade`
 - Compact ticker strip, dominant chart, adjacent order book / tape, fixed order rail
 - Bottom trading activity tabs
 - Portfolio and markets views are searchable and sortable
 - Favorites on `/markets` are local browser state
+- Theme preference is stored in `localStorage`
 
 ## Current System Constraints
 
@@ -109,5 +111,5 @@ Current milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
 
 ## Current Milestone
 
-- Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
-- Next planned milestone: `v0.18.1 Light Mode / Theme Polish`
+- Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
+- Next planned milestone: `v0.18.2 Admin Operations / Risk Controls Polish`

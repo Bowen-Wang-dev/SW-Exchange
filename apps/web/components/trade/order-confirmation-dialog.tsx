@@ -52,7 +52,7 @@ export function OrderConfirmationDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712]/80 px-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] px-4 backdrop-blur-sm">
       <div
         className="absolute inset-0"
         aria-hidden="true"
@@ -68,7 +68,7 @@ export function OrderConfirmationDialog({
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
               Confirm order
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">
+            <h2 className="mt-2 text-2xl font-semibold text-[var(--foreground)]">
               {confirmation.type} {confirmation.side} {confirmation.marketSymbol}
             </h2>
           </div>
@@ -88,18 +88,18 @@ export function OrderConfirmationDialog({
           {confirmation.fields.map((field) => (
             <div
               key={field.label}
-              className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-3"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3"
             >
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
                 {field.label}
               </p>
-              <p className="mt-1 break-words text-sm font-semibold text-white">{field.value}</p>
+              <p className="mt-1 break-words text-sm font-semibold text-[var(--foreground)]">{field.value}</p>
             </div>
           ))}
         </div>
 
         {confirmation.warning ? (
-          <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+          <div className="mt-4 rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
             {confirmation.warning}
           </div>
         ) : null}
@@ -109,7 +109,7 @@ export function OrderConfirmationDialog({
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-2xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Cancel
           </button>

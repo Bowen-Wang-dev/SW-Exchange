@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
+Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
 
-Next milestone: `v0.18.1 Light Mode / Theme Polish`
+Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -85,6 +85,7 @@ Current scope:
 - Order book and recent trade prices on `/trade` can fill the Limit price input without placing an order
 - Best Bid, Best Ask, and Last quick price controls on `/trade`
 - Current-market Cancel All, Cancel Buy, and Cancel Sell controls for user open limit orders
+- Persisted Light / Dark theme toggle with token-based exchange UI surfaces
 
 ## Milestone status
 
@@ -114,13 +115,25 @@ Current scope:
 - `v0.17.3 Markets Sorting / Favorites Polish` completed
 - `v0.17.4 Trading Interaction Polish` completed
 - `v0.18 AI-Native Project Docs / Codex Context Pack` completed
+- `v0.18.1 Light Mode / Theme Polish` completed
 
-- Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
-- Next milestone: `v0.18.1 Light Mode / Theme Polish`
+- Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
+- Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
 ## Planned milestones
 
+- `v0.18.2 Admin Operations / Risk Controls Polish`
 - `v1.x Chain Gateway`
+
+## v0.18.1 Light Mode / Theme Polish
+
+v0.18.1 adds a polished light theme while keeping the dark exchange terminal as the default first-class experience.
+
+- Added theme tokens for page backgrounds, panels, borders, text, inputs, and semantic status colors
+- Added a global Light / Dark toggle in the top navigation with `localStorage` persistence
+- Kept `/trade` dense and readable in both themes, including the ticker bar, chart shell, order book, recent trades, order form, and bottom tabs
+- Cleaned up hardcoded dark-mode surfaces across dashboard, wallet, markets, trade, orders, trades, ledger, and admin pages without changing backend behavior
+- No matching logic, market-order behavior, fee logic, wallet rules, transfer rules, schema, deposit, withdraw, or blockchain behavior changed
 
 ## v0.18 AI-Native Project Docs / Codex Context Pack
 

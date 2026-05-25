@@ -120,7 +120,7 @@ export function MarketSelector({
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
-        className="group inline-flex w-full min-w-[220px] items-center gap-3 rounded-2xl border border-[var(--border-strong)] bg-white/[0.04] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-[var(--accent)] hover:bg-white/[0.06] sm:w-[255px]"
+        className="group inline-flex w-full min-w-[220px] items-center gap-3 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface-emphasis)] px-3 py-2.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-[var(--accent)] hover:bg-[var(--surface-hover-strong)] sm:w-[255px]"
       >
         <AssetPairIcons
           baseSymbol={activeMarket?.baseAssetSymbol ?? marketBaseSymbol(selectedMarketSymbol)}
@@ -136,7 +136,7 @@ export function MarketSelector({
             Spot market
           </span>
           <span className="mt-1 flex items-center gap-2">
-            <span className="truncate text-lg font-semibold text-white">{selectedMarketSymbol}</span>
+            <span className="truncate text-lg font-semibold text-[var(--foreground)]">{selectedMarketSymbol}</span>
             <ChevronIcon open={isOpen} />
           </span>
           <span className="mt-0.5 block truncate text-[11px] text-[var(--foreground-muted)] group-hover:text-[var(--foreground-soft)]">
@@ -166,12 +166,12 @@ export function MarketSelector({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search markets..."
-              className="rounded-xl border border-[var(--border)] bg-[#0a1122] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+              className="rounded-xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
             />
           </label>
 
           <div className="mt-3 overflow-hidden rounded-2xl border border-[var(--border)]">
-            <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] gap-3 bg-white/[0.03] px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)] sm:grid">
+            <div className="hidden grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] gap-3 bg-[var(--surface-strong)] px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--foreground-muted)] sm:grid">
               <span>Market</span>
               <span>Last / 24h</span>
               <span className="text-right">Volume</span>
@@ -191,7 +191,7 @@ export function MarketSelector({
                         setSearch("");
                       }}
                       className={`grid w-full gap-3 border-t border-[var(--border)] px-3 py-2.5 text-left text-sm transition first:border-t-0 sm:grid-cols-[minmax(0,1.35fr)_minmax(0,0.9fr)_minmax(0,0.8fr)] ${
-                        isSelected ? "bg-[var(--accent-soft)]" : "bg-white/[0.01] hover:bg-white/[0.04]"
+                        isSelected ? "bg-[var(--accent-soft)]" : "bg-[var(--surface-faint)] hover:bg-[var(--surface-hover)]"
                       }`}
                     >
                       <span className="inline-flex min-w-0 items-center gap-3">
@@ -205,7 +205,7 @@ export function MarketSelector({
                           size={26}
                         />
                         <span className="min-w-0">
-                          <span className="block truncate font-semibold text-white">
+                          <span className="block truncate font-semibold text-[var(--foreground)]">
                             {market.marketSymbol}
                           </span>
                           <span className="block truncate text-xs text-[var(--foreground-muted)]">
@@ -216,7 +216,7 @@ export function MarketSelector({
                         </span>
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate font-medium text-white">{market.lastPrice ?? "—"}</span>
+                        <span className="block truncate font-medium text-[var(--foreground)]">{market.lastPrice ?? "—"}</span>
                         <span className={`block truncate text-xs ${changeClass(market.change24hPercent)}`}>
                           {market.change24hPercent ? `${market.change24hPercent}%` : "—"}
                         </span>
@@ -273,7 +273,7 @@ function changeClass(value?: string | null) {
     return "text-[var(--foreground-soft)]";
   }
 
-  return value.startsWith("-") ? "text-rose-300" : "text-emerald-300";
+  return value.startsWith("-") ? "text-[var(--danger)]" : "text-[var(--success)]";
 }
 
 function marketBaseSymbol(marketSymbol: string) {

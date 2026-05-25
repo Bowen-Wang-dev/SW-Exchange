@@ -4,9 +4,16 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.18 AI-Native Project Docs / Codex Context Pack`
+Current completed milestone: `v0.18.1 Light Mode / Theme Polish`
 
-Next milestone: `v0.18.1 Light Mode / Theme Polish`
+Next milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+
+### v0.18.1 Light Mode / Theme Polish - Completed
+
+- Added dark/light theme tokens while preserving the dark CEX-style default
+- Added a top-nav theme toggle with `localStorage` persistence and client-safe initialization
+- Cleaned up hardcoded dark surfaces across major user/admin pages and the trade terminal
+- No product behavior, API behavior, schema, or migrations changed
 
 ### v0.1 Foundation - Completed
 

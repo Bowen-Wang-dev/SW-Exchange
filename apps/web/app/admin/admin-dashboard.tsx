@@ -172,12 +172,12 @@ export function AdminDashboardContent() {
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                 Admin Notice
               </p>
-              <h2 className="mt-2 text-xl font-semibold text-white">Operational scope</h2>
+              <h2 className="mt-2 text-xl font-semibold text-[var(--foreground)]">Operational scope</h2>
             </div>
             <StatusBadge label={user?.role ?? "ADMIN"} tone="warning" />
           </div>
 
-          <div className="mt-5 rounded-2xl border border-amber-300/16 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
+          <div className="mt-5 rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
             Single full-permission admin mode in v0.x
           </div>
 
@@ -277,7 +277,7 @@ function MarketCell({ marketSymbol }: { marketSymbol: string }) {
         <AssetIcon symbol={baseSymbol ?? "SWL"} size={24} />
         <AssetIcon symbol={quoteSymbol ?? "SWC"} size={24} />
       </span>
-      <span className="font-medium text-white">{marketSymbol}</span>
+      <span className="font-medium text-[var(--foreground)]">{marketSymbol}</span>
     </span>
   );
 }
@@ -326,7 +326,7 @@ function RecentAuditLogs({ logs }: { logs: AdminAuditLog[] }) {
 function SectionTitle({ title }: { title: string }) {
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <h2 className="text-lg font-semibold text-[var(--foreground)]">{title}</h2>
       <StatusBadge label="Recent" tone="info" />
     </div>
   );
@@ -334,7 +334,7 @@ function SectionTitle({ title }: { title: string }) {
 
 function Notice({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-blue-300/20 bg-blue-300/10 px-4 py-3 text-sm text-blue-100">
+    <div className="rounded-2xl border border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] px-4 py-3 text-sm text-[var(--notice-info-text)]">
       {message}
     </div>
   );

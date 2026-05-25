@@ -147,8 +147,8 @@ export default function AdminAuditLogsPage() {
 function Notice({ tone, message }: { tone: "info" | "danger"; message: string }) {
   const classes =
     tone === "danger"
-      ? "border-rose-300/20 bg-rose-300/10 text-rose-100"
-      : "border-blue-300/20 bg-blue-300/10 text-blue-100";
+      ? "border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] text-[var(--notice-danger-text)]"
+      : "border-[var(--notice-info-border)] bg-[var(--notice-info-bg)] text-[var(--notice-info-text)]";
 
   return <div className={`rounded-2xl border px-4 py-3 text-sm ${classes}`}>{message}</div>;
 }
@@ -156,7 +156,7 @@ function Notice({ tone, message }: { tone: "info" | "danger"; message: string })
 function AdminCell({ log }: { log: AdminAuditLog }) {
   return (
     <div className="space-y-1">
-      <p className="font-medium text-white">{log.adminUser.username}</p>
+      <p className="font-medium text-[var(--foreground)]">{log.adminUser.username}</p>
       <p className="text-xs text-[var(--foreground-muted)]">{log.adminUser.email}</p>
     </div>
   );
@@ -164,7 +164,7 @@ function AdminCell({ log }: { log: AdminAuditLog }) {
 
 function AuditDetails({ log }: { log: AdminAuditLog }) {
   return (
-    <details className="min-w-[300px] max-w-[520px] rounded-2xl border border-[var(--border)] bg-white/[0.03] p-3">
+    <details className="min-w-[300px] max-w-[520px] rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] p-3">
       <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent-strong)]">
         View JSON
       </summary>
@@ -182,7 +182,7 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
       <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--foreground-muted)]">
         {label}
       </p>
-      <pre className="max-h-56 overflow-auto rounded-xl border border-[var(--border)] bg-[#050914] p-3 text-xs leading-relaxed text-[var(--foreground-soft)] exchange-scrollbar">
+      <pre className="max-h-56 overflow-auto rounded-xl border border-[var(--border)] bg-[var(--background-strong)] p-3 text-xs leading-relaxed text-[var(--foreground-soft)] exchange-scrollbar">
         {stringifyAuditValuePretty(value)}
       </pre>
     </div>
@@ -247,7 +247,7 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-4 py-3 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+        className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
       >
         <option value="ALL">All</option>
         {options.map((option) => (

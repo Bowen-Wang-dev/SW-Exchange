@@ -8,11 +8,13 @@ import { apiRequest } from "@/lib/api-client";
 import type { MarketSummary } from "@/lib/api-types";
 import { AssetPairIcons } from "@/components/ui/asset-icon";
 import { useAuth } from "@/providers/auth-provider";
+import { useTheme } from "@/providers/theme-provider";
 
 export function TopNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAdmin, isAuthenticated, isLoading, logout, user } = useAuth();
+  const { isHydrated, theme, toggleTheme } = useTheme();
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
   const [search, setSearch] = useState("");
   const authenticated = isAuthenticated();
@@ -69,11 +71,11 @@ export function TopNav() {
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/10 text-lg font-semibold text-[var(--accent)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-lg font-semibold text-[var(--accent)]">
               SW
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">SW Exchange</p>
+              <p className="text-sm font-semibold text-[var(--foreground)]">SW Exchange</p>
               <p className="text-xs uppercase tracking-[0.24em] text-[var(--foreground-muted)]">
                 Simulated CEX v0.x
               </p>
@@ -92,7 +94,7 @@ export function TopNav() {
                       className={`rounded-2xl px-3 py-2 text-sm transition ${
                         active
                           ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                          : "text-[var(--foreground-soft)] hover:bg-white/[0.04] hover:text-white"
+                          : "text-[var(--foreground-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                       }`}
                     >
                       {item.label}
@@ -106,7 +108,7 @@ export function TopNav() {
                               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--accent)]">
                                 Spot
                               </p>
-                              <h3 className="mt-2 text-lg font-semibold text-white">
+                              <h3 className="mt-2 text-lg font-semibold text-[var(--foreground)]">
                                 Trade markets
                               </h3>
                               <p className="mt-2 text-sm text-[var(--foreground-soft)]">
@@ -115,7 +117,7 @@ export function TopNav() {
                             </div>
                             <Link
                               href="/markets"
-                              className="inline-flex rounded-2xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--accent)] hover:text-white"
+                              className="inline-flex rounded-2xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--accent)] hover:text-[var(--foreground)]"
                             >
                               View all markets
                             </Link>
@@ -128,7 +130,7 @@ export function TopNav() {
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Search markets..."
-                                className="rounded-2xl border border-[var(--border)] bg-[#0a1122] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--accent)]"
+                                className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2.5 text-sm text-[var(--foreground)] outline-none transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--accent)]"
                               />
                             </label>
 
@@ -138,7 +140,7 @@ export function TopNav() {
                                   <Link
                                     key={market.marketSymbol}
                                     href={`/trade?market=${encodeURIComponent(market.marketSymbol)}`}
-                                    className="grid grid-cols-[minmax(0,1fr)_84px_76px] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-sm transition first:border-t-0 hover:bg-white/[0.04]"
+                                    className="grid grid-cols-[minmax(0,1fr)_84px_76px] gap-3 border-t border-[var(--border)] px-3 py-2.5 text-sm transition first:border-t-0 hover:bg-[var(--surface-hover)]"
                                   >
                                     <span className="inline-flex min-w-0 items-center gap-2">
                                       <AssetPairIcons
@@ -151,7 +153,7 @@ export function TopNav() {
                                         size={20}
                                       />
                                       <span className="min-w-0">
-                                        <span className="block truncate font-medium text-white">
+                                        <span className="block truncate font-medium text-[var(--foreground)]">
                                           {market.marketSymbol}
                                         </span>
                                         <span className="block truncate text-xs text-[var(--foreground-muted)]">
@@ -161,7 +163,7 @@ export function TopNav() {
                                         </span>
                                       </span>
                                     </span>
-                                    <span className="font-medium text-white">
+                                    <span className="font-medium text-[var(--foreground)]">
                                       {market.lastPrice ?? "—"}
                                     </span>
                                     <span className={changeToneClass(market.change24hPercent)}>
@@ -190,7 +192,7 @@ export function TopNav() {
                   className={`rounded-2xl px-3 py-2 text-sm transition ${
                     active
                       ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                      : "text-[var(--foreground-soft)] hover:bg-white/[0.04] hover:text-white"
+                      : "text-[var(--foreground-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                   }`}
                 >
                   {item.label}
@@ -204,7 +206,7 @@ export function TopNav() {
                 className={`rounded-2xl px-3 py-2 text-sm transition ${
                   pathname === "/admin" || pathname.startsWith("/admin/")
                     ? "bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                    : "text-[var(--foreground-soft)] hover:bg-white/[0.04] hover:text-white"
+                    : "text-[var(--foreground-soft)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                 }`}
               >
                 Admin
@@ -214,9 +216,24 @@ export function TopNav() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="inline-flex min-h-[42px] items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-3 py-2 text-sm font-medium text-[var(--foreground-soft)] transition hover:border-[var(--accent)] hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
+            aria-label={
+              isHydrated
+                ? `Switch to ${theme === "dark" ? "light" : "dark"} theme`
+                : "Toggle theme"
+            }
+          >
+            <span aria-hidden="true" className="text-base leading-none">
+              {isHydrated ? (theme === "dark" ? "☾" : "☀") : "◐"}
+            </span>
+            <span>{isHydrated ? (theme === "dark" ? "Dark" : "Light") : "Theme"}</span>
+          </button>
           {isLoading ? (
-            <div className="rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-2">
-              <p className="text-sm font-medium text-white">Loading session</p>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-2">
+              <p className="text-sm font-medium text-[var(--foreground)]">Loading session</p>
               <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                 Auth state syncing
               </p>
@@ -224,8 +241,8 @@ export function TopNav() {
           ) : authenticated ? (
             <>
               <details className="relative">
-                <summary className="list-none rounded-2xl border border-[var(--border)] bg-white/[0.03] px-4 py-2 cursor-pointer">
-                  <p className="text-sm font-medium text-white">{user?.username ?? "User"}</p>
+                <summary className="list-none cursor-pointer rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-2">
+                  <p className="text-sm font-medium text-[var(--foreground)]">{user?.username ?? "User"}</p>
                   <p className="text-xs uppercase tracking-[0.22em] text-[var(--foreground-muted)]">
                     {user?.role ?? "USER"} / {user?.status ?? "ACTIVE"}
                   </p>
@@ -233,14 +250,14 @@ export function TopNav() {
                 <div className="panel-strong absolute right-0 mt-2 w-52 rounded-2xl p-2">
                   <Link
                     href={admin ? "/admin" : "/dashboard"}
-                    className="block rounded-xl px-3 py-2 text-sm text-[var(--foreground-soft)] transition hover:bg-white/[0.04] hover:text-white"
+                    className="block rounded-xl px-3 py-2 text-sm text-[var(--foreground-soft)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                   >
                     {admin ? "Admin Console" : "Dashboard"}
                   </Link>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-[var(--foreground-soft)] transition hover:bg-white/[0.04] hover:text-white"
+                    className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm text-[var(--foreground-soft)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--foreground)]"
                   >
                     Logout
                   </button>
@@ -251,7 +268,7 @@ export function TopNav() {
             <>
               <Link
                 href="/login"
-                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-white"
+                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
               >
                 Login
               </Link>
@@ -307,5 +324,5 @@ function changeToneClass(value: string | null | undefined) {
     return "text-[var(--foreground-soft)]";
   }
 
-  return value.startsWith("-") ? "text-rose-300" : "text-emerald-300";
+  return value.startsWith("-") ? "text-[var(--danger)]" : "text-[var(--success)]";
 }
