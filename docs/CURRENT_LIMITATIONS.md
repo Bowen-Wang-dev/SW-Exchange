@@ -23,6 +23,7 @@ These items are intentionally out of scope in the current system state. Do not d
 - Real KYC is not implemented.
 - Real money / investment product behavior is not implemented.
 - Assets and balances remain internal simulation records.
+- v0.x remains an off-chain internal-accounting exchange shell only.
 
 ## Market Data / Charting
 

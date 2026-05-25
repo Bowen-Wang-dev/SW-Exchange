@@ -71,7 +71,7 @@ export default function WalletPage() {
           <PageHeader
             eyebrow="Wallet"
             title="Internal asset balances"
-            description="View your live internal asset balances. Internal transfers are live; deposit and withdraw stay disabled in v0.x."
+            description="View your live internal asset balances. Internal transfers are live; deposit, withdraw, and blockchain funding stay disabled in v0.x."
             action={<StatusBadge label="Internal Only" tone="info" />}
           />
 
@@ -127,7 +127,7 @@ export default function WalletPage() {
           ) : null}
 
           <div className="rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
-            Funding rails remain out of scope in v0.x. Internal transfers are available from the Transfer page.
+            Funding rails remain out of scope in v0.x. Use the Transfer page for internal MAIN-wallet movements only.
           </div>
         </div>
       </AppShell>

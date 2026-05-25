@@ -8,3 +8,6 @@ coverage
 .env.local
 apps/web/.env.local
 drizzle/*.sqlite
+
+# Local UI reference captures
+sample/

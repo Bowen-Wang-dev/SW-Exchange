@@ -177,6 +177,7 @@ export default function TransferPage() {
                 {[
                   "Internal transfers are free.",
                   "Deposit and withdraw are disabled in v0.x.",
+                  "No blockchain or chain-address flow is live in this transfer form.",
                   "Only MAIN wallet available balance can be transferred.",
                   "Recipients always receive funds in their MAIN wallet.",
                   "Recipients must be ACTIVE; FROZEN and BANNED accounts are blocked from receiving.",

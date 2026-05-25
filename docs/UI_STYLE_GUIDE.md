@@ -50,4 +50,5 @@
 - Display current status clearly: `ACTIVE`, `PAUSED`, `FROZEN`, `BANNED`
 - Use confirmation dialogs for high-impact admin actions such as status changes, fee updates, and bucket movements
 - Keep simulation boundaries visible where relevant
+- Prefer small copy, empty-state, and readability fixes over broad redesign during stabilization milestones
 - Do not imply deposit, withdraw, blockchain, or real-money functionality is live

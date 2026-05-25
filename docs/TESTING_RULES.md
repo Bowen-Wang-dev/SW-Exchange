@@ -13,6 +13,14 @@
 - API usually runs at `http://127.0.0.1:3001`
 - Web usually runs at `http://127.0.0.1:3000`
 
+## Normal Local Sequence
+
+- `docker compose up -d`
+- `corepack pnpm db:migrate`
+- `corepack pnpm db:seed`
+- `corepack pnpm dev`
+- `corepack pnpm smoke`
+
 ## When To Run Which Command
 
 - `corepack pnpm install`
@@ -21,6 +29,7 @@
 
 - `corepack pnpm db:generate`
   - Run only when schema changed.
+  - Do not run it as part of normal docs/UI stabilization work.
 
 - `corepack pnpm db:migrate`
   - Run only when schema changed and a migration is intentionally part of the task.
@@ -46,7 +55,7 @@
 
 - For UI-heavy changes, include manual checks in the browser.
 - If Next.js becomes stale or inconsistent, restart the web dev server.
-- If needed, clear stale `apps/web/.next` before rerunning local web checks.
+- If needed, stop the dev server, clear stale `apps/web/.next`, and restart before rerunning local web checks or smoke.
 
 ## Pre-Review / Pre-Commit Hygiene
 
@@ -60,6 +69,7 @@
   - logs
   - `package-lock.json`
   - local sample/reference captures
+  - `sample/`
 
 ## Scripted Smoke Expectations
 

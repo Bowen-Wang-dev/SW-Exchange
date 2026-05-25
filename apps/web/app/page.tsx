@@ -19,7 +19,7 @@ export default function HomePage() {
         <PageHeader
           eyebrow={CURRENT_MILESTONE_VERSION}
           title="Simulated exchange control center"
-          description={`SW Exchange v0.x is a professional simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Dark mode remains the default terminal experience, and light mode is now available as a polished alternate theme. Market data, market orders, interactive K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
+          description={`SW Exchange v0.x is a professional off-chain simulated crypto exchange shell focused on auth, internal wallets, and manually managed spot markets. Dark mode remains the default terminal experience, and light mode is available as a polished alternate theme. Market data, market orders, interactive K-line candles, portfolio valuation, asset metadata/icons, fee settlement, admin wallet bucket polish, and manual listing controls are live. ${REAL_TIME_SYNC_COPY}`}
           action={
             <div className="flex flex-wrap gap-2">
               <Link
@@ -64,7 +64,7 @@ export default function HomePage() {
             label="Chain Features"
             badgeLabel="None"
             value="0"
-            hint="No deposit, withdraw, or blockchain integration."
+            hint="No deposit, withdraw, blockchain integration, or real-money redemption in v0.x."
             tone="danger"
           />
         </div>
@@ -87,6 +87,7 @@ export default function HomePage() {
                 "Limit and market spot trading",
                 "No futures or advanced order types",
                 "No deposit, withdraw, or blockchain flows",
+                "No real-money redemption or live KYC flow",
               ].map((item) => (
                 <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
                   {item}

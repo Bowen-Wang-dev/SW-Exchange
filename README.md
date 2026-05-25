@@ -2,9 +2,9 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
-Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Next milestone: `v1.x Chain Gateway`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -118,14 +118,25 @@ Current scope:
 - `v0.18 AI-Native Project Docs / Codex Context Pack` completed
 - `v0.18.1 Light Mode / Theme Polish` completed
 - `v0.18.2 Admin Operations / Risk Controls Polish` completed
+- `v0.18.3 Pre-v1 Stabilization / Release Candidate` completed
 
-- Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
-- Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- Next milestone: `v1.x Chain Gateway`
 
 ## Planned milestones
 
-- `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v1.x Chain Gateway`
+
+## v0.18.3 Pre-v1 Stabilization / Release Candidate
+
+v0.18.3 tightens the release-candidate edges of the off-chain simulated exchange without changing trading-core, fee, wallet, transfer, schema, or API behavior.
+
+- Aligned app-facing milestone copy and top-level docs around the v0.x release-candidate state
+- Clarified that v0.x remains off-chain, internal-accounting only, with no real deposit, withdraw, blockchain, chain-address, fiat-redemption, or real-money behavior
+- Polished small empty states and route notices on core user surfaces to reduce misleading or stale copy
+- Clarified local smoke/dev workflow expectations, including API/web startup requirements, reused-local-DB smoke behavior, and stale Next cache cleanup
+- Marked local `sample/` reference captures as local-only workflow artifacts via ignore guidance
+- No matching logic, market-order behavior, fee calculation rules, wallet rules, transfer rules, schema, API behavior, deposit, withdraw, or blockchain behavior changed
 
 ## v0.18.2 Admin Operations / Risk Controls Polish
 
@@ -665,29 +676,25 @@ pnpm install
 docker compose up -d
 ```
 
-### 3. Generate migrations
-
-```bash
-pnpm db:generate
-```
-
-### 4. Apply migrations
+### 3. Apply checked-in migrations
 
 ```bash
 pnpm db:migrate
 ```
 
-### 5. Seed initial data
+### 4. Seed initial data
 
 ```bash
 pnpm db:seed
 ```
 
-### 6. Start API and web
+### 5. Start API and web
 
 ```bash
 pnpm dev
 ```
+
+Only run `pnpm db:generate` when schema work intentionally changes Drizzle definitions.
 
 Services:
 
@@ -713,11 +720,27 @@ pnpm smoke
 
 ## Smoke test
 
-After the database is up and the API plus web app are running, you can run:
+After the database is up and the API plus web app are already running, you can run:
 
 ```bash
 pnpm smoke
 ```
+
+Normal local verification sequence:
+
+```bash
+docker compose up -d
+pnpm db:migrate
+pnpm db:seed
+pnpm dev
+pnpm smoke
+```
+
+Notes:
+
+- Smoke does not start the API or web server for you.
+- Smoke is designed to be rerunnable against a reused local database.
+- If Next.js gets stale, stop `pnpm dev`, remove `apps/web/.next`, and start the dev stack again before rerunning smoke.
 
 It verifies:
 

@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 ## Account Status
 
@@ -44,6 +44,7 @@ v0.17.4 improves `/trade` price click-to-fill, quick price buttons, and current-
 v0.18 adds an AI-native documentation/context pack without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 v0.18.1 adds light/dark theme support without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 v0.18.2 adds safer admin confirmations and operations filtering without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
+v0.18.3 aligns release-candidate copy, empty states, and workflow guidance without changing wallet buckets, transfer rules, matching behavior, API behavior, or fee-asset rules.
 
 ## Asset Metadata
 

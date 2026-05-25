@@ -1,10 +1,10 @@
-export const CURRENT_MILESTONE_VERSION = "v0.18.2";
-export const CURRENT_MILESTONE_TITLE = "Admin Operations / Risk Controls Polish";
-export const NEXT_MILESTONE_VERSION = "v0.18.3";
-export const NEXT_MILESTONE_TITLE = "Pre-v1 Stabilization / Release Candidate";
+export const CURRENT_MILESTONE_VERSION = "v0.18.3";
+export const CURRENT_MILESTONE_TITLE = "Pre-v1 Stabilization / Release Candidate";
+export const NEXT_MILESTONE_VERSION = "v1.x";
+export const NEXT_MILESTONE_TITLE = "Chain Gateway";
 
 export const REAL_TIME_SYNC_COPY =
-  "Current app behavior includes multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, safer admin confirmations, and searchable admin operations views.";
+  "Current v0.x behavior remains off-chain and internal-accounting only, with multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, safer admin confirmations, and searchable admin operations views.";
 
 export const TRADE_PAGE_COPY =
   "The current /trade surface uses a dense professional CEX-style terminal with a compact ticker bar, dominant chart, adjacent order book and recent trades, a fixed desktop order-entry rail, docked bottom activity tabs, and a persisted light/dark theme toggle while trading logic stays unchanged.";
@@ -24,5 +24,5 @@ export const TRADE_HISTORY_COPY =
 export const ADMIN_TRADE_REVIEW_COPY =
   "Review all settled market fills, including buyer base-asset fees and seller quote-asset fees collected by the admin Fee Wallet.";
 
-export const CURRENT_MILESTONE_HINT = `${CURRENT_MILESTONE_TITLE} completed.`;
-export const NEXT_MILESTONE_HINT = `${NEXT_MILESTONE_TITLE} is next.`;
+export const CURRENT_MILESTONE_HINT = `${CURRENT_MILESTONE_TITLE} is the current release-candidate milestone.`;
+export const NEXT_MILESTONE_HINT = `${NEXT_MILESTONE_TITLE} remains planned-only after v0.x stabilization.`;

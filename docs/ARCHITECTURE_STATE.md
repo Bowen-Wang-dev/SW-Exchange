@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Current milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 ## Current Stack
 
@@ -22,6 +22,7 @@ Current milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 - `v0.18 AI-Native Project Docs / Codex Context Pack`
 - `v0.18.1 Light Mode / Theme Polish`
 - `v0.18.2 Admin Operations / Risk Controls Polish`
+- `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 ## Current Supported Assets / Markets
 
@@ -103,11 +104,14 @@ Current milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 - Admin operations pages are filterable and use confirmation dialogs for high-impact actions
 - Favorites on `/markets` are local browser state
 - Theme preference is stored in `localStorage`
+- Release-candidate polish is focused on copy alignment, route sanity, and stable empty states instead of new product scope
 
 ## Current System Constraints
 
 - Internal simulation only
+- Off-chain internal-accounting model only
 - No deposit / withdraw / blockchain
+- No real-money redemption or live KYC flow
 - No real-time event bus; web UI uses polling and manual refresh paths
 - No candle aggregation table; candles come from trades
 - Transfers are normal-user/admin `MAIN` wallet flows only
@@ -115,5 +119,5 @@ Current milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
 
 ## Current Milestone
 
-- Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
-- Next planned milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- Next planned milestone: `v1.x Chain Gateway`

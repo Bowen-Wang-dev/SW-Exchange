@@ -146,7 +146,7 @@ export function DashboardContent() {
           </div>
 
           <div className="mt-4 rounded-2xl border border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] px-4 py-3 text-sm text-[var(--notice-warning-text)]">
-            SW Exchange v0.x is a simulated exchange. No deposit or withdraw in v0.x.
+            SW Exchange v0.x is an off-chain simulated exchange. No deposit, withdraw, blockchain, or real-money redemption is live.
           </div>
         </section>
 

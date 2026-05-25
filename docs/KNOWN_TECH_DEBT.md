@@ -70,4 +70,4 @@
 - Item: Demo/reference sample files are local/untracked workflow artifacts
   - Status: intentional
   - Why accepted: useful for design reference without becoming runtime dependency
-  - Future fix: formalize curated references if the set grows
+  - Future fix: formalize curated references if the set grows; keep `sample/` local-only until then

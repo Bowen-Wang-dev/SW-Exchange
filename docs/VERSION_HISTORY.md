@@ -1,13 +1,30 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
-Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Next milestone: `v1.x Chain Gateway`
 
 ## Upcoming plan
 
-- `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v1.x Chain Gateway`
+
+## v0.18.3 Pre-v1 Stabilization / Release Candidate
+
+This milestone stabilizes the current off-chain simulated exchange for pre-v1 release-candidate use without changing backend trading behavior.
+
+### Highlights
+
+- Aligned top-level docs and app-facing milestone/status copy to make `v0.18.3` the current completed milestone
+- Clarified that v0.x remains off-chain, with no real deposit, withdraw, blockchain, chain-address, KYC, or fiat-redemption behavior
+- Polished small route notices and empty states on user surfaces to reduce stale or misleading copy
+- Clarified smoke/dev workflow expectations, including required running services, rerunnable local DB smoke, and stale `.next` cleanup
+- Marked local `sample/` reference captures as local-only workflow artifacts
+- Kept matching logic, fee logic, wallet rules, transfer rules, schema, API behavior, deposit, withdraw, and blockchain behavior unchanged
+
+### Developer and operational notes
+
+- This milestone is release stabilization and copy/workflow polish only
+- No schema or migration change is required for v0.18.3
 
 ## v0.18.2 Admin Operations / Risk Controls Polish
 

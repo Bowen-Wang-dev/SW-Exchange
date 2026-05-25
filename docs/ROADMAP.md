@@ -4,9 +4,17 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.18.2 Admin Operations / Risk Controls Polish`
+Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
-Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Next milestone: `v1.x Chain Gateway`
+
+### v0.18.3 Pre-v1 Stabilization / Release Candidate - Completed
+
+- Aligned milestone/docs copy around the release-candidate state of the off-chain simulated exchange
+- Clarified route empty states and placeholder/future-only messaging on core user surfaces
+- Tightened smoke/dev workflow guidance, including reused-local-DB smoke expectations and stale Next cache cleanup
+- Marked local `sample/` captures as local-only workflow artifacts
+- No matching logic, market-order behavior, fee logic, wallet rules, transfer rules, schema, API behavior, or migrations changed
 
 ### v0.18.2 Admin Operations / Risk Controls Polish - Completed
 
@@ -325,4 +333,4 @@ Next milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.17
+- No blockchain feature is implemented in v0.18.3
