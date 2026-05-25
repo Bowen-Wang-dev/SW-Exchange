@@ -29,6 +29,16 @@
   - Why accepted: project is optimized for Codespaces/local development
   - Future fix: add documented hosted-dev / CI alternatives
 
+- Item: Docker Compose production runtime is single-host demo/VPS oriented, not clustered or orchestrated
+  - Status: intentional
+  - Why accepted: current goal is one-command local/VM deployment simplicity for an off-chain demo
+  - Future fix: add reverse proxy, secret management, and orchestrated deployment guidance if hosted production scope grows
+
+- Item: Web API base URL is baked into the Next production build from deploy-time env values
+  - Status: temporary
+  - Why accepted: current deploy flow rebuilds the web image on each local/VPS deployment, so static public env is acceptable
+  - Future fix: add a runtime config injection layer or reverse-proxy-based same-origin API path
+
 ## Market Data
 
 - Item: No production-grade candle aggregation table

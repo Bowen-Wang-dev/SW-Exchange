@@ -2,7 +2,7 @@
 
 SW Exchange v0.x is a lightweight web-first simulated crypto exchange for internal virtual assets.
 
-Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 
 Next milestone: `v1.x Chain Gateway`
 
@@ -87,6 +87,7 @@ Current scope:
 - Current-market Cancel All, Cancel Buy, and Cancel Sell controls for user open limit orders
 - Persisted Light / Dark theme toggle with token-based exchange UI surfaces
 - Admin operations console polish with safer confirmations, search/filter controls, audit/ledger export filtering, and clearer wallet bucket guidance
+- One-command local/VPS-style Docker Compose production demo runtime with deploy and verify scripts
 
 ## Milestone status
 
@@ -119,13 +120,25 @@ Current scope:
 - `v0.18.1 Light Mode / Theme Polish` completed
 - `v0.18.2 Admin Operations / Risk Controls Polish` completed
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate` completed
+- `v0.19 One-Command Deploy / Docker Production Runtime` completed
 
-- Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 - Next milestone: `v1.x Chain Gateway`
 
 ## Planned milestones
 
 - `v1.x Chain Gateway`
+
+## v0.19 One-Command Deploy / Docker Production Runtime
+
+v0.19 adds a production-style local/VPS runtime path for the off-chain simulated exchange without changing trading-core, fee, wallet, transfer, schema, or API behavior.
+
+- Added production Dockerfiles for the Nest API and Next web app using `pnpm` and Corepack
+- Added `docker-compose.prod.yml` for Postgres, API, and web with persistent Postgres storage and health checks
+- Added `.env.production.example` plus ignored `.env.production` workflow for deploy-time values and admin bootstrap credentials
+- Added `./scripts/deploy-local.sh` to build, start, migrate, seed, and launch the production-style stack
+- Added `./scripts/verify-deploy.sh` to verify compose status, API health, and web reachability
+- No matching logic, market-order behavior, fee calculation rules, wallet rules, transfer rules, schema, deposit, withdraw, or blockchain behavior changed
 
 ## v0.18.3 Pre-v1 Stabilization / Release Candidate
 
@@ -662,6 +675,55 @@ Notes:
 - The API root `http://127.0.0.1:3001/` is expected to return `404` because `/api` is required.
 - The web app is safest when opened on the same host family you configure for the API, for example `http://127.0.0.1:3000` with `http://127.0.0.1:3001/api`.
 
+## Production-style local deploy
+
+### 1. Create the production env file
+
+```bash
+cp .env.production.example .env.production
+```
+
+Change at least:
+
+- `POSTGRES_PASSWORD`
+- `DATABASE_URL` if you change the Postgres username, password, or database name
+- `JWT_SECRET`
+- `ADMIN_EMAIL`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+
+### 2. Build and start the Docker runtime
+
+```bash
+./scripts/deploy-local.sh
+```
+
+### 3. Verify the deployment
+
+```bash
+./scripts/verify-deploy.sh
+```
+
+Default URLs:
+
+- Web: `http://localhost:3000`
+- API health: `http://localhost:3001/api/health`
+
+Useful production-runtime commands:
+
+```bash
+pnpm deploy:local
+pnpm deploy:verify
+pnpm compose:prod:logs
+pnpm compose:prod:down
+docker compose -f docker-compose.prod.yml --env-file .env.production down -v
+```
+
+Notes:
+
+- `docker compose -f docker-compose.prod.yml --env-file .env.production down -v` resets the local production Postgres volume and should only be used when you intentionally want a clean production-style demo reset.
+- v0.x remains off-chain only. There is still no deposit, no withdraw, no blockchain integration, and no chain-address flow in this deployable runtime.
+
 ## Local setup
 
 ### 1. Install dependencies
@@ -716,6 +778,8 @@ pnpm db:generate
 pnpm db:migrate
 pnpm db:seed
 pnpm smoke
+pnpm deploy:local
+pnpm deploy:verify
 ```
 
 ## Smoke test

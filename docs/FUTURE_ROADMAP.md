@@ -1,6 +1,6 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.18.3 Pre-v1 Stabilization / Release Candidate`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v0.19 One-Command Deploy / Docker Production Runtime`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
@@ -22,6 +22,7 @@ This plan documents intended future work after `v0.18.3 Pre-v1 Stabilization / R
 - `v0.18.1 Light Mode / Theme Polish` is completed.
 - `v0.18.2 Admin Operations / Risk Controls Polish` is completed.
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate` is completed.
+- `v0.19 One-Command Deploy / Docker Production Runtime` is completed.
 - Multiple internal markets are supported, including admin-created listings.
 - K-line candles are generated from existing trades with no fake chart data, and `/trade` now has an interactive exchange-style chart with hover OHLC and volume.
 - Market orders use IOC-like taker behavior and never rest on the order book.
@@ -33,7 +34,7 @@ This plan documents intended future work after `v0.18.3 Pre-v1 Stabilization / R
 
 ## Planned v0.x polish
 
-- No additional v0.x milestone is committed as live after `v0.18.3`.
+- No additional v0.x milestone is committed as live after `v0.19`.
 - Future v0.x polish, if any, remains optional and planned-only until explicitly implemented.
 
 ## Future scope remains uncommitted
@@ -50,4 +51,4 @@ This plan documents intended future work after `v0.18.3 Pre-v1 Stabilization / R
 - Deposit has no platform fee in the current plan
 - Withdrawal may have network or platform fees later
 - `HOT` wallet remains a placeholder until v1.x
-- No blockchain feature is implemented in v0.18.3
+- No blockchain feature is implemented in v0.19

@@ -1,12 +1,31 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 
 Next milestone: `v1.x Chain Gateway`
 
 ## Upcoming plan
 
 - `v1.x Chain Gateway`
+
+## v0.19 One-Command Deploy / Docker Production Runtime
+
+This milestone makes the off-chain simulated exchange easier to run as a local or VPS-style production demo without changing trading-core, wallet, transfer, fee, schema, or API behavior.
+
+### Highlights
+
+- Added production-oriented Dockerfiles for the Nest API and Next web app using `pnpm`/Corepack
+- Added `docker-compose.prod.yml` with Postgres, API, and web services, persistent Postgres storage, and service health checks
+- Added `.env.production.example` plus ignored `.env.production` workflow for deploy-time secrets and admin bootstrap values
+- Added `scripts/deploy-local.sh` to build images, start Postgres, run migrations, seed data, and bring up API plus web
+- Added `scripts/verify-deploy.sh` to verify compose status, API health, and web reachability
+- Kept matching logic, market-order behavior, fee logic, wallet rules, transfer rules, schema, deposit, withdraw, and blockchain behavior unchanged
+
+### Developer and operational notes
+
+- This milestone is deployment/runtime tooling only
+- No schema or migration change is required for v0.19
+- Web public API URL is provided at deploy/build time through `.env.production`
 
 ## v0.18.3 Pre-v1 Stabilization / Release Candidate
 

@@ -21,6 +21,13 @@
 - `corepack pnpm dev`
 - `corepack pnpm smoke`
 
+## Production-Style Local Deploy Sequence
+
+- `cp .env.production.example .env.production`
+- Edit required secrets/admin bootstrap values in `.env.production`
+- `./scripts/deploy-local.sh`
+- `./scripts/verify-deploy.sh`
+
 ## When To Run Which Command
 
 - `corepack pnpm install`
@@ -51,6 +58,14 @@
   - Current smoke expects the API and web dev servers to already be running unless an external wrapper starts them.
   - Smoke is designed to be rerunnable against a reused local DB.
 
+- `./scripts/deploy-local.sh`
+  - Run for Docker production-runtime verification work.
+  - Builds images, starts Postgres, runs migrations, seeds, and starts API plus web.
+
+- `./scripts/verify-deploy.sh`
+  - Run after production-style deploy changes.
+  - Checks compose service status plus API/web HTTP reachability.
+
 ## UI / Dev Server Hygiene
 
 - For UI-heavy changes, include manual checks in the browser.
@@ -63,6 +78,7 @@
 - Review `git status` for accidental generated output.
 - Do not stage:
   - `.env`
+  - `.env.production`
   - `.next`
   - `dist`
   - `node_modules`
@@ -75,3 +91,9 @@
 
 - Smoke covers API health, seed presence, auth, airdrop, transfer, fees, order flow, market data, admin controls, market orders, public/protected web routes, and web build checks.
 - Smoke failures should be treated as actionable verification failures, not ignored noise.
+
+## Docker Runtime Expectations
+
+- `docker-compose.prod.yml` is for a local/VPS-style production demo, not chain-enabled or real-money production.
+- The production deploy flow must keep `http://localhost:3000` for web and `http://localhost:3001/api/health` for the default health path unless explicitly reconfigured.
+- Reset the local production stack with `docker compose -f docker-compose.prod.yml --env-file .env.production down -v` only when a clean DB/volume reset is intentionally desired.

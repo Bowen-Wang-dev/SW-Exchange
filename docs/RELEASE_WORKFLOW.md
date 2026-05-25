@@ -25,6 +25,13 @@
 - If schema changed, include the intended migration / seed workflow.
 - If dependencies changed, run install and keep the lockfile updated.
 - For UI-heavy work, include manual browser review.
+- For runtime/deployment milestones, include the relevant Docker Compose deploy and verify commands in addition to build/smoke.
+
+## Deployment Milestone Guidance
+
+- Keep deployment/runtime changes scoped to Dockerfiles, compose, env examples, scripts, and documentation unless a small runtime helper is truly needed.
+- Do not imply deposit, withdraw, blockchain, or other planned-only behavior while documenting deployable demos.
+- Confirm secret example files use placeholders only and that real `.env.production` files remain ignored.
 
 ## Milestone Hygiene
 

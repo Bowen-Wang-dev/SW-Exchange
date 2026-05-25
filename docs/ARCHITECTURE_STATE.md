@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Current milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 
 ## Current Stack
 
@@ -11,6 +11,7 @@ Current milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - Shared constants: `@sw-exchange/shared`
 - Charts: `lightweight-charts`
 - Local workflow: Docker Compose Postgres, `corepack pnpm`, scripted smoke
+- Production-style demo runtime: `docker-compose.prod.yml` with Postgres, API, web, deploy, and verify scripts
 
 ## Current Completed Milestones
 
@@ -23,6 +24,7 @@ Current milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v0.18.1 Light Mode / Theme Polish`
 - `v0.18.2 Admin Operations / Risk Controls Polish`
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- `v0.19 One-Command Deploy / Docker Production Runtime`
 
 ## Current Supported Assets / Markets
 
@@ -104,7 +106,7 @@ Current milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - Admin operations pages are filterable and use confirmation dialogs for high-impact actions
 - Favorites on `/markets` are local browser state
 - Theme preference is stored in `localStorage`
-- Release-candidate polish is focused on copy alignment, route sanity, and stable empty states instead of new product scope
+- Current polish remains focused on deployment/runtime clarity without changing product scope or trading behavior
 
 ## Current System Constraints
 
@@ -119,5 +121,5 @@ Current milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 
 ## Current Milestone
 
-- Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+- Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 - Next planned milestone: `v1.x Chain Gateway`

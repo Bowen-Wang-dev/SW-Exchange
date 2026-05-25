@@ -1,5 +1,5 @@
-export const CURRENT_MILESTONE_VERSION = "v0.18.3";
-export const CURRENT_MILESTONE_TITLE = "Pre-v1 Stabilization / Release Candidate";
+export const CURRENT_MILESTONE_VERSION = "v0.19";
+export const CURRENT_MILESTONE_TITLE = "One-Command Deploy / Docker Production Runtime";
 export const NEXT_MILESTONE_VERSION = "v1.x";
 export const NEXT_MILESTONE_TITLE = "Chain Gateway";
 
@@ -24,5 +24,5 @@ export const TRADE_HISTORY_COPY =
 export const ADMIN_TRADE_REVIEW_COPY =
   "Review all settled market fills, including buyer base-asset fees and seller quote-asset fees collected by the admin Fee Wallet.";
 
-export const CURRENT_MILESTONE_HINT = `${CURRENT_MILESTONE_TITLE} is the current release-candidate milestone.`;
-export const NEXT_MILESTONE_HINT = `${NEXT_MILESTONE_TITLE} remains planned-only after v0.x stabilization.`;
+export const CURRENT_MILESTONE_HINT = `${CURRENT_MILESTONE_TITLE} is the current runtime and deployment milestone.`;
+export const NEXT_MILESTONE_HINT = `${NEXT_MILESTONE_TITLE} remains planned-only after the current off-chain v0.x runtime milestone.`;

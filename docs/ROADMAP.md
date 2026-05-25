@@ -4,9 +4,17 @@ SW Exchange is being built in focused milestones so we can keep the simulated ex
 
 ## Milestone status
 
-Current completed milestone: `v0.18.3 Pre-v1 Stabilization / Release Candidate`
+Current completed milestone: `v0.19 One-Command Deploy / Docker Production Runtime`
 
 Next milestone: `v1.x Chain Gateway`
+
+### v0.19 One-Command Deploy / Docker Production Runtime - Completed
+
+- Added Docker production runtime support for Postgres, API, and web via `docker-compose.prod.yml`
+- Added production Dockerfiles for the API and web apps using `pnpm`/Corepack multi-stage builds
+- Added `.env.production.example`, deploy/verify scripts, and package shortcuts for one-command local/VPS-style demo deployment
+- Added runtime health checks, persistent Postgres storage, and documented reset/log workflows
+- No matching logic, market-order behavior, fee logic, wallet rules, transfer rules, schema, API behavior, deposit, withdraw, or blockchain behavior changed
 
 ### v0.18.3 Pre-v1 Stabilization / Release Candidate - Completed
 
