@@ -34,6 +34,7 @@ export const adminSidebarNavigation: NavigationItem[] = [
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/trades", label: "Trades" },
   { href: "/admin/fees", label: "Fees" },
+  { href: "/admin/feature-flags", label: "Feature Flags" },
   { href: "/admin/ledger", label: "Ledger" },
   { href: "/admin/audit-logs", label: "Audit Logs" },
 ];

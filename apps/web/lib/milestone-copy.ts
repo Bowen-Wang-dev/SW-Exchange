@@ -1,10 +1,10 @@
-export const CURRENT_MILESTONE_VERSION = "v0.20";
-export const CURRENT_MILESTONE_TITLE = "Exchange Boundary + v1/v2 Planning Docs";
-export const NEXT_MILESTONE_VERSION = "v1.0";
-export const NEXT_MILESTONE_TITLE = "Auth Security + Feature Flags";
+export const CURRENT_MILESTONE_VERSION = "v1.0.0";
+export const CURRENT_MILESTONE_TITLE = "Feature Flags Foundation";
+export const NEXT_MILESTONE_VERSION = "v1.0.1";
+export const NEXT_MILESTONE_TITLE = "Security Logs + Sensitive Action Model";
 
 export const REAL_TIME_SYNC_COPY =
-  "Current v0.x behavior remains off-chain and internal-accounting only, with custom assets and markets, multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, and searchable admin operations views.";
+  "Current runtime behavior remains off-chain and internal-accounting only, with custom assets and markets, multi-market matching, market-order taker flow, ticker and candle market data, light/dark theme persistence, searchable portfolio valuation, local market favorites, price click-to-fill, fee settlement, wallet buckets, ledger history, audit trails, searchable admin operations views, and backend-enforced feature flag visibility for future modules.";
 
 export const TRADE_PAGE_COPY =
   "The current /trade surface uses a dense professional CEX-style terminal with a compact ticker bar, dominant chart, adjacent order book and recent trades, a fixed desktop order-entry rail, docked bottom activity tabs, and a persisted light/dark theme toggle while trading logic stays unchanged.";
@@ -24,5 +24,5 @@ export const TRADE_HISTORY_COPY =
 export const ADMIN_TRADE_REVIEW_COPY =
   "Review all settled market fills, including buyer base-asset fees and seller quote-asset fees collected by the admin Fee Wallet.";
 
-export const CURRENT_MILESTONE_HINT = `${CURRENT_MILESTONE_TITLE} is the current docs-only boundary and roadmap milestone.`;
-export const NEXT_MILESTONE_HINT = `${NEXT_MILESTONE_TITLE} remains planned-only after the current off-chain v0.x runtime milestone.`;
+export const CURRENT_MILESTONE_HINT = `${CURRENT_MILESTONE_TITLE} is the current backend and admin visibility milestone for future high-risk modules.`;
+export const NEXT_MILESTONE_HINT = `${NEXT_MILESTONE_TITLE} remains planned-only after the current feature flag foundation milestone.`;

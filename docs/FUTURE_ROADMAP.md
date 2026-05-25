@@ -1,11 +1,12 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v0.20 Exchange Boundary + v1/v2 Planning Docs`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v1.0.0 Feature Flags Foundation`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
 - `v0.19 One-Command Deploy / Docker Production Runtime` is completed.
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs` is completed.
+- `v1.0.0 Feature Flags Foundation` is completed.
 - `v0.x` is currently a complete off-chain simulated exchange runtime for custom assets and custom markets.
 - Deposit, withdraw, blockchain, 2FA, email verification, margin, and futures features are not live.
 
@@ -13,7 +14,7 @@ This plan documents intended future work after `v0.20 Exchange Boundary + v1/v2 
 
 - `v1.x` is planned to focus on auth/security hardening and optional chain token gateway capabilities.
 - Planned starting sequence:
-  - `v1.0 Auth Security + Feature Flags`
+  - `v1.0.1 Security Logs + Sensitive Action Model`
   - `v1.1 Chain Asset Registry`
   - `v1.2 User Deposit Address Model`
   - `v1.3 Deposit Monitor Detect-only`

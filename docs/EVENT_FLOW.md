@@ -86,6 +86,14 @@ This document describes current live `v0.x` runtime flows only. Future chain dep
 - Existing open limit orders remain cancellable
 - Audit log is written
 
+## Feature Flag Read Flow
+
+- Client requests `/api/feature-flags` or admin requests `/api/admin/feature-flags`
+- API loads canonical flag definitions and current `feature_flags` table rows
+- Missing rows fall back to seeded defaults
+- Current effective state is returned with description, group, risk, and planned-milestone metadata
+- Future protected flows should call backend `assertFeatureEnabled(...)` before continuing
+
 ## Candle / K-line Data Flow
 
 - Client requests `/api/markets/candles`

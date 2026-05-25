@@ -71,6 +71,13 @@
       "when": 1779547017614,
       "tag": "0009_tough_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1779724970302,
+      "tag": "0010_feature_flags_foundation",
+      "breakpoints": true
     }
   ]
 }

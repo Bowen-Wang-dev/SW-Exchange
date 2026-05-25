@@ -6,6 +6,7 @@ import { AssetsModule } from "./assets/assets.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { DatabaseModule } from "./db/database.module.js";
 import { FeesModule } from "./fees/fees.module.js";
+import { FeatureFlagsModule } from "./feature-flags/feature-flags.module.js";
 import { LedgerModule } from "./ledger/ledger.module.js";
 import { MarketsModule } from "./markets/markets.module.js";
 import { OrdersModule } from "./orders/orders.module.js";
@@ -24,6 +25,7 @@ import { validateEnv } from "./config/env.validation.js";
     }),
     DatabaseModule,
     FeesModule,
+    FeatureFlagsModule,
     AuthModule,
     UsersModule,
     AssetsModule,

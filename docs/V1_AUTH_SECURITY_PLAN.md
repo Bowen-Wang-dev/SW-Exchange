@@ -1,8 +1,20 @@
 # v1 Auth Security Plan
 
-This document plans the `v1.0` security foundation that should exist before any chain money-movement feature is enabled.
+This document plans the security foundation that should exist before any chain money-movement feature is enabled.
 
-Nothing in this document is implemented in `v0.20`.
+As of `v1.0.0`, the feature-flag portion of this foundation exists, but the security modules below remain unimplemented unless explicitly noted otherwise.
+
+Implemented prerequisite from this plan:
+
+- database-backed backend-enforced feature flag foundation for `enable2FA`, `enableEmailVerification`, and `enableAdminRolePermissions`
+
+Still not implemented:
+
+- email verification behavior
+- TOTP 2FA behavior
+- sensitive-action re-auth
+- granular admin role permission checks
+- dedicated security logs
 
 ## Goals
 
@@ -73,7 +85,7 @@ Nothing in this document is implemented in `v0.20`.
 - admin status changes
 - admin wallet operations
 
-## Explicit Non-Goals For v1.0
+## Explicit Non-Goals For The Current Milestone
 
 - No phone or SMS verification for now
 - No built-in KYC for now

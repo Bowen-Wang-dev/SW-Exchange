@@ -1,10 +1,10 @@
-# SW Exchange v0.x
+# SW Exchange
 
-SW Exchange v0.x is a simulated exchange runtime for custom assets and custom markets.
+SW Exchange is a simulated exchange runtime for custom assets and custom markets.
 
-Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+Current completed milestone: `v1.0.0 Feature Flags Foundation`
 
-Next milestone: `v1.0 Auth Security + Feature Flags`
+Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -87,6 +87,8 @@ Current scope:
 - Current-market Cancel All, Cancel Buy, and Cancel Sell controls for user open limit orders
 - Persisted Light / Dark theme toggle with token-based exchange UI surfaces
 - Admin operations console polish with safer confirmations, search/filter controls, audit/ledger export filtering, and clearer wallet bucket guidance
+- Database-backed feature flag foundation with public and admin read visibility
+- Admin `/admin/feature-flags` page for current flag state, risk, and planned rollout grouping
 - One-command local/VPS-style Docker Compose production demo runtime with deploy and verify scripts
 
 ## Milestone status
@@ -122,13 +124,14 @@ Current scope:
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate` completed
 - `v0.19 One-Command Deploy / Docker Production Runtime` completed
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs` completed
+- `v1.0.0 Feature Flags Foundation` completed
 
-- Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
-- Next milestone: `v1.0 Auth Security + Feature Flags`
+- Current completed milestone: `v1.0.0 Feature Flags Foundation`
+- Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 ## Planned milestones
 
-- `v1.0 Auth Security + Feature Flags`
+- `v1.0.1 Security Logs + Sensitive Action Model`
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
 - `v1.3 Deposit Monitor Detect-only`
@@ -139,6 +142,18 @@ Current scope:
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Margin / Futures Simulation`
+
+## v1.0.0 Feature Flags Foundation
+
+v1.0.0 adds the feature flag foundation needed to safely gate future optional or high-risk modules without changing trading-core behavior.
+
+- Added a database-backed `feature_flags` table with seeded canonical flags for deposits, withdrawals, chain gateway, 2FA, email verification, support tickets, admin permissions, margin, futures, shorting, liquidation, and advanced orders
+- Added public `GET /api/feature-flags` and admin `GET /api/admin/feature-flags` visibility endpoints plus a single-flag lookup path
+- Added backend `FeatureFlagsService` helpers for full-list reads, single-flag reads, and fail-closed `assertFeatureEnabled(...)` enforcement
+- Added admin `/admin/feature-flags` read-only UI and navigation entry for current state, risk, and planned milestone review
+- Kept all future/high-risk flags default disabled
+- Did not implement deposit, withdraw, blockchain integration, chain listeners, hot-wallet signing, 2FA, email verification, admin RBAC execution, margin, futures, shorting, liquidation, or advanced order behavior
+- Did not change matching logic, market-order behavior, fee calculation, wallet rules, or transfer rules
 
 ## v0.20 Exchange Boundary + v1/v2 Planning Docs
 

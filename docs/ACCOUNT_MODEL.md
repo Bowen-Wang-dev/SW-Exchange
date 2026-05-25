@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+Current completed milestone: `v1.0.0 Feature Flags Foundation`
 
 ## Account Status
 

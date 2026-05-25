@@ -17,6 +17,51 @@ Auth note:
 - Asset / market status: `ACTIVE`, `PAUSED`
 - Wallet type: `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, `HOT`
 
+## GET `/api/feature-flags`
+
+Public.
+
+Response shape:
+
+```json
+{
+  "flags": [
+    {
+      "key": "enableDeposits",
+      "displayName": "Deposits",
+      "description": "Allows deposit-related UI and backend credit workflows.",
+      "group": "FUNDING",
+      "riskLevel": "CRITICAL",
+      "plannedMilestone": "v1.x funding",
+      "defaultEnabled": false,
+      "enabled": false,
+      "source": "database",
+      "createdAt": "2026-05-25T00:00:00.000Z",
+      "updatedAt": "2026-05-25T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+Notes:
+
+- This endpoint exposes safe availability booleans and descriptive metadata only.
+- Unknown keys are not listed.
+
+## GET `/api/feature-flags/:key`
+
+Public.
+
+- Returns one flag by canonical key.
+- Unknown keys return `404`.
+
+## GET `/api/admin/feature-flags`
+
+Requires admin JWT.
+
+- Returns the same canonical flag set for admin review surfaces.
+- Current `v1.0.0` behavior is read-only; no mutation endpoint is exposed yet.
+
 ## POST `/api/orders`
 
 Requires JWT.

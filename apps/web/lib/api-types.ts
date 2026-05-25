@@ -1,4 +1,10 @@
-import type { UserRole, UserStatus } from "@sw-exchange/shared";
+import type {
+  FeatureFlagGroup,
+  FeatureFlagKey,
+  FeatureFlagRiskLevel,
+  UserRole,
+  UserStatus,
+} from "@sw-exchange/shared";
 
 export type AssetMetadataFields = {
   displayName?: string | null;
@@ -289,6 +295,24 @@ export type AdminAuditLog = {
   beforeValue: unknown;
   afterValue: unknown;
   createdAt: string;
+};
+
+export type FeatureFlagItem = {
+  key: FeatureFlagKey;
+  displayName: string;
+  description: string;
+  group: FeatureFlagGroup;
+  riskLevel: FeatureFlagRiskLevel;
+  plannedMilestone: string;
+  defaultEnabled: boolean;
+  enabled: boolean;
+  source: "database" | "default";
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type FeatureFlagsResponse = {
+  flags: FeatureFlagItem[];
 };
 
 export type AdminSummary = {

@@ -2,6 +2,24 @@
 
 High-risk or optional modules must be controlled by backend-enforced feature flags. Flags must never be treated as frontend-only visibility toggles.
 
+## v1.0.0 Status
+
+The foundation in this document is now implemented as a database-backed `feature_flags` table with seeded defaults, public/admin read endpoints, an admin visibility page, and a backend helper service that fails closed for unknown flags during enforcement.
+
+Current implemented endpoints:
+
+- `GET /api/feature-flags`
+- `GET /api/feature-flags/:key`
+- `GET /api/admin/feature-flags`
+- `GET /api/admin/feature-flags/:key`
+
+Current implementation notes:
+
+- Editing is intentionally not exposed yet.
+- All currently defined future/high-risk flags seed disabled by default in `v1.0.0`.
+- `assertFeatureEnabled(...)` exists for future protected backend flows.
+- Unknown flags return `404` on read endpoints and fail closed in enforcement helpers.
+
 ## Flag Principles
 
 - Disabled flags must block both UI entry points and backend execution paths.
@@ -41,7 +59,7 @@ High-risk or optional modules must be controlled by backend-enforced feature fla
 ### `enableManualWithdrawalReview`
 
 - Purpose: require manual admin review before withdrawal execution
-- Default value: `true`
+- Default value: `false` in `v1.0.0` because withdrawals are not implemented yet
 - Frontend effect: show review-pending states and admin review queues
 - Backend enforcement: keep withdrawal requests in review states until approved by allowed admins
 - Admin visibility: prominently visible in withdrawal operations views

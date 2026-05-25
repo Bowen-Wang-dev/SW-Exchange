@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+Current milestone: `v1.0.0 Feature Flags Foundation`
 
 ## Current Stack
 
@@ -26,6 +26,7 @@ Current milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 - `v0.18.3 Pre-v1 Stabilization / Release Candidate`
 - `v0.19 One-Command Deploy / Docker Production Runtime`
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+- `v1.0.0 Feature Flags Foundation`
 
 ## Public Product Positioning
 
@@ -105,6 +106,15 @@ Current milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 - Safer admin confirmations for high-impact actions
 - Admin filtering/search on users, assets, markets, audit logs, and ledger
 - Admin reports, ledger, trades, transfers, orders, audit logs
+- Admin feature flag visibility page and read endpoints
+
+## Current Feature Flag Foundation
+
+- Database-backed `feature_flags` table seeded with canonical future-module flags
+- Public `GET /api/feature-flags` endpoint for safe frontend visibility
+- Admin `GET /api/admin/feature-flags` endpoint for protected runtime review
+- Backend `FeatureFlagsService` with `getAllFlags`, `getFlag`, and fail-closed `assertFeatureEnabled`
+- All currently gated future/high-risk flags default disabled
 
 ## Current UI State
 
@@ -143,6 +153,6 @@ Current milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 
 ## Current Milestone
 
-- Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
-- Next planned milestone: `v1.0 Auth Security + Feature Flags`
-- `v0.20` is docs/planning only and does not change runtime behavior
+- Current completed milestone: `v1.0.0 Feature Flags Foundation`
+- Next planned milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+- `v1.0.0` adds the feature flag foundation only; deposit, withdraw, blockchain, 2FA, email verification, admin RBAC, margin, futures, and advanced orders remain disabled or unimplemented

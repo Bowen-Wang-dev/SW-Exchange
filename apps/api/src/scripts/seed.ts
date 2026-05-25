@@ -1,9 +1,9 @@
 import { config as loadEnv } from "dotenv";
-import { hash } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { and, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { DEFAULT_ASSETS, DEFAULT_MARKETS } from "@sw-exchange/shared";
+import { DEFAULT_ASSETS, DEFAULT_MARKETS, FEATURE_FLAG_DEFINITIONS } from "@sw-exchange/shared";
 import * as schema from "../db/schema/index.js";
 
 const DEFAULT_FEE_RATE_BPS = 10;
@@ -62,6 +62,8 @@ async function seed() {
 
   const refreshedAssetRows = await db.select().from(schema.assets);
 
+  const adminPasswordHash = await hash(adminPassword, 12);
+
   let [adminUser] = await db
     .select()
     .from(schema.users)
@@ -69,13 +71,12 @@ async function seed() {
     .limit(1);
 
   if (!adminUser) {
-    const passwordHash = await hash(adminPassword, 12);
     [adminUser] = await db
       .insert(schema.users)
       .values({
         email: adminEmail,
         username: adminUsername,
-        passwordHash,
+        passwordHash: adminPasswordHash,
         role: "ADMIN",
         status: "ACTIVE",
       })
@@ -86,16 +87,21 @@ async function seed() {
     throw new Error("Failed to create or load the admin user during seed.");
   }
 
+  const adminPasswordMatches =
+    adminUser.passwordHash ? await compare(adminPassword, adminUser.passwordHash) : false;
+
   if (
     adminUser.username !== adminUsername ||
     adminUser.role !== "ADMIN" ||
     adminUser.status !== "ACTIVE" ||
-    adminUser.isSystem
+    adminUser.isSystem ||
+    !adminPasswordMatches
   ) {
     [adminUser] = await db
       .update(schema.users)
       .set({
         username: adminUsername,
+        passwordHash: adminPasswordHash,
         role: "ADMIN",
         status: "ACTIVE",
         isSystem: false,
@@ -254,6 +260,16 @@ async function seed() {
         })
         .where(eq(schema.feeSettings.id, existingFeeSetting.id));
     }
+  }
+
+  for (const featureFlag of FEATURE_FLAG_DEFINITIONS) {
+    await db
+      .insert(schema.featureFlags)
+      .values({
+        key: featureFlag.key,
+        enabled: featureFlag.defaultEnabled,
+      })
+      .onConflictDoNothing();
   }
 
   const normalUsers = await db

@@ -137,6 +137,13 @@ export const adminAuditLogs = pgTable("admin_audit_logs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const featureFlags = pgTable("feature_flags", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  enabled: boolean("enabled").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const transfers = pgTable("transfers", {
   id: uuid("id").defaultRandom().primaryKey(),
   fromUserId: uuid("from_user_id").references(() => users.id, { onDelete: "set null" }),

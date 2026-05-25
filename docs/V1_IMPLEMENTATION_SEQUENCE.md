@@ -2,14 +2,23 @@
 
 This document defines the planned phased `v1.x` roadmap. Each phase remains planned-only until implemented.
 
-## v1.0 Auth Security + Feature Flags
+## v1.0.0 Feature Flags Foundation
 
-- Goal: create a security baseline before any chain money movement
-- Scope: email verification, TOTP 2FA planning implementation, sensitive re-auth, admin role permissions, security logs, backend-enforced feature flags
-- Non-goals: no chain deposit/withdraw execution yet
-- Required tests: auth regression tests, 2FA flow tests, permission tests, flag enforcement tests, rate-limit tests
-- Rollback / disable plan: disable the relevant security or optional feature flags; keep chain gateway off
-- User-visible state: security settings pages and clearer account-verification state
+- Goal: create the backend-enforced gatekeeping layer before any chain money movement or account-hardening rollout
+- Scope: canonical flags, database storage, public/admin visibility, backend enforcement helper pattern
+- Non-goals: no chain deposit/withdraw execution, no email verification, no TOTP 2FA, no admin RBAC execution, no security logs yet
+- Required tests: flag read tests, seed/default tests, admin visibility tests, fail-closed enforcement tests
+- Rollback / disable plan: keep all high-risk flags disabled; the foundation itself is low-impact read infrastructure
+- User-visible state: admin feature-flag visibility and safe public availability metadata
+
+## v1.0.1 Security Logs + Sensitive Action Model
+
+- Goal: add auditable security-event recording and backend-sensitive action patterns before funding features advance
+- Scope: security logs, sensitive-action model, re-auth groundwork, admin action categorization
+- Non-goals: no deposit/withdraw execution yet
+- Required tests: auth regression tests, sensitive-action tests, audit/security-log tests, rate-limit tests
+- Rollback / disable plan: keep chain gateway and funding flags disabled
+- User-visible state: clearer security event visibility and stronger operator review paths
 
 ## v1.1 Chain Asset Registry
 

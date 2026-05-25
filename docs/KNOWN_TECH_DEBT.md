@@ -70,7 +70,7 @@
 - Item: No email verification, TOTP 2FA, or sensitive-action re-auth yet
   - Status: intentional
   - Why accepted: `v0.x` has remained off-chain and non-custodial at the chain layer
-  - Future fix: implement the `v1.0 Auth Security + Feature Flags` plan before any chain money movement
+  - Future fix: implement the `v1.0.0 Feature Flags Foundation` plus later `v1.x` security milestones before any chain money movement
 
 - Item: No granular admin role-permission model
   - Status: temporary

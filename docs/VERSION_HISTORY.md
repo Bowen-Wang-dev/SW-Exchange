@@ -1,12 +1,12 @@
 # SW Exchange Version History
 
-Current completed milestone: `v0.20 Exchange Boundary + v1/v2 Planning Docs`
+Current completed milestone: `v1.0.0 Feature Flags Foundation`
 
-Next milestone: `v1.0 Auth Security + Feature Flags`
+Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 ## Upcoming Plan
 
-- `v1.0 Auth Security + Feature Flags`
+- `v1.0.1 Security Logs + Sensitive Action Model`
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
 - `v1.3 Deposit Monitor Detect-only`
@@ -17,6 +17,26 @@ Next milestone: `v1.0 Auth Security + Feature Flags`
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Optional Margin / Futures Simulation`
+
+## v1.0.0 Feature Flags Foundation
+
+This milestone adds the backend-enforced feature flag foundation required before future optional or high-risk modules can be exposed.
+
+### Highlights
+
+- Added `feature_flags` database storage with seeded canonical flag keys
+- Added public and admin read endpoints for current feature availability state
+- Added backend feature flag service with fail-closed unknown-flag enforcement behavior
+- Added admin UI visibility for grouped and risk-labeled flags
+- Kept all future/high-risk flags disabled by default
+- Kept deposit, withdraw, blockchain, 2FA, email verification, admin role permission execution, margin, futures, shorting, liquidation, and advanced order behavior unimplemented
+- Kept trading-core behavior, wallet rules, transfer rules, and fee calculation unchanged
+
+### Developer And Operational Notes
+
+- This milestone includes a schema migration and seed update
+- Feature flag editing is not exposed yet
+- Admin visibility exists so operators can verify runtime readiness before later modules are added
 
 ## v0.20 Exchange Boundary + v1/v2 Planning Docs
 

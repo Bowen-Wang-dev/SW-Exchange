@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { Client } from "pg";
+import { FEATURE_FLAG_DEFINITIONS } from "@sw-exchange/shared";
 
 loadEnv({ path: ".env" });
 
@@ -48,6 +49,7 @@ const protectedWebRoutes = [
   "/admin/orders",
   "/admin/trades",
   "/admin/fees",
+  "/admin/feature-flags",
   "/admin/ledger",
   "/admin/audit-logs",
 ];
@@ -75,6 +77,7 @@ async function main() {
   await testApiHealth();
   await testSeedData();
   const auth = await testAuthFlows();
+  await testFeatureFlags(auth.adminAccessToken);
   await resetV08OperationalControls(auth.adminAccessToken);
   await testV03AirdropFlow(auth);
   await testV04TransferFlow(auth);
@@ -206,6 +209,58 @@ async function testAuthFlows() {
     user: { email: testEmail, username: testUsername },
     receiver: { email: receiverEmail, username: receiverUsername },
   };
+}
+
+async function testFeatureFlags(adminAccessToken: string) {
+  const publicFlags = await fetchJson<{ flags?: Array<{ key: string; enabled: boolean }> }>(
+    `${apiBaseUrl}/feature-flags`,
+    "load public feature flags",
+  );
+  const adminFlags = await getJson<{ flags?: Array<{ key: string; enabled: boolean }> }>(
+    `${apiBaseUrl}/admin/feature-flags`,
+    adminAccessToken,
+    "load admin feature flags",
+  );
+
+  if (!Array.isArray(publicFlags.flags) || publicFlags.flags.length !== FEATURE_FLAG_DEFINITIONS.length) {
+    throw new Error("Public feature flags payload did not include the canonical flag set.");
+  }
+
+  if (!Array.isArray(adminFlags.flags) || adminFlags.flags.length !== FEATURE_FLAG_DEFINITIONS.length) {
+    throw new Error("Admin feature flags payload did not include the canonical flag set.");
+  }
+
+  for (const definition of FEATURE_FLAG_DEFINITIONS) {
+    const publicFlag = publicFlags.flags.find((flag) => flag.key === definition.key);
+    const adminFlag = adminFlags.flags.find((flag) => flag.key === definition.key);
+
+    if (!publicFlag || !adminFlag) {
+      throw new Error(`Missing feature flag ${definition.key} in API responses.`);
+    }
+
+    if (publicFlag.enabled !== definition.defaultEnabled || adminFlag.enabled !== definition.defaultEnabled) {
+      throw new Error(`Feature flag ${definition.key} did not match its seeded default state.`);
+    }
+  }
+
+  if (publicFlags.flags.some((flag) => flag.enabled)) {
+    throw new Error("All current feature flags should seed disabled in this milestone.");
+  }
+
+  const singleFlag = await fetchJson<{ key?: string; enabled?: boolean }>(
+    `${apiBaseUrl}/feature-flags/enableChainGateway`,
+    "load single feature flag",
+  );
+  if (singleFlag.key !== "enableChainGateway" || singleFlag.enabled !== false) {
+    throw new Error("Single feature flag endpoint returned an unexpected payload.");
+  }
+
+  const unknownFlagResponse = await fetch(`${apiBaseUrl}/feature-flags/notARealFlag`);
+  if (unknownFlagResponse.status !== 404) {
+    throw new Error(`Unknown feature flag should return 404, got ${unknownFlagResponse.status}.`);
+  }
+
+  console.log("PASS feature flags foundation");
 }
 
 async function registerUser(email: string, username: string, nickname: string) {
