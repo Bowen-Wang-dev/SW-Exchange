@@ -2,11 +2,13 @@
 
 This document plans the security foundation that should exist before any chain money-movement feature is enabled.
 
-As of `v1.0.0`, the feature-flag portion of this foundation exists, but the security modules below remain unimplemented unless explicitly noted otherwise.
+As of `v1.0.1`, the feature-flag foundation, dedicated security event logging foundation, and the sensitive-action policy matrix exist, but the remaining security modules below stay unimplemented unless explicitly noted otherwise.
 
 Implemented prerequisite from this plan:
 
 - database-backed backend-enforced feature flag foundation for `enable2FA`, `enableEmailVerification`, and `enableAdminRolePermissions`
+- database-backed `security_events` foundation with current login/admin event capture and admin read visibility
+- shared sensitive-action policy definitions for future re-auth, email verification, 2FA, admin RBAC, and funding controls
 
 Still not implemented:
 
@@ -14,7 +16,7 @@ Still not implemented:
 - TOTP 2FA behavior
 - sensitive-action re-auth
 - granular admin role permission checks
-- dedicated security logs
+- security enforcement for the planned sensitive-action requirements
 
 ## Goals
 
@@ -54,6 +56,7 @@ Still not implemented:
 - Record security-setting changes, re-auth events, failed protected actions, and permissioned admin actions
 - Keep logs queryable in admin tooling
 - Avoid logging secrets, OTP seeds, backup codes, or raw credentials
+- Current `v1.0.1` implementation records login outcomes and selected current admin actions where practical; later milestones should extend coverage as new protected flows are added
 
 ### Withdrawal / Security Setting Verification
 

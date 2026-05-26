@@ -2,6 +2,7 @@ import { Body, Controller, Get, Inject, Post, Req, UseGuards } from "@nestjs/com
 import { Public } from "../common/decorators/public.decorator.js";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
 import type { AuthenticatedRequest } from "../common/interfaces/authenticated-request.interface.js";
+import { extractRequestSecurityContext } from "../security/security-events.service.js";
 import { LoginDto } from "./dto/login.dto.js";
 import { RegisterDto } from "./dto/register.dto.js";
 import { AuthService } from "./auth.service.js";
@@ -18,8 +19,8 @@ export class AuthController {
 
   @Public()
   @Post("login")
-  login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  login(@Req() request: AuthenticatedRequest, @Body() dto: LoginDto) {
+    return this.authService.login(dto, extractRequestSecurityContext(request));
   }
 
   @UseGuards(JwtAuthGuard)
@@ -28,5 +29,11 @@ export class AuthController {
     return {
       user: request.user,
     };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("logout")
+  logout(@Req() request: AuthenticatedRequest) {
+    return this.authService.logout(request.user, extractRequestSecurityContext(request));
   }
 }

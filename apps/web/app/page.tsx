@@ -101,6 +101,7 @@ export default function HomePage() {
             rows={[
               ["Auth", <StatusBadge key="auth" label="Ready" tone="success" />, "Register/login endpoints exist"],
               ["Wallet", <StatusBadge key="wallet" label="Live" tone="success" />, "User and admin wallet viewers show real balances and SWC valuation"],
+              ["Security", <StatusBadge key="security" label="v1.0.1" tone="warning" />, "Security event logging and a planned sensitive-action model are now visible in admin"],
               ["Airdrop", <StatusBadge key="airdrop" label="Live" tone="warning" />, "Admin asset funding is enabled for active assets"],
               ["Transfer", <StatusBadge key="transfer" label="Live" tone="success" />, "Free internal SWC/SWL transfers between active users"],
               ["Trade", <StatusBadge key="trade" label="Live" tone="success" />, "Limit orders, market-order taker flow, maker-price matching, ticker data, interactive K-line candles, fee settlement, trade history, and the order book are live."],

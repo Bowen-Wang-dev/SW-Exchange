@@ -60,7 +60,91 @@ Public.
 Requires admin JWT.
 
 - Returns the same canonical flag set for admin review surfaces.
-- Current `v1.0.0` behavior is read-only; no mutation endpoint is exposed yet.
+- Current `v1.0.1` behavior remains read-only; no mutation endpoint is exposed yet.
+
+## GET `/api/admin/security-events`
+
+Requires admin JWT.
+
+Response shape:
+
+```json
+{
+  "events": [
+    {
+      "id": "event_uuid",
+      "createdAt": "2026-05-25T00:00:00.000Z",
+      "actorUserId": "user_uuid",
+      "actorRole": "ADMIN",
+      "actorUser": {
+        "id": "user_uuid",
+        "email": "admin@example.com",
+        "username": "admin"
+      },
+      "eventType": "USER_STATUS_CHANGED",
+      "severity": "WARNING",
+      "targetType": "USER",
+      "targetId": "target_uuid",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "Mozilla/5.0",
+      "metadata": {
+        "beforeStatus": "ACTIVE",
+        "afterStatus": "FROZEN",
+        "note": "Manual review hold"
+      }
+    }
+  ]
+}
+```
+
+Supported simple filters:
+
+- `eventType`
+- `severity`
+- `actorUserId`
+- `targetType`
+- `search`
+- `limit`
+
+Notes:
+
+- Response metadata is sanitized and must not include raw passwords, JWTs, TOTP secrets, email-verification codes, private keys, or environment secrets.
+- Current `v1.0.1` coverage focuses on login outcomes and selected admin actions.
+
+## GET `/api/admin/security-events/:id`
+
+Requires admin JWT.
+
+- Returns one security event by UUID.
+- Unknown IDs return `404`.
+
+## GET `/api/admin/security-actions`
+
+Requires admin JWT.
+
+Response shape:
+
+```json
+{
+  "actions": [
+    {
+      "key": "REQUEST_WITHDRAWAL",
+      "displayName": "Request Withdrawal",
+      "severity": "CRITICAL",
+      "requiresPasswordReauth": true,
+      "requiresEmailVerification": true,
+      "requires2FA": true,
+      "requiresAdminRole": false,
+      "notes": "Planned-only in v1.0.1."
+    }
+  ]
+}
+```
+
+Notes:
+
+- This endpoint exposes the planned sensitive-action policy matrix only.
+- It does not mean deposit, withdrawal, email verification, or TOTP enforcement is live.
 
 ## POST `/api/orders`
 

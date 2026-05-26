@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v1.0.0 Feature Flags Foundation`
+Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 ## Account Status
 
@@ -10,7 +10,7 @@ User statuses are:
 - `FROZEN`: can login and view dashboard, wallets, ledger, orders, and trades, but cannot transfer, place orders, cancel orders, or trade through matching
 - `BANNED`: cannot login; existing banned sessions are rejected by authenticated API requests
 
-Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the current safer/simple `v0.x` rule.
+Transfer recipients and admin airdrop targets must be `ACTIVE`. Frozen users are blocked from receiving transfers and airdrops for the current safer/simple `v1.x` rule.
 
 ## Wallet Buckets
 
@@ -26,9 +26,9 @@ The admin user has:
 
 Fees go to the admin `FEE` wallet. Buyer fees are collected in the traded base asset; seller fees are collected in the quote asset.
 
-Airdrops are still unlimited in current `v0.x` and do not deduct from the `AIRDROP` wallet.
+Airdrops are still unlimited in current `v1.x` and do not deduct from the `AIRDROP` wallet.
 
-`v0.x` asset creation eagerly creates zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
+Current asset creation eagerly creates zero-balance `MAIN` wallets for existing users and zero-balance admin `MAIN`, `FEE`, `TREASURY`, `AIRDROP`, and `HOT` wallets idempotently.
 
 ## Asset Metadata
 
@@ -85,7 +85,7 @@ Markets such as `SWL/SWC`, `SWD/SWC`, and later admin-created `BASE/QUOTE` pairs
 - No blockchain features are implemented now.
 - Future chain metadata, deposit, withdraw, custody, and reconciliation plans are documented separately and remain planned-only.
 - Internal transfers remain free.
-- The `HOT` wallet bucket is only a placeholder in `v0.x`.
+- The `HOT` wallet bucket is only a placeholder in current `v1.x`.
 
 See:
 

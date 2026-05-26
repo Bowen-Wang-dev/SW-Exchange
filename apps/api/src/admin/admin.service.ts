@@ -32,6 +32,7 @@ import { FeesService } from "../fees/fees.service.js";
 import { LedgerService } from "../ledger/ledger.service.js";
 import { MarketsService } from "../markets/markets.service.js";
 import { OrdersService } from "../orders/orders.service.js";
+import { SecurityEventsService } from "../security/security-events.service.js";
 import { TradesService } from "../trades/trades.service.js";
 import { TransfersService } from "../transfers/transfers.service.js";
 import { WalletsService } from "../wallets/wallets.service.js";
@@ -67,6 +68,10 @@ type WalletFilters = {
   assetSymbol?: string;
 };
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+type RequestSecurityContext = {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
 
 @Injectable()
 export class AdminService {
@@ -76,6 +81,7 @@ export class AdminService {
     @Inject(LedgerService) private readonly ledgerService: LedgerService,
     @Inject(MarketsService) private readonly marketsService: MarketsService,
     @Inject(OrdersService) private readonly ordersService: OrdersService,
+    @Inject(SecurityEventsService) private readonly securityEventsService: SecurityEventsService,
     @Inject(TradesService) private readonly tradesService: TradesService,
     @Inject(TransfersService) private readonly transfersService: TransfersService,
     @Inject(WalletsService) private readonly walletsService: WalletsService,
@@ -209,11 +215,15 @@ export class AdminService {
     }));
   }
 
-  async updateUserStatus(adminUserId: string, targetUserId: string, dto: UpdateUserStatusDto) {
+  async updateUserStatus(
+    adminUserId: string,
+    targetUserId: string,
+    dto: UpdateUserStatusDto,
+    context?: RequestSecurityContext,
+  ) {
     const requestedStatus = this.normalizeUserStatus(dto.status);
     const note = dto.note?.trim() || null;
-
-    return this.db.transaction(async (tx) => {
+    const transactionResult = await this.db.transaction(async (tx) => {
       await this.assertActiveAdmin(tx, adminUserId);
 
       const [targetUser] = await tx
@@ -260,9 +270,12 @@ export class AdminService {
 
       if (targetUser.status === requestedStatus) {
         return {
-          ...targetUser,
-          created_at: targetUser.createdAt,
-          updated_at: targetUser.updatedAt,
+          data: {
+            ...targetUser,
+            created_at: targetUser.createdAt,
+            updated_at: targetUser.updatedAt,
+          },
+          securityEvent: null,
         };
       }
 
@@ -305,11 +318,43 @@ export class AdminService {
       });
 
       return {
-        ...updatedUser,
-        created_at: updatedUser.createdAt,
-        updated_at: updatedUser.updatedAt,
+        data: {
+          ...updatedUser,
+          created_at: updatedUser.createdAt,
+          updated_at: updatedUser.updatedAt,
+        },
+        securityEvent: {
+          targetUserId: updatedUser.id,
+          targetUsername: updatedUser.username,
+          beforeStatus: targetUser.status,
+          afterStatus: updatedUser.status,
+          actorRole: "ADMIN" as const,
+        },
       };
     });
+
+    const { data, securityEvent } = transactionResult;
+
+    if (securityEvent) {
+      await this.securityEventsService.recordEvent({
+        actorUserId: adminUserId,
+        actorRole: securityEvent.actorRole,
+        eventType: "USER_STATUS_CHANGED",
+        severity: securityEvent.afterStatus === "BANNED" ? "CRITICAL" : "WARNING",
+        targetType: "USER",
+        targetId: securityEvent.targetUserId,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+        metadata: {
+          username: securityEvent.targetUsername,
+          beforeStatus: securityEvent.beforeStatus,
+          afterStatus: securityEvent.afterStatus,
+          note,
+        },
+      });
+    }
+
+    return data;
   }
 
   async listWallets(filters: WalletFilters = {}) {
@@ -385,9 +430,14 @@ export class AdminService {
     return this.listAdminWalletsByType(adminUserId, [...ADMIN_SYSTEM_WALLET_TYPES]);
   }
 
-  async transferAdminWalletBucket(adminUserId: string, dto: AdminWalletBucketTransferDto) {
+  async transferAdminWalletBucket(
+    adminUserId: string,
+    dto: AdminWalletBucketTransferDto,
+    context?: RequestSecurityContext,
+  ) {
     const fromWalletType = this.normalizeWalletType(dto.fromWalletType);
     const toWalletType = this.normalizeWalletType(dto.toWalletType);
+    const note = dto.note?.trim() || null;
 
     if (fromWalletType === toWalletType) {
       throw new BadRequestException("fromWalletType and toWalletType must be different.");
@@ -398,7 +448,7 @@ export class AdminService {
       throw new BadRequestException("assetSymbol is invalid.");
     }
 
-    return this.db.transaction(async (tx) => {
+    const transactionResult = await this.db.transaction(async (tx) => {
       const [adminUser] = await tx
         .select({
           id: users.id,
@@ -431,9 +481,7 @@ export class AdminService {
       if (!asset.isActive) {
         throw new BadRequestException("ASSET_PAUSED");
       }
-
       const amount = this.parseAdminBucketTransferAmount(dto.amount, asset.decimals);
-      const note = dto.note?.trim() || null;
 
       await tx
         .insert(wallets)
@@ -566,33 +614,68 @@ export class AdminService {
       ]);
 
       return {
-        id: auditLog.id,
-        assetSymbol: asset.symbol,
-        asset: asset.symbol,
-        amount: formatMinimalUnitsToHuman(amount, asset.decimals),
-        amountRaw: amount.toString(),
-        fromWalletType,
-        toWalletType,
-        source: {
-          walletType: fromWalletType,
-          available: formatMinimalUnitsToHuman(sourceAvailableAfter, asset.decimals),
-          availableRaw: sourceAvailableAfter.toString(),
-          locked: formatMinimalUnitsToHuman(sourceWallet.lockedBalance, asset.decimals),
-          lockedRaw: sourceWallet.lockedBalance.toString(),
+        data: {
+          id: auditLog.id,
+          assetSymbol: asset.symbol,
+          asset: asset.symbol,
+          amount: formatMinimalUnitsToHuman(amount, asset.decimals),
+          amountRaw: amount.toString(),
+          fromWalletType,
+          toWalletType,
+          source: {
+            walletType: fromWalletType,
+            available: formatMinimalUnitsToHuman(sourceAvailableAfter, asset.decimals),
+            availableRaw: sourceAvailableAfter.toString(),
+            locked: formatMinimalUnitsToHuman(sourceWallet.lockedBalance, asset.decimals),
+            lockedRaw: sourceWallet.lockedBalance.toString(),
+          },
+          destination: {
+            walletType: toWalletType,
+            available: formatMinimalUnitsToHuman(destinationAvailableAfter, asset.decimals),
+            availableRaw: destinationAvailableAfter.toString(),
+            locked: formatMinimalUnitsToHuman(destinationWallet.lockedBalance, asset.decimals),
+            lockedRaw: destinationWallet.lockedBalance.toString(),
+          },
+          auditLogId: auditLog.id,
         },
-        destination: {
-          walletType: toWalletType,
-          available: formatMinimalUnitsToHuman(destinationAvailableAfter, asset.decimals),
-          availableRaw: destinationAvailableAfter.toString(),
-          locked: formatMinimalUnitsToHuman(destinationWallet.lockedBalance, asset.decimals),
-          lockedRaw: destinationWallet.lockedBalance.toString(),
+        securityEvent: {
+          adminUserId: adminUser.id,
+          assetSymbol: asset.symbol,
+          amount: formatMinimalUnitsToHuman(amount, asset.decimals),
+          amountRaw: amount.toString(),
+          fromWalletType,
+          toWalletType,
         },
-        auditLogId: auditLog.id,
       };
     });
+
+    const { data, securityEvent } = transactionResult;
+
+    if (securityEvent) {
+      await this.securityEventsService.recordEvent({
+        actorUserId: securityEvent.adminUserId,
+        actorRole: "ADMIN",
+        eventType: "ADMIN_WALLET_TRANSFER_CREATED",
+        severity: "CRITICAL",
+        targetType: "ADMIN_WALLET_BUCKET",
+        targetId: securityEvent.adminUserId,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+        metadata: {
+          assetSymbol: securityEvent.assetSymbol,
+          amount: securityEvent.amount,
+          amountRaw: securityEvent.amountRaw,
+          fromWalletType: securityEvent.fromWalletType,
+          toWalletType: securityEvent.toWalletType,
+          note,
+        },
+      });
+    }
+
+    return data;
   }
 
-  async airdrop(adminUserId: string, dto: AirdropDto) {
+  async airdrop(adminUserId: string, dto: AirdropDto, context?: RequestSecurityContext) {
     const identifiers = [dto.userId, dto.username, dto.email].filter(
       (value): value is string => typeof value === "string" && value.trim().length > 0,
     );
@@ -602,11 +685,12 @@ export class AdminService {
     }
 
     const assetSymbol = dto.assetSymbol.trim().toUpperCase();
+    const note = dto.note?.trim() || null;
     if (!assetSymbol || assetSymbol.length > 16) {
       throw new BadRequestException("assetSymbol is invalid.");
     }
 
-    return this.db.transaction(async (tx) => {
+    const transactionResult = await this.db.transaction(async (tx) => {
       await this.assertActiveAdmin(tx, adminUserId);
 
       const [asset] = await tx
@@ -660,7 +744,6 @@ export class AdminService {
       const previousAvailable = wallet.availableBalance;
       const previousLocked = wallet.lockedBalance;
       const newAvailable = previousAvailable + amount;
-      const note = dto.note?.trim() || null;
 
       await tx
         .update(wallets)
@@ -724,24 +807,57 @@ export class AdminService {
       }
 
       return {
-        targetUser: {
-          id: targetUser.id,
-          email: targetUser.email,
-          username: targetUser.username,
-          nickname: targetUser.nickname,
-          role: targetUser.role,
-          status: targetUser.status,
+        data: {
+          targetUser: {
+            id: targetUser.id,
+            email: targetUser.email,
+            username: targetUser.username,
+            nickname: targetUser.nickname,
+            role: targetUser.role,
+            status: targetUser.status,
+          },
+          assetSymbol: asset.symbol,
+          asset: asset.symbol,
+          amount: formatMinimalUnitsToHuman(amount, asset.decimals),
+          amountRaw: amount.toString(),
+          newAvailable: formatMinimalUnitsToHuman(newAvailable, asset.decimals),
+          newAvailableRaw: newAvailable.toString(),
+          ledgerEntryId: ledgerEntry.id,
+          auditLogId: auditLog.id,
         },
-        assetSymbol: asset.symbol,
-        asset: asset.symbol,
-        amount: formatMinimalUnitsToHuman(amount, asset.decimals),
-        amountRaw: amount.toString(),
-        newAvailable: formatMinimalUnitsToHuman(newAvailable, asset.decimals),
-        newAvailableRaw: newAvailable.toString(),
-        ledgerEntryId: ledgerEntry.id,
-        auditLogId: auditLog.id,
+        securityEvent: {
+          targetUserId: targetUser.id,
+          targetUsername: targetUser.username,
+          assetSymbol: asset.symbol,
+          amount: formatMinimalUnitsToHuman(amount, asset.decimals),
+          amountRaw: amount.toString(),
+        },
       };
     });
+
+    const { data, securityEvent } = transactionResult;
+
+    if (securityEvent) {
+      await this.securityEventsService.recordEvent({
+        actorUserId: adminUserId,
+        actorRole: "ADMIN",
+        eventType: "ADMIN_AIRDROP_CREATED",
+        severity: "WARNING",
+        targetType: "USER",
+        targetId: securityEvent.targetUserId,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+        metadata: {
+          username: securityEvent.targetUsername,
+          assetSymbol: securityEvent.assetSymbol,
+          amount: securityEvent.amount,
+          amountRaw: securityEvent.amountRaw,
+          note,
+        },
+      });
+    }
+
+    return data;
   }
 
   async createAsset(adminUserId: string, dto: CreateAssetDto) {
@@ -942,16 +1058,20 @@ export class AdminService {
     return this.feesService.getAdminFeeSettings(marketSymbol);
   }
 
-  updateFeeSettings(adminUserId: string, dto: UpdateFeeSettingsDto) {
-    return this.feesService.updateFeeSettings(adminUserId, dto);
+  updateFeeSettings(adminUserId: string, dto: UpdateFeeSettingsDto, context?: RequestSecurityContext) {
+    return this.feesService.updateFeeSettings(adminUserId, dto, context);
   }
 
-  async updateAssetStatus(adminUserId: string, symbol: string, dto: UpdateAssetStatusDto) {
+  async updateAssetStatus(
+    adminUserId: string,
+    symbol: string,
+    dto: UpdateAssetStatusDto,
+    context?: RequestSecurityContext,
+  ) {
     const assetSymbol = symbol.trim().toUpperCase();
     const isActive = this.normalizeAssetStatus(dto);
     const note = dto.note?.trim() || null;
-
-    return this.db.transaction(async (tx) => {
+    const transactionResult = await this.db.transaction(async (tx) => {
       await this.assertActiveAdmin(tx, adminUserId);
 
       const [asset] = await tx
@@ -966,7 +1086,10 @@ export class AdminService {
       }
 
       if (asset.isActive === isActive) {
-        return this.formatAssetStatusResponse(asset);
+        return {
+          data: this.formatAssetStatusResponse(asset),
+          securityEvent: null,
+        };
       }
 
       const updatedAt = new Date();
@@ -1001,8 +1124,39 @@ export class AdminService {
         },
       });
 
-      return this.formatAssetStatusResponse(updatedAsset);
+      return {
+        data: this.formatAssetStatusResponse(updatedAsset),
+        securityEvent: {
+          assetId: asset.id,
+          symbol: updatedAsset.symbol,
+          beforeStatus: asset.isActive ? "ACTIVE" : "PAUSED",
+          afterStatus: updatedAsset.isActive ? "ACTIVE" : "PAUSED",
+        },
+      };
     });
+
+    const { data, securityEvent } = transactionResult;
+
+    if (securityEvent) {
+      await this.securityEventsService.recordEvent({
+        actorUserId: adminUserId,
+        actorRole: "ADMIN",
+        eventType: "ASSET_STATUS_CHANGED",
+        severity: securityEvent.afterStatus === "PAUSED" ? "CRITICAL" : "WARNING",
+        targetType: "ASSET",
+        targetId: securityEvent.assetId,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+        metadata: {
+          symbol: securityEvent.symbol,
+          beforeStatus: securityEvent.beforeStatus,
+          afterStatus: securityEvent.afterStatus,
+          note,
+        },
+      });
+    }
+
+    return data;
   }
 
   async updateAssetMetadata(adminUserId: string, symbol: string, dto: UpdateAssetMetadataDto) {
@@ -1051,12 +1205,16 @@ export class AdminService {
     });
   }
 
-  async updateMarketStatus(adminUserId: string, symbol: string, dto: UpdateMarketStatusDto) {
+  async updateMarketStatus(
+    adminUserId: string,
+    symbol: string,
+    dto: UpdateMarketStatusDto,
+    context?: RequestSecurityContext,
+  ) {
     const marketSymbol = symbol.trim().toUpperCase();
     const status = this.normalizeMarketStatus(dto.status);
     const note = dto.note?.trim() || null;
-
-    return this.db.transaction(async (tx) => {
+    const transactionResult = await this.db.transaction(async (tx) => {
       await this.assertActiveAdmin(tx, adminUserId);
 
       const [market] = await tx
@@ -1076,7 +1234,10 @@ export class AdminService {
           throw new Error("Failed to load market.");
         }
 
-        return currentMarket;
+        return {
+          data: currentMarket,
+          securityEvent: null,
+        };
       }
 
       const updatedAt = new Date();
@@ -1114,8 +1275,39 @@ export class AdminService {
         throw new Error("Failed to load updated market.");
       }
 
-      return formattedMarket;
+      return {
+        data: formattedMarket,
+        securityEvent: {
+          marketId: market.id,
+          symbol: updatedMarket.symbol,
+          beforeStatus: market.status,
+          afterStatus: updatedMarket.status,
+        },
+      };
     });
+
+    const { data, securityEvent } = transactionResult;
+
+    if (securityEvent) {
+      await this.securityEventsService.recordEvent({
+        actorUserId: adminUserId,
+        actorRole: "ADMIN",
+        eventType: "MARKET_STATUS_CHANGED",
+        severity: securityEvent.afterStatus === "PAUSED" ? "CRITICAL" : "WARNING",
+        targetType: "MARKET",
+        targetId: securityEvent.marketId,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+        metadata: {
+          symbol: securityEvent.symbol,
+          beforeStatus: securityEvent.beforeStatus,
+          afterStatus: securityEvent.afterStatus,
+          note,
+        },
+      });
+    }
+
+    return data;
   }
 
   async listAuditLogs() {

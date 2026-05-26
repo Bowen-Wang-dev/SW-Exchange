@@ -3,6 +3,7 @@ import { FeesModule } from "../fees/fees.module.js";
 import { LedgerModule } from "../ledger/ledger.module.js";
 import { MarketsModule } from "../markets/markets.module.js";
 import { OrdersModule } from "../orders/orders.module.js";
+import { SecurityModule } from "../security/security.module.js";
 import { TradesModule } from "../trades/trades.module.js";
 import { TransfersModule } from "../transfers/transfers.module.js";
 import { WalletsModule } from "../wallets/wallets.module.js";
@@ -15,6 +16,7 @@ import { AdminService } from "./admin.service.js";
     LedgerModule,
     MarketsModule,
     OrdersModule,
+    SecurityModule,
     TradesModule,
     TransfersModule,
     WalletsModule,

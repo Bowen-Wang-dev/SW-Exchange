@@ -221,11 +221,12 @@ export function AdminDashboardContent() {
               "Limit orders lock balances, match at maker prices, and settle through ledger entries.",
               "Trading fees are configurable by admin and settle into the admin Fee Wallet.",
               "Feature flag state is visible in admin and should gate future high-risk modules server-side.",
+              "Security events now record current login and high-impact admin actions without storing secrets.",
               "User, asset, and market status controls write admin audit logs.",
               "Normal users only have MAIN wallets; admin also has FEE, TREASURY, AIRDROP, and HOT buckets.",
               "Deposit, withdraw, blockchain addresses, and HOT wallet chain behavior remain future work.",
               "Wallet viewer pages are live for both admin and normal users.",
-              "All later sensitive actions should map to ledger and audit entries.",
+              "Sensitive actions now have a shared planned policy matrix for future re-auth, email, and 2FA enforcement.",
             ].map((item) => (
               <div key={item} className="px-4 py-3 text-sm text-[var(--foreground-soft)]">
                 {item}
@@ -245,6 +246,8 @@ export function AdminDashboardContent() {
             ["Trades", <StatusBadge key="trades" label="Live" tone="success" />, "Settled market trade review"],
             ["Fees", <StatusBadge key="fees" label="Live" tone="warning" />, "Admin fee settings and Fee Wallet balances"],
             ["Feature Flags", <StatusBadge key="feature-flags" label="v1.0.0" tone="info" />, "Read-only state for backend-enforced future modules"],
+            ["Security Events", <StatusBadge key="security-events" label="v1.0.1" tone="warning" />, "Read-only security log for login and high-impact admin actions"],
+            ["Sensitive Actions", <StatusBadge key="security-actions" label="v1.0.1" tone="info" />, "Planned requirement matrix for future re-auth, email, and 2FA checks"],
             ["Market Data", <StatusBadge key="market-data" label="v0.10" tone="info" />, "Ticker, 24h volume, open orders, and total trades"],
             ["Asset Metadata", <StatusBadge key="asset-metadata" label="v0.11" tone="info" />, "Display names, icon URLs, and clean fallbacks"],
             ["Reports", <StatusBadge key="reports" label="v0.10" tone="info" />, "Summary cards and recent activity"],

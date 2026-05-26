@@ -2,9 +2,9 @@
 
 SW Exchange is a simulated exchange runtime for custom assets and custom markets.
 
-Current completed milestone: `v1.0.0 Feature Flags Foundation`
+Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
-Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Next milestone: `v1.0.2 Email Verification Foundation`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -14,6 +14,7 @@ This version is intentionally limited:
 - No deposit or withdraw
 - No chain token gateway integration in `v0.x`
 - No KYC
+- No email verification or TOTP 2FA yet
 - No stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
@@ -26,6 +27,7 @@ Current scope:
 - User ledger viewer
 - Admin user and wallet viewer
 - Admin active-asset airdrop flow
+- Admin security event and sensitive-action review pages
 - User SWC/SWL internal transfer flow
 - User and admin transfer history
 - Admin ledger and audit log viewer
@@ -48,6 +50,8 @@ Current scope:
 - Admin asset pause/resume controls
 - Admin seeded-market pause/resume controls
 - Admin audit logs for user, asset, and market status changes
+- Security event logging for successful and failed logins plus selected admin actions
+- Read-only sensitive-action policy matrix for future re-auth, email, and 2FA rollout
 - Polished user and admin ledger tables with filters
 - Polished admin audit log table with readable before/after details
 - Admin reports summary cards and recent activity
@@ -125,13 +129,15 @@ Current scope:
 - `v0.19 One-Command Deploy / Docker Production Runtime` completed
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs` completed
 - `v1.0.0 Feature Flags Foundation` completed
+- `v1.0.1 Security Logs + Sensitive Action Model` completed
 
-- Current completed milestone: `v1.0.0 Feature Flags Foundation`
-- Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+- Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+- Next milestone: `v1.0.2 Email Verification Foundation`
 
 ## Planned milestones
 
-- `v1.0.1 Security Logs + Sensitive Action Model`
+- `v1.0.2 Email Verification Foundation`
+- `v1.0.3 TOTP 2FA Foundation`
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
 - `v1.3 Deposit Monitor Detect-only`
@@ -142,6 +148,18 @@ Current scope:
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Margin / Futures Simulation`
+
+## v1.0.1 Security Logs + Sensitive Action Model
+
+v1.0.1 adds the security-event logging foundation and the shared sensitive-action policy matrix needed before later verification and custody work can be enforced.
+
+- Added a database-backed `security_events` table for auth and high-impact admin security events
+- Added admin read endpoints and UI for security-event review
+- Added a shared sensitive-action policy matrix for future password re-auth, email verification, TOTP 2FA, admin RBAC, deposit, withdrawal, and chain-configuration controls
+- Added sanitized metadata normalization so secrets, raw passwords, JWTs, OTP seeds, and private keys are not stored
+- Logged successful and failed logins plus current admin status, asset status, market status, fee settings, airdrop, and wallet bucket transfer actions where practical
+- Kept deposit, withdraw, blockchain integration, chain listeners, hot-wallet signing, 2FA, email verification, admin RBAC execution, margin, futures, shorting, liquidation, and advanced order behavior unimplemented
+- Did not change matching logic, market-order behavior, fee calculation logic, wallet rules, or transfer rules
 
 ## v1.0.0 Feature Flags Foundation
 

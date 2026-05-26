@@ -10,6 +10,7 @@ import { FeatureFlagsModule } from "./feature-flags/feature-flags.module.js";
 import { LedgerModule } from "./ledger/ledger.module.js";
 import { MarketsModule } from "./markets/markets.module.js";
 import { OrdersModule } from "./orders/orders.module.js";
+import { SecurityModule } from "./security/security.module.js";
 import { TradesModule } from "./trades/trades.module.js";
 import { TransfersModule } from "./transfers/transfers.module.js";
 import { UsersModule } from "./users/users.module.js";
@@ -34,6 +35,7 @@ import { validateEnv } from "./config/env.validation.js";
     TransfersModule,
     MarketsModule,
     OrdersModule,
+    SecurityModule,
     TradesModule,
     AdminModule,
   ],

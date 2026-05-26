@@ -1,12 +1,13 @@
 # SW Exchange Version History
 
-Current completed milestone: `v1.0.0 Feature Flags Foundation`
+Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
-Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Next milestone: `v1.0.2 Email Verification Foundation`
 
 ## Upcoming Plan
 
-- `v1.0.1 Security Logs + Sensitive Action Model`
+- `v1.0.2 Email Verification Foundation`
+- `v1.0.3 TOTP 2FA Foundation`
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
 - `v1.3 Deposit Monitor Detect-only`
@@ -17,6 +18,26 @@ Next milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Optional Margin / Futures Simulation`
+
+## v1.0.1 Security Logs + Sensitive Action Model
+
+This milestone adds the security-event logging foundation and the shared sensitive-action policy model needed before future verification and custody work can be safely enforced.
+
+### Highlights
+
+- Added `security_events` database storage for auth and high-impact admin security events
+- Added admin-only read endpoints for security events and sensitive-action policy review
+- Added shared sensitive-action definitions for future password re-auth, email verification, TOTP 2FA, admin RBAC, and funding controls
+- Added sanitized metadata normalization to prevent raw secrets, tokens, OTP data, and private keys from being stored
+- Added login success/failure and selected current admin security event recording
+- Kept deposit, withdraw, blockchain, 2FA, email verification, admin role permission execution, margin, futures, shorting, liquidation, and advanced order behavior unimplemented
+- Kept trading-core behavior, wallet rules, transfer rules, and fee calculation unchanged
+
+### Developer And Operational Notes
+
+- This milestone includes a schema migration and seed-safe read model changes
+- Security event logging is additional to existing audit logs and ledger records
+- Sensitive-action enforcement is still planned only; the matrix is for display and future rollout planning
 
 ## v1.0.0 Feature Flags Foundation
 

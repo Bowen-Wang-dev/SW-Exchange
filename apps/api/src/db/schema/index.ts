@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  index,
   jsonb,
   numeric,
   pgEnum,
@@ -44,6 +45,27 @@ export const orderStatusEnum = pgEnum("order_status", [
   "REJECTED",
 ]);
 export const tradeStatusEnum = pgEnum("trade_status", ["SETTLED", "REVERSED"]);
+export const securityEventSeverityEnum = pgEnum("security_event_severity", [
+  "INFO",
+  "WARNING",
+  "CRITICAL",
+]);
+export const securityEventTypeEnum = pgEnum("security_event_type", [
+  "AUTH_LOGIN_SUCCESS",
+  "AUTH_LOGIN_FAILED",
+  "AUTH_LOGOUT",
+  "ADMIN_ACTION_CONFIRMED",
+  "FEATURE_FLAG_READ_ADMIN",
+  "SENSITIVE_ACTION_REQUIRED",
+  "SENSITIVE_ACTION_CONFIRMED",
+  "SENSITIVE_ACTION_REJECTED",
+  "USER_STATUS_CHANGED",
+  "ASSET_STATUS_CHANGED",
+  "MARKET_STATUS_CHANGED",
+  "FEE_SETTINGS_UPDATED",
+  "ADMIN_AIRDROP_CREATED",
+  "ADMIN_WALLET_TRANSFER_CREATED",
+]);
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -143,6 +165,30 @@ export const featureFlags = pgTable("feature_flags", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const securityEvents = pgTable(
+  "security_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    actorRole: userRoleEnum("actor_role"),
+    eventType: securityEventTypeEnum("event_type").notNull(),
+    severity: securityEventSeverityEnum("severity").notNull(),
+    targetType: varchar("target_type", { length: 64 }),
+    targetId: uuid("target_id"),
+    ipAddress: varchar("ip_address", { length: 128 }),
+    userAgent: text("user_agent"),
+    metadata: jsonb("metadata"),
+  },
+  (table) => ({
+    securityEventsCreatedAtIdx: index("security_events_created_at_idx").on(table.createdAt),
+    securityEventsEventTypeIdx: index("security_events_event_type_idx").on(table.eventType),
+    securityEventsSeverityIdx: index("security_events_severity_idx").on(table.severity),
+    securityEventsActorUserIdIdx: index("security_events_actor_user_id_idx").on(table.actorUserId),
+    securityEventsTargetTypeIdx: index("security_events_target_type_idx").on(table.targetType),
+  }),
+);
 
 export const transfers = pgTable("transfers", {
   id: uuid("id").defaultRandom().primaryKey(),

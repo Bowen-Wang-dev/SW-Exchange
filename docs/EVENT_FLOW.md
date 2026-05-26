@@ -94,6 +94,22 @@ This document describes current live `v0.x` runtime flows only. Future chain dep
 - Current effective state is returned with description, group, risk, and planned-milestone metadata
 - Future protected flows should call backend `assertFeatureEnabled(...)` before continuing
 
+## Security Event Logging Flow
+
+- Login attempts call the auth service
+- Successful login records `AUTH_LOGIN_SUCCESS`
+- Rejected login records `AUTH_LOGIN_FAILED`
+- Current admin status, fee, airdrop, and bucket-transfer actions record security-focused events after the main action succeeds
+- `security_events` complements existing admin audit logs; it does not replace ledger or audit records
+- Event metadata is sanitized before storage so secrets, raw passwords, JWTs, OTP seeds, verification codes, and private keys are not written
+
+## Sensitive Action Policy Flow
+
+- Admin requests `/api/admin/security-actions`
+- API returns the canonical sensitive-action matrix defined in shared constants
+- The matrix is currently informational only in `v1.0.1`
+- Future milestones may enforce password re-auth, email verification, 2FA, and admin RBAC against those action keys server-side
+
 ## Candle / K-line Data Flow
 
 - Client requests `/api/markets/candles`

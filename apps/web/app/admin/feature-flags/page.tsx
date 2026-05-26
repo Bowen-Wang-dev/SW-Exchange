@@ -32,7 +32,7 @@ export default function AdminFeatureFlagsPage() {
 
           <AdminNotice
             tone="warning"
-            message="Editing is intentionally not exposed in v1.0.0. All current high-risk and future-only flags seed disabled by default."
+            message="Editing is still intentionally not exposed in v1.0.1. All current high-risk and future-only flags seed disabled by default."
           />
           {error ? <AdminNotice tone="danger" message={error} /> : null}
           {isLoading ? <AdminNotice tone="info" message="Loading feature flags..." /> : null}

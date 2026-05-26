@@ -47,6 +47,8 @@ const protectedWebRoutes = [
   "/admin/assets",
   "/admin/markets",
   "/admin/orders",
+  "/admin/security-actions",
+  "/admin/security-events",
   "/admin/trades",
   "/admin/fees",
   "/admin/feature-flags",
@@ -78,8 +80,10 @@ async function main() {
   await testSeedData();
   const auth = await testAuthFlows();
   await testFeatureFlags(auth.adminAccessToken);
+  await testV101SecurityFoundation(auth.adminAccessToken);
   await resetV08OperationalControls(auth.adminAccessToken);
   await testV03AirdropFlow(auth);
+  await testV071AdminWalletBucketTransfer(auth.adminAccessToken);
   await testV04TransferFlow(auth);
   await testV07FeeFlow(auth);
   const v06Context = await testV06OrderFlow(auth);
@@ -90,6 +94,8 @@ async function main() {
   await resetV08OperationalControls(auth.adminAccessToken);
   await testV15MarketOrders(auth);
   await resetV08OperationalControls(auth.adminAccessToken);
+  await testAuthLogoutFlow(auth.userAccessToken, auth.adminAccessToken);
+  await testV101SecurityEventCoverage(auth.adminAccessToken);
   await testWebRoutes();
   await testWebBuild();
 
@@ -263,6 +269,38 @@ async function testFeatureFlags(adminAccessToken: string) {
   console.log("PASS feature flags foundation");
 }
 
+async function testV101SecurityFoundation(adminAccessToken: string) {
+  await expectLoginRejected(adminEmail, "DefinitelyWrong123!", "security failed login capture");
+
+  const securityActions = await getJson<{
+    actions?: Array<{ key: string; requires2FA: boolean; requiresEmailVerification: boolean }>;
+  }>(`${apiBaseUrl}/admin/security-actions`, adminAccessToken, "load sensitive actions matrix");
+  if (
+    !Array.isArray(securityActions.actions) ||
+    !securityActions.actions.some((action) => action.key === "REQUEST_WITHDRAWAL") ||
+    !securityActions.actions.some((action) => action.key === "ADMIN_AIRDROP")
+  ) {
+    throw new Error("Sensitive actions endpoint did not return the expected planned action keys.");
+  }
+
+  const securityEvents = await getJson<{
+    events?: Array<{ eventType: string; metadata?: unknown }>;
+  }>(`${apiBaseUrl}/admin/security-events?limit=100`, adminAccessToken, "load initial security events");
+  const eventTypes = new Set((securityEvents.events ?? []).map((event) => event.eventType));
+  if (!eventTypes.has("AUTH_LOGIN_SUCCESS") || !eventTypes.has("AUTH_LOGIN_FAILED")) {
+    throw new Error("Expected security events to include login success and failed-login records.");
+  }
+
+  const serializedEvents = JSON.stringify(securityEvents.events ?? []);
+  for (const forbidden of [testPassword, adminPassword, "Bearer "]) {
+    if (serializedEvents.includes(forbidden)) {
+      throw new Error(`Security events should not expose secret-looking value: ${forbidden}`);
+    }
+  }
+
+  console.log("PASS v1.0.1 security foundation read endpoints and login event capture");
+}
+
 async function registerUser(email: string, username: string, nickname: string) {
   const response = await fetch(`${apiBaseUrl}/auth/register`, {
     method: "POST",
@@ -331,6 +369,47 @@ async function testV03AirdropFlow(auth: {
   }
 
   console.log("PASS airdrop, wallets, and ledger flow");
+}
+
+async function testV071AdminWalletBucketTransfer(adminAccessToken: string) {
+  await airdrop(adminAccessToken, adminUsername, "SWC", "25", "Smoke v1.0.1 admin bucket funding");
+
+  const toTreasury = await postJson<{
+    assetSymbol: string;
+    fromWalletType: string;
+    toWalletType: string;
+    amount: string;
+  }>(`${apiBaseUrl}/admin/wallet-buckets/transfer`, adminAccessToken, {
+    assetSymbol: "SWC",
+    amount: "10",
+    fromWalletType: "MAIN",
+    toWalletType: "TREASURY",
+    note: "Smoke v1.0.1 bucket move out",
+  }, "move admin bucket funds to treasury");
+
+  if (
+    toTreasury.assetSymbol !== "SWC" ||
+    toTreasury.fromWalletType !== "MAIN" ||
+    toTreasury.toWalletType !== "TREASURY" ||
+    toTreasury.amount !== "10"
+  ) {
+    throw new Error(`Unexpected admin bucket transfer payload: ${JSON.stringify(toTreasury)}`);
+  }
+
+  await postJson(
+    `${apiBaseUrl}/admin/wallet-buckets/transfer`,
+    adminAccessToken,
+    {
+      assetSymbol: "SWC",
+      amount: "10",
+      fromWalletType: "TREASURY",
+      toWalletType: "MAIN",
+      note: "Smoke v1.0.1 bucket move back",
+    },
+    "move admin bucket funds back to main",
+  );
+
+  console.log("PASS v1.0.1 admin wallet bucket transfer");
 }
 
 async function testV04TransferFlow(auth: {
@@ -1824,6 +1903,64 @@ async function testV15MarketOrders(auth: {
   }
 
   console.log("PASS v0.15 market orders, taker flow, preview, partial cancel, no liquidity, and market isolation");
+}
+
+async function testAuthLogoutFlow(userAccessToken: string, adminAccessToken: string) {
+  const response = await fetch(`${apiBaseUrl}/auth/logout`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${userAccessToken}`,
+    },
+  });
+  assertOk(response, "auth logout");
+  const json = (await response.json()) as { success?: boolean };
+  if (!json.success) {
+    throw new Error(`Unexpected logout payload: ${JSON.stringify(json)}`);
+  }
+
+  const securityEvents = await getJson<{ events?: Array<{ eventType: string }> }>(
+    `${apiBaseUrl}/admin/security-events?eventType=AUTH_LOGOUT&limit=20`,
+    adminAccessToken,
+    "load logout security events",
+  );
+  if (!securityEvents.events?.some((event) => event.eventType === "AUTH_LOGOUT")) {
+    throw new Error("Expected AUTH_LOGOUT security event after logout request.");
+  }
+
+  console.log("PASS v1.0.1 auth logout event");
+}
+
+async function testV101SecurityEventCoverage(adminAccessToken: string) {
+  const response = await getJson<{
+    events?: Array<{ eventType: string; metadata?: unknown }>;
+  }>(`${apiBaseUrl}/admin/security-events?limit=250`, adminAccessToken, "load security event coverage");
+
+  const eventTypes = new Set((response.events ?? []).map((event) => event.eventType));
+  for (const expectedEventType of [
+    "AUTH_LOGIN_SUCCESS",
+    "AUTH_LOGIN_FAILED",
+    "AUTH_LOGOUT",
+    "FEATURE_FLAG_READ_ADMIN",
+    "USER_STATUS_CHANGED",
+    "ASSET_STATUS_CHANGED",
+    "MARKET_STATUS_CHANGED",
+    "FEE_SETTINGS_UPDATED",
+    "ADMIN_AIRDROP_CREATED",
+    "ADMIN_WALLET_TRANSFER_CREATED",
+  ]) {
+    if (!eventTypes.has(expectedEventType)) {
+      throw new Error(`Expected security event coverage to include ${expectedEventType}.`);
+    }
+  }
+
+  const serializedEvents = JSON.stringify(response.events ?? []);
+  for (const forbidden of [testPassword, adminPassword, "passwordHash", "Bearer "]) {
+    if (serializedEvents.includes(forbidden)) {
+      throw new Error(`Security event responses should not expose forbidden value: ${forbidden}`);
+    }
+  }
+
+  console.log("PASS v1.0.1 security event coverage");
 }
 
 async function testWebBuild() {

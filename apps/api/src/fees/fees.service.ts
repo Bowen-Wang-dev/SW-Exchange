@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { SecurityEventsService } from "../security/security-events.service.js";
 import { ConfigService } from "@nestjs/config";
 import { and, eq } from "drizzle-orm";
 import { formatMinimalUnitsToHuman } from "../common/money.js";
@@ -45,12 +46,17 @@ export type ActiveFeeConfig = {
 };
 
 type FeeSettingRow = typeof feeSettings.$inferSelect;
+type RequestSecurityContext = {
+  ipAddress?: string | null;
+  userAgent?: string | null;
+};
 
 @Injectable()
 export class FeesService {
   constructor(
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(SecurityEventsService) private readonly securityEventsService: SecurityEventsService,
   ) {}
 
   async getAdminFeeSettings(marketSymbolInput = SUPPORTED_MARKET_SYMBOL) {
@@ -64,7 +70,11 @@ export class FeesService {
     });
   }
 
-  async updateFeeSettings(adminUserId: string, dto: UpdateFeeSettingsDto) {
+  async updateFeeSettings(
+    adminUserId: string,
+    dto: UpdateFeeSettingsDto,
+    context?: RequestSecurityContext,
+  ) {
     const marketSymbol = this.normalizeMarketSymbol(dto.marketSymbol);
     const buyerFeeRateBps = this.parseFeeRatePercentToBps(
       dto.buyerFeeRatePercent,
@@ -75,8 +85,7 @@ export class FeesService {
       "Seller fee rate",
     );
     const note = dto.note?.trim() || null;
-
-    return this.db.transaction(async (tx) => {
+    const transactionResult = await this.db.transaction(async (tx) => {
       const current = await this.ensureActiveFeeSetting(tx, marketSymbol);
       const beforeValue = this.auditValueForSetting(current);
       const updatedAt = new Date();
@@ -114,8 +123,45 @@ export class FeesService {
       await this.ensureAdminFeeWallets(tx, adminUser.id);
       const balances = await this.getAdminFeeWalletBalances(tx, adminUser.id);
 
-      return this.formatAdminFeeSettings(updated, balances, adminUser);
+      return {
+        data: this.formatAdminFeeSettings(updated, balances, adminUser),
+        securityEvent: {
+          marketId: updated.marketId,
+          marketSymbol: updated.marketSymbol,
+          beforeBuyerFeeRateBps: current.buyerFeeRateBps,
+          beforeSellerFeeRateBps: current.sellerFeeRateBps,
+          afterBuyerFeeRateBps: updated.buyerFeeRateBps,
+          afterSellerFeeRateBps: updated.sellerFeeRateBps,
+        },
+      };
     });
+
+    const { data, securityEvent } = transactionResult;
+
+    if (securityEvent) {
+      await this.securityEventsService.recordEvent({
+        actorUserId: adminUserId,
+        actorRole: "ADMIN",
+        eventType: "FEE_SETTINGS_UPDATED",
+        severity: "WARNING",
+        targetType: "MARKET",
+        targetId: securityEvent.marketId,
+        ipAddress: context?.ipAddress ?? null,
+        userAgent: context?.userAgent ?? null,
+        metadata: {
+          marketSymbol: securityEvent.marketSymbol,
+          beforeBuyerFeeRateBps: securityEvent.beforeBuyerFeeRateBps,
+          beforeSellerFeeRateBps: securityEvent.beforeSellerFeeRateBps,
+          afterBuyerFeeRateBps: securityEvent.afterBuyerFeeRateBps,
+          afterSellerFeeRateBps: securityEvent.afterSellerFeeRateBps,
+          buyerFeeRatePercent: dto.buyerFeeRatePercent,
+          sellerFeeRatePercent: dto.sellerFeeRatePercent,
+          note,
+        },
+      });
+    }
+
+    return data;
   }
 
   async getActiveFeeConfigForMarket(tx: Transaction, marketId: string): Promise<ActiveFeeConfig> {

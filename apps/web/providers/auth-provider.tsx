@@ -133,6 +133,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function logout() {
     sessionRequestIdRef.current += 1;
+    const storedToken = getStoredAccessToken();
+    if (storedToken) {
+      void apiRequest<{ success: true }>("/auth/logout", {
+        method: "POST",
+        token: storedToken,
+      }).catch(() => undefined);
+    }
     clearStoredAccessToken();
     setToken(null);
     setUser(null);

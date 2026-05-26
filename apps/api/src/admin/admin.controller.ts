@@ -15,6 +15,7 @@ import { Roles } from "../common/decorators/roles.decorator.js";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
 import { RolesGuard } from "../common/guards/roles.guard.js";
 import type { AuthenticatedRequest } from "../common/interfaces/authenticated-request.interface.js";
+import { extractRequestSecurityContext } from "../security/security-events.service.js";
 import { AdminWalletBucketTransferDto } from "./dto/admin-wallet-bucket-transfer.dto.js";
 import { AirdropDto } from "./dto/airdrop.dto.js";
 import { CreateAssetDto } from "./dto/create-asset.dto.js";
@@ -53,7 +54,12 @@ export class AdminController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserStatusDto,
   ) {
-    return this.adminService.updateUserStatus(request.user.sub, id, dto);
+    return this.adminService.updateUserStatus(
+      request.user.sub,
+      id,
+      dto,
+      extractRequestSecurityContext(request),
+    );
   }
 
   @Get("wallets")
@@ -87,12 +93,16 @@ export class AdminController {
     @Req() request: AuthenticatedRequest,
     @Body() dto: AdminWalletBucketTransferDto,
   ) {
-    return this.adminService.transferAdminWalletBucket(request.user.sub, dto);
+    return this.adminService.transferAdminWalletBucket(
+      request.user.sub,
+      dto,
+      extractRequestSecurityContext(request),
+    );
   }
 
   @Post("airdrop")
   airdrop(@Req() request: AuthenticatedRequest, @Body() dto: AirdropDto) {
-    return this.adminService.airdrop(request.user.sub, dto);
+    return this.adminService.airdrop(request.user.sub, dto, extractRequestSecurityContext(request));
   }
 
   @Post("assets")
@@ -116,7 +126,12 @@ export class AdminController {
     @Param("symbol") symbol: string,
     @Body() dto: UpdateAssetStatusDto,
   ) {
-    return this.adminService.updateAssetStatus(request.user.sub, symbol, dto);
+    return this.adminService.updateAssetStatus(
+      request.user.sub,
+      symbol,
+      dto,
+      extractRequestSecurityContext(request),
+    );
   }
 
   @Patch("assets/:symbol/metadata")
@@ -134,7 +149,12 @@ export class AdminController {
     @Param("symbol") symbol: string,
     @Body() dto: UpdateMarketStatusDto,
   ) {
-    return this.adminService.updateMarketStatus(request.user.sub, symbol, dto);
+    return this.adminService.updateMarketStatus(
+      request.user.sub,
+      symbol,
+      dto,
+      extractRequestSecurityContext(request),
+    );
   }
 
   @Post("markets")
@@ -163,12 +183,20 @@ export class AdminController {
 
   @Patch("fee-settings")
   updateFeeSettings(@Req() request: AuthenticatedRequest, @Body() dto: UpdateFeeSettingsDto) {
-    return this.adminService.updateFeeSettings(request.user.sub, dto);
+    return this.adminService.updateFeeSettings(
+      request.user.sub,
+      dto,
+      extractRequestSecurityContext(request),
+    );
   }
 
   @Post("fee-settings")
   updateFeeSettingsViaPost(@Req() request: AuthenticatedRequest, @Body() dto: UpdateFeeSettingsDto) {
-    return this.adminService.updateFeeSettings(request.user.sub, dto);
+    return this.adminService.updateFeeSettings(
+      request.user.sub,
+      dto,
+      extractRequestSecurityContext(request),
+    );
   }
 
   @Get("audit-logs")

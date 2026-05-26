@@ -2,6 +2,9 @@ import type {
   FeatureFlagGroup,
   FeatureFlagKey,
   FeatureFlagRiskLevel,
+  SecurityEventSeverity,
+  SecurityEventType,
+  SensitiveActionKey,
   UserRole,
   UserStatus,
 } from "@sw-exchange/shared";
@@ -313,6 +316,44 @@ export type FeatureFlagItem = {
 
 export type FeatureFlagsResponse = {
   flags: FeatureFlagItem[];
+};
+
+export type SecurityEventItem = {
+  id: string;
+  createdAt: string;
+  actorUserId: string | null;
+  actorRole: UserRole | null;
+  actorUser: {
+    id: string;
+    email: string;
+    username: string;
+  } | null;
+  eventType: SecurityEventType;
+  severity: SecurityEventSeverity;
+  targetType: string | null;
+  targetId: string | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  metadata: unknown;
+};
+
+export type SecurityEventsResponse = {
+  events: SecurityEventItem[];
+};
+
+export type SensitiveActionItem = {
+  key: SensitiveActionKey;
+  displayName: string;
+  severity: SecurityEventSeverity;
+  requiresPasswordReauth: boolean;
+  requiresEmailVerification: boolean;
+  requires2FA: boolean;
+  requiresAdminRole: boolean;
+  notes: string;
+};
+
+export type SensitiveActionsResponse = {
+  actions: SensitiveActionItem[];
 };
 
 export type AdminSummary = {

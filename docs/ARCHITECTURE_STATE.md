@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v1.0.0 Feature Flags Foundation`
+Current milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 ## Current Stack
 
@@ -27,6 +27,7 @@ Current milestone: `v1.0.0 Feature Flags Foundation`
 - `v0.19 One-Command Deploy / Docker Production Runtime`
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 - `v1.0.0 Feature Flags Foundation`
+- `v1.0.1 Security Logs + Sensitive Action Model`
 
 ## Public Product Positioning
 
@@ -116,6 +117,14 @@ Current milestone: `v1.0.0 Feature Flags Foundation`
 - Backend `FeatureFlagsService` with `getAllFlags`, `getFlag`, and fail-closed `assertFeatureEnabled`
 - All currently gated future/high-risk flags default disabled
 
+## Current Security Foundation
+
+- Database-backed `security_events` table for security-focused auth/admin event capture
+- Backend `SecurityEventsService` with sanitized metadata normalization and admin read queries
+- Current runtime emits security events for successful login, failed login, user status changes, asset status changes, market status changes, fee setting updates, admin airdrops, and admin wallet bucket transfers
+- Admin `/admin/security-events` page exposes read-only filtered review
+- Shared sensitive-action policy matrix exists for future re-auth, email verification, 2FA, admin RBAC, and funding controls
+
 ## Current UI State
 
 - Dark-first exchange style with alternate Light mode
@@ -153,6 +162,6 @@ Current milestone: `v1.0.0 Feature Flags Foundation`
 
 ## Current Milestone
 
-- Current completed milestone: `v1.0.0 Feature Flags Foundation`
-- Next planned milestone: `v1.0.1 Security Logs + Sensitive Action Model`
-- `v1.0.0` adds the feature flag foundation only; deposit, withdraw, blockchain, 2FA, email verification, admin RBAC, margin, futures, and advanced orders remain disabled or unimplemented
+- Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+- Next planned milestone: `v1.0.2 Email Verification Foundation`
+- `v1.0.1` adds the security event logging foundation and the sensitive-action policy matrix only; deposit, withdraw, blockchain, 2FA, email verification, admin RBAC execution, margin, futures, and advanced orders remain disabled or unimplemented
