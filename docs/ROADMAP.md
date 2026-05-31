@@ -4,15 +4,27 @@ SW Exchange is being built in focused milestones so the simulated exchange stays
 
 ## Milestone Status
 
-Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Current completed milestone: `v1.0.2 Email Verification Foundation`
 
-Next milestone: `v1.0.2 Email Verification Foundation`
+Next milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Current State
 
 - `v0.x` is a complete off-chain simulated exchange runtime for custom assets and custom markets.
 - Spot-style trading, internal wallets/transfers, market data, admin operations, and Docker deployment are live.
-- Deposit, withdraw, blockchain, 2FA, email verification, margin, and futures are not live.
+- Deposit, withdraw, blockchain, 2FA, margin, and futures are not live.
+- Email verification is live as an optional security capability, but it is not yet enforced for login or trading.
+
+## v1.0.2 Email Verification Foundation - Completed
+
+- Added verified-email account state plus hashed single-use verification tokens
+- Added authenticated verification-request and public verification-confirm endpoints
+- Added console/dev mail delivery output for verification links and tokens
+- Added user and admin visibility for email verification state
+- Added email-verification security event coverage without storing raw tokens
+- Kept email verification optional for current login/trading flows
+- Kept 2FA, deposit, withdraw, blockchain, margin, and futures behavior unimplemented
+- Kept trading-core, fee logic, wallet rules, and transfer rules unchanged
 
 ## v1.0.1 Security Logs + Sensitive Action Model - Completed
 
@@ -42,17 +54,16 @@ Next milestone: `v1.0.2 Email Verification Foundation`
 
 ## Planned v1.x Sequence
 
-1. `v1.0.2 Email Verification Foundation`
-2. `v1.0.3 TOTP 2FA Foundation`
-3. `v1.1 Chain Asset Registry`
-4. `v1.2 User Deposit Address Model`
-5. `v1.3 Deposit Monitor Detect-only`
-6. `v1.4 Deposit Credit Flow`
-7. `v1.5 Withdrawal Request`
-8. `v1.6 Withdrawal Approval + Broadcast`
-9. `v1.7 Gas / Withdrawal Fee Management`
-10. `v1.8 Chain Reconciliation / Audit`
-11. `v1.9 Chain Gateway Stabilization`
+1. `v1.0.3 TOTP 2FA Foundation`
+2. `v1.1 Chain Asset Registry`
+3. `v1.2 User Deposit Address Model`
+4. `v1.3 Deposit Monitor Detect-only`
+5. `v1.4 Deposit Credit Flow`
+6. `v1.5 Withdrawal Request`
+7. `v1.6 Withdrawal Approval + Broadcast`
+8. `v1.7 Gas / Withdrawal Fee Management`
+9. `v1.8 Chain Reconciliation / Audit`
+10. `v1.9 Chain Gateway Stabilization`
 
 ## Planned v2.x Direction
 

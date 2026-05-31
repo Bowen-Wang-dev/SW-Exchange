@@ -87,6 +87,8 @@ export type AdminUser = {
   role: UserRole;
   status: UserStatus;
   isSystem?: boolean;
+  emailVerified: boolean;
+  emailVerifiedAt: string | null;
   createdAt: string;
   updatedAt: string;
   created_at?: string;
@@ -339,6 +341,24 @@ export type SecurityEventItem = {
 
 export type SecurityEventsResponse = {
   events: SecurityEventItem[];
+};
+
+export type EmailVerificationRequestResponse = {
+  success: true;
+  alreadyVerified: boolean;
+  email: string;
+  emailVerified: boolean;
+  emailVerifiedAt: string | null;
+  deliveryProvider: "console" | null;
+  expiresAt: string | null;
+};
+
+export type EmailVerificationConfirmResponse = {
+  success: true;
+  alreadyVerified: boolean;
+  email: string;
+  emailVerified: true;
+  emailVerifiedAt: string;
 };
 
 export type SensitiveActionItem = {

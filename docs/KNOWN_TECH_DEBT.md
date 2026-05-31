@@ -67,10 +67,10 @@
 
 ## Security / Operations
 
-- Item: No email verification, TOTP 2FA enforcement, or sensitive-action re-auth yet
+- Item: No TOTP 2FA enforcement or sensitive-action re-auth yet
   - Status: intentional
   - Why accepted: `v0.x` has remained off-chain and non-custodial at the chain layer
-  - Future fix: build on the `v1.0.1 Security Logs + Sensitive Action Model` foundation plus later `v1.x` security milestones before any chain money movement
+  - Future fix: build on the `v1.0.2 Email Verification Foundation` plus later `v1.x` security milestones before any chain money movement
 
 - Item: No granular admin role-permission model
   - Status: temporary

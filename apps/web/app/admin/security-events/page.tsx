@@ -113,7 +113,7 @@ export default function AdminSecurityEventsPage() {
 
           <AdminNotice
             tone="info"
-            message="Current v1.0.1 coverage focuses on login outcomes plus selected admin controls. 2FA, email verification, withdrawal, deposit, and blockchain security flows are not implemented yet."
+            message="Current v1.0.2 coverage includes login outcomes, email-verification request and confirm events, and selected admin controls. 2FA, withdrawal, deposit, and blockchain security flows are still not implemented."
           />
 
           <div className="grid gap-4 lg:grid-cols-4">

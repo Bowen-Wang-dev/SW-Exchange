@@ -8,6 +8,8 @@ export interface AuthenticatedUser {
   role: "USER" | "ADMIN";
   status: "ACTIVE" | "FROZEN" | "BANNED";
   isSystem?: boolean;
+  emailVerified: boolean;
+  emailVerifiedAt?: Date | string | null;
 }
 
 export interface AuthenticatedRequest extends Request {

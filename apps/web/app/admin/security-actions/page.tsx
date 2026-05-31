@@ -68,13 +68,13 @@ export default function AdminSensitiveActionsPage() {
           <PageHeader
             eyebrow="Admin Security"
             title="Sensitive action policy matrix"
-            description="This v1.0.1 foundation defines the planned security requirements for future high-impact actions. The matrix is visible now, but email verification, 2FA, and password re-auth enforcement are not active yet."
+            description="This v1.0.2 matrix tracks planned requirements for future high-impact actions. Email verification state now exists, but 2FA and password re-auth enforcement are still not active yet."
             action={<StatusBadge label="Foundation" tone="info" />}
           />
 
           <AdminNotice
             tone="warning"
-            message="Planned requirements are documented here for future rollout only. This page does not mean deposit, withdrawal, blockchain, email verification, or TOTP flows are live."
+            message="Planned requirements are documented here for future rollout only. This page does not mean deposit, withdrawal, blockchain, or TOTP flows are live, and email verification is not yet enforced for sensitive actions."
           />
 
           <div className="grid gap-4 lg:grid-cols-4">

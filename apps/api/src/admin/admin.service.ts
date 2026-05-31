@@ -201,6 +201,7 @@ export class AdminService {
         role: users.role,
         status: users.status,
         isSystem: users.isSystem,
+        emailVerifiedAt: users.emailVerifiedAt,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })
@@ -210,6 +211,7 @@ export class AdminService {
 
     return rows.map((user) => ({
       ...user,
+      emailVerified: Boolean(user.emailVerifiedAt),
       created_at: user.createdAt,
       updated_at: user.updatedAt,
     }));
@@ -235,6 +237,7 @@ export class AdminService {
           role: users.role,
           status: users.status,
           isSystem: users.isSystem,
+          emailVerifiedAt: users.emailVerifiedAt,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
         })
@@ -272,6 +275,7 @@ export class AdminService {
         return {
           data: {
             ...targetUser,
+            emailVerified: Boolean(targetUser.emailVerifiedAt),
             created_at: targetUser.createdAt,
             updated_at: targetUser.updatedAt,
           },
@@ -295,6 +299,7 @@ export class AdminService {
           role: users.role,
           status: users.status,
           isSystem: users.isSystem,
+          emailVerifiedAt: users.emailVerifiedAt,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
         });
@@ -320,6 +325,7 @@ export class AdminService {
       return {
         data: {
           ...updatedUser,
+          emailVerified: Boolean(updatedUser.emailVerifiedAt),
           created_at: updatedUser.createdAt,
           updated_at: updatedUser.updatedAt,
         },

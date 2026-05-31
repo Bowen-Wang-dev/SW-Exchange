@@ -37,6 +37,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       status: user.status,
       isSystem: user.isSystem,
+      emailVerified: Boolean(user.emailVerifiedAt),
+      emailVerifiedAt: user.emailVerifiedAt,
     };
   }
 }

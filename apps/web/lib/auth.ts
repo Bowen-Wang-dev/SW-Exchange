@@ -8,6 +8,8 @@ export type AuthUser = {
   role: UserRole;
   status: UserStatus;
   isSystem?: boolean;
+  emailVerified: boolean;
+  emailVerifiedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -26,6 +28,8 @@ type SessionUserPayload = {
   role: UserRole;
   status: UserStatus;
   isSystem?: boolean;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -82,6 +86,8 @@ export function normalizeAuthUser(user: SessionUserPayload): AuthUser {
     role: user.role,
     status: user.status,
     isSystem: user.isSystem,
+    emailVerified: Boolean(user.emailVerifiedAt ?? user.emailVerified),
+    emailVerifiedAt: user.emailVerifiedAt ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };

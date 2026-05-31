@@ -15,6 +15,7 @@ import { formatDateTime, shortId } from "@/lib/format";
 import { useAuth } from "@/providers/auth-provider";
 
 type UserStatusFilter = "ALL" | AdminUser["status"];
+type VerificationFilter = "ALL" | "VERIFIED" | "UNVERIFIED";
 
 type PendingUserAction = {
   user: AdminUser;
@@ -27,6 +28,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
+  const [verificationFilter, setVerificationFilter] = useState<VerificationFilter>("ALL");
   const [isLoading, setIsLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingUserAction | null>(null);
@@ -70,6 +72,14 @@ export default function AdminUsersPage() {
         return false;
       }
 
+      if (verificationFilter === "VERIFIED" && !user.emailVerified) {
+        return false;
+      }
+
+      if (verificationFilter === "UNVERIFIED" && user.emailVerified) {
+        return false;
+      }
+
       if (!query) {
         return true;
       }
@@ -79,7 +89,7 @@ export default function AdminUsersPage() {
         .toLowerCase()
         .includes(query);
     });
-  }, [searchQuery, statusFilter, users]);
+  }, [searchQuery, statusFilter, users, verificationFilter]);
 
   async function confirmStatusUpdate() {
     if (!pendingAction) {
@@ -146,7 +156,7 @@ export default function AdminUsersPage() {
             action={<StatusBadge label="Live" tone="success" />}
           />
 
-          <div className="grid gap-4 lg:grid-cols-4">
+          <div className="grid gap-4 lg:grid-cols-5">
             <StatCard
               label="Total Users"
               badgeLabel="Loaded"
@@ -175,10 +185,17 @@ export default function AdminUsersPage() {
               hint="Users blocked from logging in."
               tone="danger"
             />
+            <StatCard
+              label="Verified Email"
+              badgeLabel="Security"
+              value={String(users.filter((user) => user.emailVerified).length)}
+              hint="Accounts that have completed the v1.0.2 verification foundation."
+              tone="info"
+            />
           </div>
 
           <section className="panel rounded-3xl p-4">
-            <div className="grid gap-3 lg:grid-cols-[1.2fr_220px_auto]">
+            <div className="grid gap-3 lg:grid-cols-[1.2fr_220px_220px_auto]">
               <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
                 Search users
                 <input
@@ -201,12 +218,25 @@ export default function AdminUsersPage() {
                   <option value="BANNED">BANNED</option>
                 </select>
               </label>
+              <label className="grid gap-2 text-sm text-[var(--foreground-soft)]">
+                Email verification
+                <select
+                  value={verificationFilter}
+                  onChange={(event) => setVerificationFilter(event.target.value as VerificationFilter)}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--input-bg)] px-4 py-3 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--accent)]"
+                >
+                  <option value="ALL">All</option>
+                  <option value="VERIFIED">Verified</option>
+                  <option value="UNVERIFIED">Unverified</option>
+                </select>
+              </label>
               <div className="flex items-end">
                 <button
                   type="button"
                   onClick={() => {
                     setSearchQuery("");
                     setStatusFilter("ALL");
+                    setVerificationFilter("ALL");
                   }}
                   className="w-full rounded-2xl border border-[var(--border)] bg-[var(--surface-strong)] px-4 py-3 text-sm font-semibold text-[var(--foreground-soft)] transition hover:border-[var(--border-strong)] hover:text-[var(--foreground)]"
                 >
@@ -218,7 +248,7 @@ export default function AdminUsersPage() {
 
           <AdminNotice
             tone="info"
-            message="Self-freeze and self-ban remain blocked by the UI and backend. Use Reactivate only when restoring an already non-active user."
+            message="Self-freeze and self-ban remain blocked by the UI and backend. Email verification is now visible for review, but it is not yet required for login or trading."
           />
 
           {error ? <AdminNotice tone="danger" message={error} /> : null}
@@ -228,7 +258,7 @@ export default function AdminUsersPage() {
           {!isLoading && !error ? (
             filteredUsers.length > 0 ? (
               <DataTable
-                columns={["User", "ID", "Role", "Status", "Created", "Updated", "Actions"]}
+                columns={["User", "ID", "Role", "Status", "Verification", "Created", "Updated", "Actions"]}
                 rows={filteredUsers.map((user) => [
                   <UserCell key={`${user.id}-user`} user={user} />,
                   shortId(user.id),
@@ -247,6 +277,11 @@ export default function AdminUsersPage() {
                           ? "warning"
                           : "danger"
                     }
+                  />,
+                  <StatusBadge
+                    key={`${user.id}-email-verified`}
+                    label={user.emailVerified ? "VERIFIED" : "UNVERIFIED"}
+                    tone={user.emailVerified ? "success" : "warning"}
                   />,
                   formatDateTime(user.createdAt),
                   formatDateTime(user.updatedAt),
@@ -295,6 +330,11 @@ function UserCell({ user }: { user: AdminUser }) {
       <p className="font-medium text-[var(--foreground)]">{user.username}</p>
       <p className="text-xs text-[var(--foreground-muted)]">{user.email}</p>
       {user.nickname ? <p className="text-xs text-[var(--foreground-muted)]">{user.nickname}</p> : null}
+      {user.emailVerifiedAt ? (
+        <p className="text-xs text-[var(--foreground-muted)]">
+          Verified {formatDateTime(user.emailVerifiedAt)}
+        </p>
+      ) : null}
     </div>
   );
 }

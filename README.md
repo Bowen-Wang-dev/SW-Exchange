@@ -2,9 +2,9 @@
 
 SW Exchange is a simulated exchange runtime for custom assets and custom markets.
 
-Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Current completed milestone: `v1.0.2 Email Verification Foundation`
 
-Next milestone: `v1.0.2 Email Verification Foundation`
+Next milestone: `v1.0.3 TOTP 2FA Foundation`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -14,7 +14,8 @@ This version is intentionally limited:
 - No deposit or withdraw
 - No chain token gateway integration in `v0.x`
 - No KYC
-- No email verification or TOTP 2FA yet
+- Email verification foundation exists, but it is not yet required for login or trading
+- No TOTP 2FA yet
 - No stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
@@ -28,6 +29,7 @@ Current scope:
 - Admin user and wallet viewer
 - Admin active-asset airdrop flow
 - Admin security event and sensitive-action review pages
+- User email verification request/confirm flow with dev-console mail delivery
 - User SWC/SWL internal transfer flow
 - User and admin transfer history
 - Admin ledger and audit log viewer
@@ -51,6 +53,7 @@ Current scope:
 - Admin seeded-market pause/resume controls
 - Admin audit logs for user, asset, and market status changes
 - Security event logging for successful and failed logins plus selected admin actions
+- Email verification state visibility for users and admins
 - Read-only sensitive-action policy matrix for future re-auth, email, and 2FA rollout
 - Polished user and admin ledger tables with filters
 - Polished admin audit log table with readable before/after details
@@ -130,13 +133,13 @@ Current scope:
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs` completed
 - `v1.0.0 Feature Flags Foundation` completed
 - `v1.0.1 Security Logs + Sensitive Action Model` completed
+- `v1.0.2 Email Verification Foundation` completed
 
-- Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
-- Next milestone: `v1.0.2 Email Verification Foundation`
+- Current completed milestone: `v1.0.2 Email Verification Foundation`
+- Next milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Planned milestones
 
-- `v1.0.2 Email Verification Foundation`
 - `v1.0.3 TOTP 2FA Foundation`
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
@@ -148,6 +151,20 @@ Current scope:
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Margin / Futures Simulation`
+
+## v1.0.2 Email Verification Foundation
+
+v1.0.2 adds the email verification foundation needed before future security-setting enforcement and any higher-risk funding workflows can rely on verified-email state.
+
+- Added `email_verified_at` user state plus hashed single-use `email_verification_tokens`
+- Added authenticated request and public confirm endpoints for the email verification flow
+- Added console/dev mail delivery output for verification links and tokens without writing raw tokens to security events
+- Added user dashboard and `/verify-email` UI for request, token paste, and link confirmation flows
+- Added admin visibility for email verification state on the users page
+- Added security event coverage for requested, sent, confirmed, failed, expired, and reused email verification attempts
+- Kept email verification optional in this milestone; login, trading, transfer, fee, and admin flows are not blocked by unverified email yet
+- Kept 2FA, deposit, withdraw, blockchain integration, chain listeners, hot-wallet signing, margin, futures, shorting, liquidation, and advanced order behavior unimplemented
+- Did not change matching logic, market-order behavior, fee calculation logic, wallet rules, or transfer rules
 
 ## v1.0.1 Security Logs + Sensitive Action Model
 

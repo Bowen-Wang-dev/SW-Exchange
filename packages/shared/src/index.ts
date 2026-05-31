@@ -17,6 +17,12 @@ export const SECURITY_EVENT_TYPES = [
   "AUTH_LOGIN_SUCCESS",
   "AUTH_LOGIN_FAILED",
   "AUTH_LOGOUT",
+  "EMAIL_VERIFICATION_REQUESTED",
+  "EMAIL_VERIFICATION_SENT",
+  "EMAIL_VERIFICATION_CONFIRMED",
+  "EMAIL_VERIFICATION_FAILED",
+  "EMAIL_VERIFICATION_TOKEN_EXPIRED",
+  "EMAIL_VERIFICATION_TOKEN_REUSED",
   "ADMIN_ACTION_CONFIRMED",
   "FEATURE_FLAG_READ_ADMIN",
   "SENSITIVE_ACTION_REQUIRED",
@@ -207,7 +213,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: false,
     notes:
-      "Planned-only in v1.0.1. Future enforcement should verify current email state and require fresh re-auth before the account email changes.",
+      "Planned-only in v1.0.2. Email verification state now exists, but future enforcement should still require fresh re-auth before the account email changes.",
   },
   {
     key: "ENABLE_2FA",
@@ -218,7 +224,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: false,
     requiresAdminRole: false,
     notes:
-      "Planned-only in v1.0.1. Future enrollment should require password re-auth and a verified email before TOTP activation is finalized.",
+      "Planned-only in v1.0.2. Future enrollment should require password re-auth and the now-live email-verification state before TOTP activation is finalized.",
   },
   {
     key: "DISABLE_2FA",
@@ -229,7 +235,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: false,
     notes:
-      "Planned-only in v1.0.1. Future disable flow should require an active 2FA challenge plus fresh account re-auth.",
+      "Planned-only in v1.0.2. Future disable flow should require an active 2FA challenge plus fresh account re-auth.",
   },
   {
     key: "REQUEST_WITHDRAWAL",
@@ -240,7 +246,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: false,
     notes:
-      "Planned-only in v1.0.1. Withdrawals are not implemented, but future requests should require all user-side security checks.",
+      "Planned-only in v1.0.2. Withdrawals are not implemented, but future requests should require all user-side security checks.",
   },
   {
     key: "APPROVE_WITHDRAWAL",
@@ -251,7 +257,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Future approval should be restricted to authorized admins with fresh re-auth and 2FA.",
+      "Planned-only in v1.0.2. Future approval should be restricted to authorized admins with fresh re-auth and 2FA.",
   },
   {
     key: "UPDATE_WITHDRAW_FEE",
@@ -262,7 +268,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Future withdrawal fee policy changes should require elevated admin confirmation and security checks.",
+      "Planned-only in v1.0.2. Future withdrawal fee policy changes should require elevated admin confirmation and security checks.",
   },
   {
     key: "ENABLE_DEPOSITS",
@@ -273,7 +279,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Deposit enablement remains future work and should be guarded as a critical admin action.",
+      "Planned-only in v1.0.2. Deposit enablement remains future work and should be guarded as a critical admin action.",
   },
   {
     key: "ENABLE_WITHDRAWALS",
@@ -284,7 +290,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Withdrawal enablement remains future work and should require the strictest admin checks.",
+      "Planned-only in v1.0.2. Withdrawal enablement remains future work and should require the strictest admin checks.",
   },
   {
     key: "UPDATE_CHAIN_CONTRACT",
@@ -295,7 +301,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Chain contract metadata is not live, but future edits should be treated as high-impact custody configuration.",
+      "Planned-only in v1.0.2. Chain contract metadata is not live, but future edits should be treated as high-impact custody configuration.",
   },
   {
     key: "ADMIN_USER_STATUS_CHANGE",
@@ -306,7 +312,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Current admin status controls are live, but future sensitive-action enforcement is not yet active.",
+      "Planned-only in v1.0.2. Current admin status controls are live, but future sensitive-action enforcement is not yet active.",
   },
   {
     key: "ADMIN_ASSET_STATUS_CHANGE",
@@ -317,7 +323,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Asset pause and resume actions are live, while re-auth and 2FA gates remain future work.",
+      "Planned-only in v1.0.2. Asset pause and resume actions are live, while re-auth and 2FA gates remain future work.",
   },
   {
     key: "ADMIN_MARKET_STATUS_CHANGE",
@@ -328,7 +334,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Market pause and resume actions are live, while sensitive-action enforcement remains future-only.",
+      "Planned-only in v1.0.2. Market pause and resume actions are live, while sensitive-action enforcement remains future-only.",
   },
   {
     key: "ADMIN_WALLET_TRANSFER",
@@ -339,7 +345,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Internal admin bucket transfers are live and should later require fresh privileged confirmation.",
+      "Planned-only in v1.0.2. Internal admin bucket transfers are live and should later require fresh privileged confirmation.",
   },
   {
     key: "UPDATE_FEE_SETTINGS",
@@ -350,7 +356,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Fee configuration is live, but the future model should require stronger admin re-auth before changes.",
+      "Planned-only in v1.0.2. Fee configuration is live, but the future model should require stronger admin re-auth before changes.",
   },
   {
     key: "ADMIN_AIRDROP",
@@ -361,7 +367,7 @@ export const SENSITIVE_ACTION_DEFINITIONS = [
     requires2FA: true,
     requiresAdminRole: true,
     notes:
-      "Planned-only in v1.0.1. Admin airdrops are live today and should later use the same sensitive-action confirmation model.",
+      "Planned-only in v1.0.2. Admin airdrops are live today and should later use the same sensitive-action confirmation model.",
   },
 ] as const satisfies readonly SensitiveActionDefinition[];
 

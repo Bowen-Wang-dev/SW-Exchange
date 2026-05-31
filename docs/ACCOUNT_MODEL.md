@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Current completed milestone: `v1.0.2 Email Verification Foundation`
 
 ## Account Status
 

@@ -1,12 +1,11 @@
 # SW Exchange Version History
 
-Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Current completed milestone: `v1.0.2 Email Verification Foundation`
 
-Next milestone: `v1.0.2 Email Verification Foundation`
+Next milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Upcoming Plan
 
-- `v1.0.2 Email Verification Foundation`
 - `v1.0.3 TOTP 2FA Foundation`
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
@@ -18,6 +17,26 @@ Next milestone: `v1.0.2 Email Verification Foundation`
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Optional Margin / Futures Simulation`
+
+## v1.0.2 Email Verification Foundation
+
+This milestone adds verified-email state and token delivery foundations without turning verified email into a hard requirement for current login or trading flows.
+
+### Highlights
+
+- Added `email_verified_at` user state plus hashed single-use `email_verification_tokens`
+- Added authenticated request and public confirm endpoints for email verification
+- Added console/dev mail delivery output for verification links and tokens
+- Added user and admin UI visibility for email verification state
+- Added email verification security events for requested, sent, confirmed, failed, expired, and reused token outcomes
+- Kept 2FA, deposit, withdraw, blockchain, admin role permission execution, margin, futures, shorting, liquidation, and advanced order behavior unimplemented
+- Kept trading-core behavior, wallet rules, transfer rules, and fee calculation unchanged
+
+### Developer And Operational Notes
+
+- This milestone includes a schema migration and no seed change
+- Raw verification tokens are only shown in dev/console mail output, not in the database or security events
+- Email verification is available but not yet enforced for login, trading, or sensitive actions
 
 ## v1.0.1 Security Logs + Sensitive Action Model
 

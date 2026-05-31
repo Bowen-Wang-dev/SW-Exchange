@@ -39,6 +39,8 @@ type SessionResponseUser = AuthUserType | {
   role: AuthUserType["role"];
   status: AuthUserType["status"];
   isSystem?: boolean;
+  emailVerified?: boolean;
+  emailVerifiedAt?: string | null;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

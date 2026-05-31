@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v1.0.1 Security Logs + Sensitive Action Model`
+Current milestone: `v1.0.2 Email Verification Foundation`
 
 ## Current Stack
 
@@ -28,6 +28,7 @@ Current milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 - `v0.20 Exchange Boundary + v1/v2 Planning Docs`
 - `v1.0.0 Feature Flags Foundation`
 - `v1.0.1 Security Logs + Sensitive Action Model`
+- `v1.0.2 Email Verification Foundation`
 
 ## Public Product Positioning
 
@@ -121,9 +122,12 @@ Current milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 - Database-backed `security_events` table for security-focused auth/admin event capture
 - Backend `SecurityEventsService` with sanitized metadata normalization and admin read queries
-- Current runtime emits security events for successful login, failed login, user status changes, asset status changes, market status changes, fee setting updates, admin airdrops, and admin wallet bucket transfers
+- Email verification foundation with `email_verified_at`, hashed single-use tokens, authenticated request flow, and public confirm flow
+- Console/dev mail delivery abstraction for verification links and tokens
+- Current runtime emits security events for successful login, failed login, email verification request and confirm outcomes, user status changes, asset status changes, market status changes, fee setting updates, admin airdrops, and admin wallet bucket transfers
 - Admin `/admin/security-events` page exposes read-only filtered review
-- Shared sensitive-action policy matrix exists for future re-auth, email verification, 2FA, admin RBAC, and funding controls
+- Admin users UI now shows email verified or unverified status
+- Shared sensitive-action policy matrix exists for future re-auth, enforced email verification, 2FA, admin RBAC, and funding controls
 
 ## Current UI State
 
@@ -143,7 +147,8 @@ Current milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 - No deposit / withdraw / blockchain behavior
 - No chain listeners, chain addresses, or token gateway runtime
 - No real-money redemption, fiat flow, or built-in KYC workflow
-- No 2FA or email verification yet
+- No 2FA yet
+- Email verification is available but is not required for login, trading, transfer, or admin actions yet
 - No margin / futures / leverage behavior
 - No real-time event bus; web UI uses polling and manual refresh paths
 - No candle aggregation table; candles come from trades
@@ -162,6 +167,6 @@ Current milestone: `v1.0.1 Security Logs + Sensitive Action Model`
 
 ## Current Milestone
 
-- Current completed milestone: `v1.0.1 Security Logs + Sensitive Action Model`
-- Next planned milestone: `v1.0.2 Email Verification Foundation`
-- `v1.0.1` adds the security event logging foundation and the sensitive-action policy matrix only; deposit, withdraw, blockchain, 2FA, email verification, admin RBAC execution, margin, futures, and advanced orders remain disabled or unimplemented
+- Current completed milestone: `v1.0.2 Email Verification Foundation`
+- Next planned milestone: `v1.0.3 TOTP 2FA Foundation`
+- `v1.0.2` adds verified-email state, hashed verification tokens, console/dev mail delivery, request and confirm flows, user/admin visibility, and related security events. Deposit, withdraw, blockchain, 2FA, admin RBAC execution, margin, futures, and advanced orders remain disabled or unimplemented

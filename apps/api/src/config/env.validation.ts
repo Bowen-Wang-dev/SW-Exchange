@@ -21,6 +21,23 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN?: string;
 
+  @IsOptional()
+  @IsString()
+  WEB_APP_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  EMAIL_PROVIDER?: string;
+
+  @IsOptional()
+  @IsString()
+  EMAIL_FROM?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(5)
+  EMAIL_VERIFICATION_TOKEN_TTL_MINUTES?: number;
+
   @IsString()
   ADMIN_EMAIL!: string;
 
@@ -35,6 +52,9 @@ export function validateEnv(config: Record<string, unknown>) {
   const normalizedConfig = {
     ...config,
     PORT: normalizeOptionalNumber(config.PORT),
+    EMAIL_VERIFICATION_TOKEN_TTL_MINUTES: normalizeOptionalNumber(
+      config.EMAIL_VERIFICATION_TOKEN_TTL_MINUTES,
+    ),
   };
 
   const validatedConfig = plainToInstance(EnvironmentVariables, normalizedConfig, {

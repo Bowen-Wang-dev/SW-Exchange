@@ -2,17 +2,19 @@
 
 This document plans the security foundation that should exist before any chain money-movement feature is enabled.
 
-As of `v1.0.1`, the feature-flag foundation, dedicated security event logging foundation, and the sensitive-action policy matrix exist, but the remaining security modules below stay unimplemented unless explicitly noted otherwise.
+As of `v1.0.2`, the feature-flag foundation, dedicated security event logging foundation, sensitive-action policy matrix, and verified-email state exist, but the remaining security modules below stay unimplemented unless explicitly noted otherwise.
 
 Implemented prerequisite from this plan:
 
 - database-backed backend-enforced feature flag foundation for `enable2FA`, `enableEmailVerification`, and `enableAdminRolePermissions`
 - database-backed `security_events` foundation with current login/admin event capture and admin read visibility
 - shared sensitive-action policy definitions for future re-auth, email verification, 2FA, admin RBAC, and funding controls
+- verified/unverified user email state plus hashed single-use email verification tokens
+- authenticated email-verification request flow and public token confirm flow
+- console/dev mail delivery abstraction for verification links and tokens
 
 Still not implemented:
 
-- email verification behavior
 - TOTP 2FA behavior
 - sensitive-action re-auth
 - granular admin role permission checks
@@ -29,9 +31,10 @@ Still not implemented:
 
 ### Email Verification
 
-- Add verified/unverified email state
-- Require verified email for security-setting changes and future withdrawal eligibility
-- Record verification state changes in security logs
+- Verified/unverified email state is now implemented.
+- Verification request and confirm flows are now implemented with hashed single-use tokens.
+- Future milestones should require verified email for security-setting changes and future withdrawal eligibility.
+- Verification state changes are now recorded in security logs.
 
 ### TOTP 2FA
 
@@ -56,7 +59,7 @@ Still not implemented:
 - Record security-setting changes, re-auth events, failed protected actions, and permissioned admin actions
 - Keep logs queryable in admin tooling
 - Avoid logging secrets, OTP seeds, backup codes, or raw credentials
-- Current `v1.0.1` implementation records login outcomes and selected current admin actions where practical; later milestones should extend coverage as new protected flows are added
+- Current `v1.0.2` implementation records login outcomes, email verification outcomes, and selected current admin actions where practical; later milestones should extend coverage as new protected flows are added
 
 ### Withdrawal / Security Setting Verification
 

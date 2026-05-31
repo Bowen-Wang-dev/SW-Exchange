@@ -99,15 +99,29 @@ This document describes current live `v0.x` runtime flows only. Future chain dep
 - Login attempts call the auth service
 - Successful login records `AUTH_LOGIN_SUCCESS`
 - Rejected login records `AUTH_LOGIN_FAILED`
+- Email verification requests create hashed single-use tokens and record `EMAIL_VERIFICATION_REQUESTED`
+- Successful mail dispatch records `EMAIL_VERIFICATION_SENT`
+- Token confirmation records `EMAIL_VERIFICATION_CONFIRMED`
+- Invalid, expired, or reused token attempts record dedicated email verification failure events
 - Current admin status, fee, airdrop, and bucket-transfer actions record security-focused events after the main action succeeds
 - `security_events` complements existing admin audit logs; it does not replace ledger or audit records
 - Event metadata is sanitized before storage so secrets, raw passwords, JWTs, OTP seeds, verification codes, and private keys are not written
+
+## Email Verification Flow
+
+- Authenticated user submits `/api/auth/email-verification/request`
+- API invalidates older pending tokens for that user and purpose
+- API stores a hash-only single-use token row with expiry, IP, and user-agent context
+- Console/dev mail provider prints the verification link and raw token to application logs only
+- User confirms through `/api/auth/email-verification/confirm` or `/verify-email?token=...`
+- API verifies the token hash, expiry, single-use state, and current email match
+- `users.email_verified_at` is set and pending verification tokens are consumed
 
 ## Sensitive Action Policy Flow
 
 - Admin requests `/api/admin/security-actions`
 - API returns the canonical sensitive-action matrix defined in shared constants
-- The matrix is currently informational only in `v1.0.1`
+- The matrix is currently informational only in `v1.0.2`
 - Future milestones may enforce password re-auth, email verification, 2FA, and admin RBAC against those action keys server-side
 
 ## Candle / K-line Data Flow

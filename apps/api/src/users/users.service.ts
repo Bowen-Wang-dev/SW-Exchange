@@ -73,6 +73,8 @@ export class UsersService {
       role: user.role,
       status: user.status,
       isSystem: user.isSystem,
+      emailVerified: Boolean(user.emailVerifiedAt),
+      emailVerifiedAt: user.emailVerifiedAt,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

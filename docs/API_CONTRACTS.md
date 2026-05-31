@@ -60,7 +60,87 @@ Public.
 Requires admin JWT.
 
 - Returns the same canonical flag set for admin review surfaces.
-- Current `v1.0.1` behavior remains read-only; no mutation endpoint is exposed yet.
+- Current `v1.0.2` behavior remains read-only; no mutation endpoint is exposed yet.
+
+## GET `/api/auth/me`
+
+Requires JWT.
+
+Response shape:
+
+```json
+{
+  "user": {
+    "sub": "user_uuid",
+    "email": "trader@example.com",
+    "username": "trader",
+    "role": "USER",
+    "status": "ACTIVE",
+    "emailVerified": false,
+    "emailVerifiedAt": null
+  }
+}
+```
+
+Notes:
+
+- The session payload now exposes verified-email state.
+- `emailVerifiedAt` is `null` until confirmation succeeds.
+
+## POST `/api/auth/email-verification/request`
+
+Requires JWT.
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "alreadyVerified": false,
+  "email": "trader@example.com",
+  "emailVerified": false,
+  "emailVerifiedAt": null,
+  "deliveryProvider": "console",
+  "expiresAt": "2026-05-26T01:00:00.000Z"
+}
+```
+
+Notes:
+
+- This endpoint creates a new hashed single-use verification token and invalidates older pending tokens for the same user and purpose.
+- The current milestone uses a console/dev mail provider by default.
+- Raw tokens are not returned by the API and must not be written to security events.
+- Email verification is still optional in `v1.0.2`; this endpoint does not turn login or trading into a blocked flow.
+
+## POST `/api/auth/email-verification/confirm`
+
+Public.
+
+Request:
+
+```json
+{
+  "token": "raw_verification_token"
+}
+```
+
+Response shape:
+
+```json
+{
+  "success": true,
+  "alreadyVerified": false,
+  "email": "trader@example.com",
+  "emailVerified": true,
+  "emailVerifiedAt": "2026-05-26T00:10:00.000Z"
+}
+```
+
+Notes:
+
+- The raw token is compared by stored hash only; the database never stores the raw token value.
+- Expired, reused, or invalid tokens return `400`.
+- Confirmation is safe to call publicly with the token, and the verified-email state is then visible through `/api/auth/me` and admin user review.
 
 ## GET `/api/admin/security-events`
 
@@ -109,7 +189,7 @@ Supported simple filters:
 Notes:
 
 - Response metadata is sanitized and must not include raw passwords, JWTs, TOTP secrets, email-verification codes, private keys, or environment secrets.
-- Current `v1.0.1` coverage focuses on login outcomes and selected admin actions.
+- Current `v1.0.2` coverage includes login outcomes, email verification outcomes, and selected admin actions.
 
 ## GET `/api/admin/security-events/:id`
 
@@ -135,7 +215,7 @@ Response shape:
       "requiresEmailVerification": true,
       "requires2FA": true,
       "requiresAdminRole": false,
-      "notes": "Planned-only in v1.0.1."
+      "notes": "Planned-only in v1.0.2."
     }
   ]
 }
@@ -144,7 +224,7 @@ Response shape:
 Notes:
 
 - This endpoint exposes the planned sensitive-action policy matrix only.
-- It does not mean deposit, withdrawal, email verification, or TOTP enforcement is live.
+- It does not mean deposit, withdrawal, or TOTP enforcement is live, and verified-email checks are not yet enforced for sensitive actions.
 
 ## POST `/api/orders`
 

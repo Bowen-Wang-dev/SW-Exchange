@@ -12,7 +12,7 @@ Status meanings:
 | Module | Status | Current state | Gap / future direction |
 | --- | --- | --- | --- |
 | Account/auth | Implemented | Registration, JWT login, protected user/admin routes exist | `v1.0` plans stronger verification and sensitive-action security |
-| User security | Planned | No email verification or TOTP 2FA yet | `v1.0` focuses on verification, TOTP, re-auth, and security logs |
+| User security | Planned | Email verification foundation exists, but TOTP 2FA and sensitive-action enforcement are not live yet | `v1.0` focuses on verification, TOTP, re-auth, and security logs |
 | Wallet/accounting | Implemented | Internal off-chain wallets, balance locking, ledger entries, admin buckets | Real custody and reconciliation are future `v1.x` work |
 | Deposits | Planned | Not implemented | Future optional chain-token deposit gateway only; no fiat |
 | Withdrawals | Planned | Not implemented | Future optional chain-token withdrawal gateway only; no fiat |

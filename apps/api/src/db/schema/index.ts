@@ -54,6 +54,12 @@ export const securityEventTypeEnum = pgEnum("security_event_type", [
   "AUTH_LOGIN_SUCCESS",
   "AUTH_LOGIN_FAILED",
   "AUTH_LOGOUT",
+  "EMAIL_VERIFICATION_REQUESTED",
+  "EMAIL_VERIFICATION_SENT",
+  "EMAIL_VERIFICATION_CONFIRMED",
+  "EMAIL_VERIFICATION_FAILED",
+  "EMAIL_VERIFICATION_TOKEN_EXPIRED",
+  "EMAIL_VERIFICATION_TOKEN_REUSED",
   "ADMIN_ACTION_CONFIRMED",
   "FEATURE_FLAG_READ_ADMIN",
   "SENSITIVE_ACTION_REQUIRED",
@@ -76,9 +82,39 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").notNull().default("USER"),
   status: userStatusEnum("status").notNull().default("ACTIVE"),
   isSystem: boolean("is_system").notNull().default(false),
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const emailVerificationTokens = pgTable(
+  "email_verification_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    email: varchar("email", { length: 255 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 128 }).notNull(),
+    purpose: varchar("purpose", { length: 64 }).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    requestedIp: varchar("requested_ip", { length: 128 }),
+    requestedUserAgent: text("requested_user_agent"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    emailVerificationTokensTokenHashUnique: unique().on(table.tokenHash),
+    emailVerificationTokensUserPurposeIdx: index("email_verification_tokens_user_purpose_idx").on(
+      table.userId,
+      table.purpose,
+    ),
+    emailVerificationTokensExpiresAtIdx: index("email_verification_tokens_expires_at_idx").on(
+      table.expiresAt,
+    ),
+    emailVerificationTokensEmailIdx: index("email_verification_tokens_email_idx").on(table.email),
+  }),
+);
 
 export const assets = pgTable("assets", {
   id: uuid("id").defaultRandom().primaryKey(),

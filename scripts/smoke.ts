@@ -1,5 +1,6 @@
 import { config as loadEnv } from "dotenv";
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { promisify } from "node:util";
 import { Client } from "pg";
@@ -30,7 +31,7 @@ const testEmail = `${testUsername}@example.com`;
 const receiverUsername = `${testUsername}_receiver`;
 const receiverEmail = `${receiverUsername}@example.com`;
 const testPassword = "SmokeTest123!";
-const publicWebRoutes = ["/", "/login", "/register", "/assets", "/markets"];
+const publicWebRoutes = ["/", "/login", "/register", "/assets", "/markets", "/verify-email"];
 const protectedWebRoutes = [
   "/dashboard",
   "/wallet",
@@ -81,6 +82,7 @@ async function main() {
   const auth = await testAuthFlows();
   await testFeatureFlags(auth.adminAccessToken);
   await testV101SecurityFoundation(auth.adminAccessToken);
+  await testV102EmailVerificationFoundation(auth);
   await resetV08OperationalControls(auth.adminAccessToken);
   await testV03AirdropFlow(auth);
   await testV071AdminWalletBucketTransfer(auth.adminAccessToken);
@@ -188,8 +190,15 @@ async function testAuthFlows() {
     headers: { authorization: `Bearer ${sender.accessToken}` },
   });
   assertOk(meResponse, "load current user");
-  const meJson = (await meResponse.json()) as { user?: { role?: string; email?: string } };
-  if (meJson.user?.role !== "USER" || meJson.user?.email !== testEmail) {
+  const meJson = (await meResponse.json()) as {
+    user?: { role?: string; email?: string; emailVerified?: boolean; emailVerifiedAt?: string | null };
+  };
+  if (
+    meJson.user?.role !== "USER" ||
+    meJson.user?.email !== testEmail ||
+    meJson.user?.emailVerified !== false ||
+    meJson.user?.emailVerifiedAt !== null
+  ) {
     throw new Error(`Unexpected /auth/me payload: ${JSON.stringify(meJson)}`);
   }
 
@@ -212,7 +221,11 @@ async function testAuthFlows() {
     userAccessToken: sender.accessToken,
     receiverAccessToken: receiver.accessToken,
     adminAccessToken: adminLoginJson.accessToken,
-    user: { email: testEmail, username: testUsername },
+    user: {
+      id: sender.user?.id ?? "",
+      email: testEmail,
+      username: testUsername,
+    },
     receiver: { email: receiverEmail, username: receiverUsername },
   };
 }
@@ -315,9 +328,22 @@ async function registerUser(email: string, username: string, nickname: string) {
   assertOk(response, `register normal user ${username}`);
   const json = (await response.json()) as {
     accessToken?: string;
-    user?: { role?: string; email?: string; username?: string };
+    user?: {
+      id?: string;
+      role?: string;
+      email?: string;
+      username?: string;
+      emailVerified?: boolean;
+      emailVerifiedAt?: string | null;
+    };
   };
-  if (!json.accessToken || json.user?.role !== "USER") {
+  if (
+    !json.accessToken ||
+    !json.user?.id ||
+    json.user?.role !== "USER" ||
+    json.user?.emailVerified !== false ||
+    json.user?.emailVerifiedAt !== null
+  ) {
     throw new Error(`Unexpected register payload: ${JSON.stringify(json)}`);
   }
 
@@ -325,6 +351,147 @@ async function registerUser(email: string, username: string, nickname: string) {
     accessToken: json.accessToken,
     user: json.user,
   };
+}
+
+async function testV102EmailVerificationFoundation(auth: {
+  userAccessToken: string;
+  adminAccessToken: string;
+  user: { id: string; email: string; username: string };
+}) {
+  const requestResponse = await postJson<{
+    success?: boolean;
+    alreadyVerified?: boolean;
+    email?: string;
+    emailVerified?: boolean;
+    emailVerifiedAt?: string | null;
+    deliveryProvider?: string | null;
+    expiresAt?: string | null;
+  }>(
+    `${apiBaseUrl}/auth/email-verification/request`,
+    auth.userAccessToken,
+    {},
+    "request email verification",
+  );
+
+  if (
+    !requestResponse.success ||
+    requestResponse.alreadyVerified !== false ||
+    requestResponse.email !== auth.user.email ||
+    requestResponse.emailVerified !== false ||
+    requestResponse.emailVerifiedAt !== null ||
+    requestResponse.deliveryProvider !== "console" ||
+    !requestResponse.expiresAt
+  ) {
+    throw new Error(`Unexpected email verification request payload: ${JSON.stringify(requestResponse)}`);
+  }
+
+  const requestedTokenRow = await getLatestEmailVerificationTokenRow(auth.user.id);
+  if (
+    !requestedTokenRow ||
+    requestedTokenRow.email !== auth.user.email ||
+    requestedTokenRow.purpose !== "VERIFY_EMAIL" ||
+    requestedTokenRow.usedAt !== null ||
+    requestedTokenRow.tokenHash.length < 64
+  ) {
+    throw new Error("Expected a hashed pending email verification token after request.");
+  }
+
+  const invalidConfirmResponse = await fetch(`${apiBaseUrl}/auth/email-verification/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: `not-a-real-email-token-${smokeRunId}` }),
+  });
+  if (invalidConfirmResponse.status !== 400) {
+    throw new Error(
+      `Invalid email verification token should return 400, got ${invalidConfirmResponse.status}.`,
+    );
+  }
+
+  const knownToken = `smoke-email-verify-${smokeRunId}-valid`;
+  const knownTokenHash = hashEmailVerificationToken(knownToken);
+  await insertEmailVerificationToken(auth.user.id, auth.user.email, knownToken, 60);
+
+  const confirmResponse = await fetch(`${apiBaseUrl}/auth/email-verification/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: knownToken }),
+  });
+  assertOk(confirmResponse, "confirm email verification");
+  const confirmJson = (await confirmResponse.json()) as {
+    success?: boolean;
+    email?: string;
+    emailVerified?: boolean;
+    emailVerifiedAt?: string;
+  };
+  if (
+    !confirmJson.success ||
+    confirmJson.email !== auth.user.email ||
+    confirmJson.emailVerified !== true ||
+    !confirmJson.emailVerifiedAt
+  ) {
+    throw new Error(`Unexpected email verification confirm payload: ${JSON.stringify(confirmJson)}`);
+  }
+
+  const meAfterConfirm = await getJson<{
+    user?: { emailVerified?: boolean; emailVerifiedAt?: string | null };
+  }>(`${apiBaseUrl}/auth/me`, auth.userAccessToken, "load verified auth session");
+  if (meAfterConfirm.user?.emailVerified !== true || !meAfterConfirm.user?.emailVerifiedAt) {
+    throw new Error("Expected /auth/me to reflect a verified email after confirmation.");
+  }
+
+  const reusedConfirmResponse = await fetch(`${apiBaseUrl}/auth/email-verification/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: knownToken }),
+  });
+  if (reusedConfirmResponse.status !== 400) {
+    throw new Error(
+      `Reused email verification token should return 400, got ${reusedConfirmResponse.status}.`,
+    );
+  }
+
+  const expiredToken = `smoke-email-verify-${smokeRunId}-expired`;
+  await insertEmailVerificationToken(auth.user.id, auth.user.email, expiredToken, -5);
+  const expiredConfirmResponse = await fetch(`${apiBaseUrl}/auth/email-verification/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ token: expiredToken }),
+  });
+  if (expiredConfirmResponse.status !== 400) {
+    throw new Error(
+      `Expired email verification token should return 400, got ${expiredConfirmResponse.status}.`,
+    );
+  }
+
+  const securityEvents = await getJson<{
+    events?: Array<{ eventType: string; metadata?: unknown }>;
+  }>(
+    `${apiBaseUrl}/admin/security-events?search=EMAIL_VERIFICATION&limit=100`,
+    auth.adminAccessToken,
+    "load email verification security events",
+  );
+  const eventTypes = new Set((securityEvents.events ?? []).map((event) => event.eventType));
+  for (const expectedEventType of [
+    "EMAIL_VERIFICATION_REQUESTED",
+    "EMAIL_VERIFICATION_SENT",
+    "EMAIL_VERIFICATION_CONFIRMED",
+    "EMAIL_VERIFICATION_FAILED",
+    "EMAIL_VERIFICATION_TOKEN_EXPIRED",
+    "EMAIL_VERIFICATION_TOKEN_REUSED",
+  ]) {
+    if (!eventTypes.has(expectedEventType)) {
+      throw new Error(`Expected email verification security event ${expectedEventType}.`);
+    }
+  }
+
+  const serializedEvents = JSON.stringify(securityEvents.events ?? []);
+  for (const forbidden of [knownToken, knownTokenHash, expiredToken]) {
+    if (forbidden && serializedEvents.includes(forbidden)) {
+      throw new Error(`Email verification security events should not expose ${forbidden}.`);
+    }
+  }
+
+  console.log("PASS v1.0.2 email verification foundation");
 }
 
 async function testV03AirdropFlow(auth: {
@@ -1940,6 +2107,12 @@ async function testV101SecurityEventCoverage(adminAccessToken: string) {
     "AUTH_LOGIN_SUCCESS",
     "AUTH_LOGIN_FAILED",
     "AUTH_LOGOUT",
+    "EMAIL_VERIFICATION_REQUESTED",
+    "EMAIL_VERIFICATION_SENT",
+    "EMAIL_VERIFICATION_CONFIRMED",
+    "EMAIL_VERIFICATION_FAILED",
+    "EMAIL_VERIFICATION_TOKEN_EXPIRED",
+    "EMAIL_VERIFICATION_TOKEN_REUSED",
     "FEATURE_FLAG_READ_ADMIN",
     "USER_STATUS_CHANGED",
     "ASSET_STATUS_CHANGED",
@@ -2001,6 +2174,76 @@ async function testWebRoutes() {
   }
 
   console.log("PASS web routes");
+}
+
+async function getLatestEmailVerificationTokenRow(userId: string) {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+
+  try {
+    const result = await client.query<{
+      email: string;
+      token_hash: string;
+      purpose: string;
+      used_at: string | null;
+    }>(
+      `
+        select email, token_hash, purpose, used_at
+        from email_verification_tokens
+        where user_id = $1
+        order by created_at desc
+        limit 1
+      `,
+      [userId],
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      return null;
+    }
+
+    return {
+      email: row.email,
+      tokenHash: row.token_hash,
+      purpose: row.purpose,
+      usedAt: row.used_at,
+    };
+  } finally {
+    await client.end();
+  }
+}
+
+async function insertEmailVerificationToken(
+  userId: string,
+  email: string,
+  rawToken: string,
+  expiresInMinutes: number,
+) {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+
+  try {
+    await client.query(
+      `
+        insert into email_verification_tokens (
+          user_id,
+          email,
+          token_hash,
+          purpose,
+          expires_at,
+          created_at
+        )
+        values ($1, $2, $3, 'VERIFY_EMAIL', now() + ($4 * interval '1 minute'), now())
+      `,
+      [userId, email, hashEmailVerificationToken(rawToken), expiresInMinutes],
+    );
+  } finally {
+    await client.end();
+  }
+}
+
+function hashEmailVerificationToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 function assertOk(response: Response, label: string) {
