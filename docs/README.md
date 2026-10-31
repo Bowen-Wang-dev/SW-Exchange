@@ -12,6 +12,8 @@
 ## Index
 
 - [ARCHITECTURE_STATE.md](./ARCHITECTURE_STATE.md): current architecture snapshot and supported system state
+- [V1_0_3_VERIFICATION.md](./V1_0_3_VERIFICATION.md): completed real PostgreSQL, auth/concurrency and full smoke evidence
+- [LOCAL_SETUP_MACOS.md](./LOCAL_SETUP_MACOS.md): native PostgreSQL and local development workflow
 - [BUSINESS_RULES.md](./BUSINESS_RULES.md): canonical trading, wallet, fee, transfer, and status rules
 - [CURRENT_LIMITATIONS.md](./CURRENT_LIMITATIONS.md): intentionally unsupported features and scope boundaries
 - [EXCHANGE_BOUNDARY.md](./EXCHANGE_BOUNDARY.md): public project boundary and positioning

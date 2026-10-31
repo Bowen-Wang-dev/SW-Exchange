@@ -2,7 +2,7 @@
 
 This document plans the security foundation that should exist before any chain money-movement feature is enabled.
 
-As of `v1.0.2`, the feature-flag foundation, dedicated security event logging foundation, sensitive-action policy matrix, and verified-email state exist, but the remaining security modules below stay unimplemented unless explicitly noted otherwise.
+As of `v1.0.3`, feature flags, security events, verified-email state, TOTP 2FA and purpose-bound password reauthentication exist. Reauthentication is scoped to 2FA management; general action enforcement and v1.0.4 Admin Role Permissions remain planned-only.
 
 Implemented prerequisite from this plan:
 
@@ -12,11 +12,12 @@ Implemented prerequisite from this plan:
 - verified/unverified user email state plus hashed single-use email verification tokens
 - authenticated email-verification request flow and public token confirm flow
 - console/dev mail delivery abstraction for verification links and tokens
+- encrypted TOTP enrollment, replay-resistant two-step login and hashed one-time recovery codes
+- purpose-bound password reauthentication for implemented 2FA management, backend throttling and retention cleanup
 
 Still not implemented:
 
-- TOTP 2FA behavior
-- sensitive-action re-auth
+- general sensitive-action re-auth beyond implemented 2FA management
 - granular admin role permission checks
 - security enforcement for the planned sensitive-action requirements
 
@@ -36,10 +37,15 @@ Still not implemented:
 - Future milestones should require verified email for security-setting changes and future withdrawal eligibility.
 - Verification state changes are now recorded in security logs.
 
-### TOTP 2FA
+### TOTP 2FA (implemented in v1.0.3)
 
-- Support TOTP-based 2FA enrollment and challenge flow
-- Require fresh confirmation for enable/disable actions
+- AES-256-GCM encrypted secrets, local QR provisioning, TOTP activation and hash-only recovery codes
+- Password verification issues a five-minute login challenge rather than an access JWT for enabled users
+- User-row locks serialize challenge/recovery/TOTP consumption; attempt limits and monotonic TOTP counters prevent reuse
+- Five-minute, purpose-bound password reauthentication protects setup, enable, disable and recovery regeneration
+- Disable and recovery regeneration additionally require a valid TOTP or unused recovery code
+- Enable/disable increment authVersion and revoke outstanding reauthentication
+- enable2FA gates new enrollment; turning it off never bypasses an enrolled user's second factor
 - Plan admin-policy capability to require 2FA for admins before withdrawal approval rights
 
 ### Sensitive Action Re-auth
@@ -59,7 +65,7 @@ Still not implemented:
 - Record security-setting changes, re-auth events, failed protected actions, and permissioned admin actions
 - Keep logs queryable in admin tooling
 - Avoid logging secrets, OTP seeds, backup codes, or raw credentials
-- Current `v1.0.2` implementation records login outcomes, email verification outcomes, and selected current admin actions where practical; later milestones should extend coverage as new protected flows are added
+- Current v1.0.3 coverage records login, email verification, TOTP setup/management/challenge/recovery outcomes and selected admin actions; credentials are excluded and sensitive metadata keys are redacted
 
 ### Withdrawal / Security Setting Verification
 
@@ -68,11 +74,21 @@ Still not implemented:
 
 ### Recovery Considerations
 
-- Plan backup code or operator-assisted recovery flow for TOTP lockout
+- One-time recovery codes are implemented; operator-assisted recovery for losing all factors remains future work
 - Apply stricter review to recovery than to normal login
 - Record recovery attempts and outcomes in security logs
 
-### Rate Limiting Concept
+### Implemented v1.0.3 authentication limits
+
+- Password login: 100 attempts per socket IP per 15 minutes, plus 10 per identifier/IP pair; no identifier-only global lockout
+- Password reauthentication: 10 attempts per authenticated user per 5 minutes
+- Second factor: 30 attempts per user per 5 minutes; second-step login also has an IP limit of 100 per 5 minutes
+- Setup: 10 attempts per user per 10 minutes; every login challenge independently allows at most 5 attempts
+- Startup/hourly cleanup removes limiter windows older than 24 hours and reauthentication records expired more than 24 hours ago
+- Arbitrary forwarding headers are ignored; a future shared reverse proxy requires an explicitly trusted topology
+- See [verification evidence](./V1_0_3_VERIFICATION.md) for the 29 real PostgreSQL tests and full smoke results
+
+### Future Rate Limiting Concept
 
 - Add rate limiting for login, password reset, 2FA challenge, verification, and future withdrawal-related endpoints
 - Differentiate user-facing limits from admin-sensitive limits

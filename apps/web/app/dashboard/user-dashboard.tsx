@@ -14,6 +14,7 @@ import type {
 } from "@/lib/api-types";
 import { formatDateTime } from "@/lib/format";
 import { CURRENT_MILESTONE_VERSION, REAL_TIME_SYNC_COPY } from "@/lib/milestone-copy";
+import { TwoFactorSecurity } from "@/components/auth/two-factor-security";
 import { useAuth } from "@/providers/auth-provider";
 
 export function DashboardContent() {
@@ -140,6 +141,7 @@ export function DashboardContent() {
 
   return (
     <div className="space-y-4">
+      <TwoFactorSecurity />
       <PageHeader
         eyebrow="User Dashboard"
         title={`Welcome ${user?.username ?? "Trader"}`}

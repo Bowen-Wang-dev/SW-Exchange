@@ -1,3 +1,6 @@
+import { TwoFactorService } from "./two-factor.service.js";
+import { AuthRateLimitService } from "./auth-rate-limit.service.js";
+import { FeatureFlagsModule } from "../feature-flags/feature-flags.module.js";
 import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
@@ -13,6 +16,7 @@ import { JwtStrategy } from "./jwt.strategy.js";
 @Module({
   imports: [
     UsersModule,
+    FeatureFlagsModule,
     MailModule,
     SecurityModule,
     PassportModule,
@@ -27,7 +31,7 @@ import { JwtStrategy } from "./jwt.strategy.js";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, EmailVerificationService, JwtStrategy],
+  providers: [TwoFactorService, AuthRateLimitService, AuthService, EmailVerificationService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

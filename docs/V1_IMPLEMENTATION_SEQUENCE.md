@@ -20,6 +20,25 @@ This document defines the planned phased `v1.x` roadmap. Each phase remains plan
 - Rollback / disable plan: keep chain gateway and funding flags disabled
 - User-visible state: clearer security event visibility and stronger operator review paths
 
+## v1.0.2 Email Verification Foundation - Completed
+
+- Verified-email state, hashed single-use tokens, request/confirm APIs and dev-console delivery
+- Optional for current login and trading; broader verified-email enforcement remains future work
+
+## v1.0.3 TOTP 2FA Foundation - Completed
+
+- Encrypted enrollment, two-step login, single-use recovery/challenge credentials and replay protection
+- Purpose-bound password reauthentication, session-version invalidation, backend throttling and retention cleanup
+- User/admin UI, security events, enrollment flag, migrations 0013/0014 and real PostgreSQL regression tests
+- Existing enrolled users remain protected when new enrollment is disabled
+- See [verification evidence](./V1_0_3_VERIFICATION.md); no trading, wallet, fee, transfer or settlement rule changes
+
+## v1.0.4 Admin Role Permissions - Planned Only
+
+- Next milestone: scoped admin authorization design and enforcement
+- Runtime still uses broad ADMIN/USER checks; no granular permission model, role-management UI or permission execution exists in v1.0.3
+- Funding and chain execution remain unimplemented
+
 ## v1.1 Chain Asset Registry
 
 - Goal: link internal assets to optional chain metadata safely

@@ -60,7 +60,55 @@ Public.
 Requires admin JWT.
 
 - Returns the same canonical flag set for admin review surfaces.
-- Current `v1.0.2` behavior remains read-only; no mutation endpoint is exposed yet.
+- Current `v1.0.3` behavior remains read-only; no mutation endpoint is exposed yet.
+
+## POST `/api/auth/login`
+
+Public. Accepts `identifier` and `password`.
+
+- Non-2FA accounts receive `{ user, accessToken }` as before.
+- Enabled accounts receive only `{ twoFactorRequired: true, challengeToken, expiresAt }` after password verification. No access JWT is issued at this stage.
+- The random, hash-only challenge expires after five minutes, allows five attempts and is single-use. Only the latest password-verified challenge remains valid for that user.
+- Challenges are not JWTs and cannot authorize protected API routes.
+- Password login is limited to 100 attempts per socket IP and 10 per identifier/IP pair per 15 minutes. Arbitrary forwarding headers are ignored.
+
+## POST `/api/auth/2fa/login`
+
+Public. Accepts `{ challengeToken, code }`, where `code` is a six-digit TOTP or one unused recovery code (four groups of eight hexadecimal characters separated by hyphens).
+
+- Returns `{ user, accessToken }` only after atomic challenge/factor consumption.
+- Expired, used, version-stale or exhausted challenges and invalid/reused factors return `401`; rate limits return `429`.
+- Persisted TOTP counters prevent replay. A valid recovery code is also a one-time second factor.
+
+## POST `/api/auth/2fa/reauth`
+
+Requires the current JWT. Accepts `{ password, purpose }` with one of:
+
+- `2fa-setup`
+- `2fa-enable`
+- `2fa-disable`
+- `2fa-recovery-regenerate`
+
+Returns `{ reauthToken, expiresAt }`. The random token is stored by hash only, bound to the user and purpose, expires in five minutes and authorizes one successful protected operation. An existing JWT alone is insufficient. Reissuing a purpose invalidates its previous token. Password attempts are limited to 10 per authenticated user per five minutes.
+
+## Protected 2FA management
+
+All endpoints below require a current JWT plus purpose-matching password reauthentication.
+
+| POST endpoint | Body | Success response |
+| --- | --- | --- |
+| `/api/auth/2fa/setup` | `{ reauthToken }` for `2fa-setup` | `{ secret, provisioningUri, qrCodeDataUrl, expiresAt }` |
+| `/api/auth/2fa/enable` | `{ reauthToken, code }` for `2fa-enable`; code from the pending authenticator | `{ user, accessToken, recoveryCodes }` |
+| `/api/auth/2fa/disable` | `{ reauthToken, code }` for `2fa-disable`; valid TOTP or unused recovery code | `{ user, accessToken }` |
+| `/api/auth/2fa/recovery-codes/regenerate` | `{ reauthToken, code }` for `2fa-recovery-regenerate`; valid TOTP or unused recovery code | `{ user, accessToken, recoveryCodes }` |
+
+- Setup lasts ten minutes. Provisioning secrets and recovery codes are deliberately returned only by their creation operations; callers must keep them out of logs and persistent browser storage.
+- Ten recovery codes are created; regeneration invalidates the entire old set.
+- Reauthentication consumption and protected changes share the same transaction and user-row lock. A failed protected operation rolls back consumption.
+- Enable/disable increment `authVersion`, invalidate previous JWTs and outstanding reauthentication, and return a replacement session.
+- `enable2FA` defaults disabled and gates setup/activation. Existing enabled users must still pass their second factor when the flag is off; protected disable/regeneration remain available.
+- Malformed payloads return `400`, invalid authentication returns `401`, enrollment blocked by the flag returns `403`, and throttling returns `429`. Unconfigured encryption causes enrollment to fail closed; production startup requires the key.
+- Auth responses use `Cache-Control: no-store`. Normal user/admin read APIs expose 2FA status, never encrypted or plaintext secret material.
 
 ## GET `/api/auth/me`
 
@@ -84,7 +132,7 @@ Response shape:
 
 Notes:
 
-- The session payload now exposes verified-email state.
+- The session payload exposes verified-email state plus `twoFactorEnabled`, `twoFactorEnabledAt` and `authVersion`.
 - `emailVerifiedAt` is `null` until confirmation succeeds.
 
 ## POST `/api/auth/email-verification/request`
@@ -110,7 +158,7 @@ Notes:
 - This endpoint creates a new hashed single-use verification token and invalidates older pending tokens for the same user and purpose.
 - The current milestone uses a console/dev mail provider by default.
 - Raw tokens are not returned by the API and must not be written to security events.
-- Email verification is still optional in `v1.0.2`; this endpoint does not turn login or trading into a blocked flow.
+- Email verification remains optional in `v1.0.3`; this endpoint does not turn login or trading into a blocked flow.
 
 ## POST `/api/auth/email-verification/confirm`
 
@@ -189,7 +237,7 @@ Supported simple filters:
 Notes:
 
 - Response metadata is sanitized and must not include raw passwords, JWTs, TOTP secrets, email-verification codes, private keys, or environment secrets.
-- Current `v1.0.2` coverage includes login outcomes, email verification outcomes, and selected admin actions.
+- Current `v1.0.3` coverage includes login, TOTP setup/management/challenge/recovery outcomes, email verification outcomes, and selected admin actions.
 
 ## GET `/api/admin/security-events/:id`
 
@@ -224,7 +272,7 @@ Response shape:
 Notes:
 
 - This endpoint exposes the planned sensitive-action policy matrix only.
-- It does not mean deposit, withdrawal, or TOTP enforcement is live, and verified-email checks are not yet enforced for sensitive actions.
+- The matrix does not activate deposit, withdrawal or general admin permission enforcement. TOTP login and password reauthentication are enforced by the implemented 2FA routes; broader verified-email/action policies remain planned.
 
 ## POST `/api/orders`
 

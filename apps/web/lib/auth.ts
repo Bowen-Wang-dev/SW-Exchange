@@ -8,6 +8,8 @@ export type AuthUser = {
   role: UserRole;
   status: UserStatus;
   isSystem?: boolean;
+  twoFactorEnabled: boolean;
+  twoFactorEnabledAt?: string | null;
   emailVerified: boolean;
   emailVerifiedAt?: string | null;
   createdAt?: string;
@@ -28,6 +30,8 @@ type SessionUserPayload = {
   role: UserRole;
   status: UserStatus;
   isSystem?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorEnabledAt?: string | null;
   emailVerified?: boolean;
   emailVerifiedAt?: string | null;
   createdAt?: string;
@@ -86,9 +90,13 @@ export function normalizeAuthUser(user: SessionUserPayload): AuthUser {
     role: user.role,
     status: user.status,
     isSystem: user.isSystem,
+    twoFactorEnabled: Boolean(user.twoFactorEnabled),
+    twoFactorEnabledAt: user.twoFactorEnabledAt ?? null,
     emailVerified: Boolean(user.emailVerifiedAt ?? user.emailVerified),
     emailVerifiedAt: user.emailVerifiedAt ?? null,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
   };
 }
+
+export type LoginChallenge = { twoFactorRequired: true; challengeToken: string; expiresAt: string };

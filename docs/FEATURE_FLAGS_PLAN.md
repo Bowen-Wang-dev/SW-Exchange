@@ -76,12 +76,14 @@ Current implementation notes:
 
 ### `enable2FA`
 
-- Purpose: allow TOTP 2FA enrollment and enforcement
+- Status: implemented in v1.0.3
+- Purpose: allow new TOTP enrollment
 - Default value: `false`
-- Frontend effect: hide security setup screens and 2FA challenge prompts when disabled
-- Backend enforcement: reject 2FA enrollment, removal, and enforcement hooks when disabled
-- Admin visibility: show whether the platform supports 2FA and whether it is required for admins
-- Safety notes: backend must not accept “2FA-protected” flows when the feature is globally off
+- Frontend effect: disable new setup while preserving enrolled users' controls and login challenges
+- Backend enforcement: reject setup/activation when disabled; enrolled accounts still require a second factor
+- Disablement and recovery regeneration remain available with password reauthentication and a valid factor
+- Admin visibility: platform availability and per-user status; mandatory-admin-2FA policy is not implemented
+- Safety notes: switching this flag off must never restore password-only login for enrolled users
 
 ### `enableEmailVerification`
 

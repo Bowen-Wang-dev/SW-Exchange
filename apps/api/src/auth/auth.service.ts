@@ -1,3 +1,5 @@
+import { TwoFactorService } from "./two-factor.service.js";
+import { AuthRateLimitService } from "./auth-rate-limit.service.js";
 import { BadRequestException, Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { type UserRole } from "@sw-exchange/shared";
 import { JwtService } from "@nestjs/jwt";
@@ -10,6 +12,8 @@ import type { RegisterDto } from "./dto/register.dto.js";
 @Injectable()
 export class AuthService {
   constructor(
+    @Inject(TwoFactorService) private readonly twoFactor: TwoFactorService,
+    @Inject(AuthRateLimitService) private readonly limits: AuthRateLimitService,
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(JwtService) private readonly jwtService: JwtService,
     @Inject(SecurityEventsService) private readonly securityEventsService: SecurityEventsService,
@@ -47,6 +51,8 @@ export class AuthService {
     },
   ) {
     const identifier = dto.identifier.trim();
+    await this.limits.check("password-ip", context?.ipAddress ?? "unknown", 100, 900);
+    await this.limits.check("password-account-ip", `${identifier.toLowerCase()}:${context?.ipAddress ?? "unknown"}`, 10, 900);
     const user = await this.usersService.findByIdentifier(identifier);
 
     if (!user) {
@@ -70,7 +76,9 @@ export class AuthService {
       throw new UnauthorizedException("USER_BANNED");
     }
 
-    const token = await this.signToken(user);
+    const attempt = await this.twoFactor.passwordLogin(user.id, context ?? {});
+    if (attempt.challengeToken) return { twoFactorRequired: true as const, challengeToken: attempt.challengeToken, expiresAt: attempt.expiresAt };
+    const token = await this.signToken(attempt.user);
     await this.securityEventsService.recordEvent({
       actorUserId: user.id,
       actorRole: user.role,
@@ -124,12 +132,34 @@ export class AuthService {
     };
   }
 
-  private async signToken(user: Awaited<ReturnType<UsersService["findByIdentifier"]>>) {
+  async completeTwoFactorLogin(challengeToken: string, code: string, context: { ipAddress?: string | null; userAgent?: string | null }) {
+    const user = await this.twoFactor.completeLogin(challengeToken, code, context);
+    await this.securityEventsService.recordEvent({ actorUserId: user.id, actorRole: user.role, eventType: "AUTH_LOGIN_SUCCESS", severity: "INFO", targetType: "USER", targetId: user.id, ...context, metadata: { loginMethod: "PASSWORD_AND_SECOND_FACTOR" } });
+    return this.session(user, true);
+  }
+
+  async enableTwoFactor(userId: string, version: number, code: string, reauthToken: string, context: { ipAddress?: string | null; userAgent?: string | null }) {
+    const result = await this.twoFactor.enable(userId, version, code, reauthToken, context);
+    return { ...await this.session(result.user, true), recoveryCodes: result.recoveryCodes };
+  }
+
+  async manageTwoFactor(userId: string, version: number, code: string, reauthToken: string, action: "disable" | "regenerate", context: { ipAddress?: string | null; userAgent?: string | null }) {
+    const result = await this.twoFactor.manage(userId, version, code, reauthToken, action, context);
+    return { ...await this.session(result.user, true), ...(result.recoveryCodes ? { recoveryCodes: result.recoveryCodes } : {}) };
+  }
+
+  private async session(user: NonNullable<Awaited<ReturnType<UsersService["findById"]>>>, mfa: boolean) {
+    return { user: this.usersService.toPublicUser(user), accessToken: await this.signToken(user, mfa) };
+  }
+
+  private async signToken(user: Awaited<ReturnType<UsersService["findByIdentifier"]>>, mfa = false) {
     if (!user) {
       throw new UnauthorizedException("User not found.");
     }
 
     return this.jwtService.signAsync({
+      authVersion: user.authVersion,
+      amr: mfa ? "mfa" : "password",
       sub: user.id,
       email: user.email,
       username: user.username,

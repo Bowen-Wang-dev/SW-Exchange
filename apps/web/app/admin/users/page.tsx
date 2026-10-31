@@ -258,7 +258,7 @@ export default function AdminUsersPage() {
           {!isLoading && !error ? (
             filteredUsers.length > 0 ? (
               <DataTable
-                columns={["User", "ID", "Role", "Status", "Verification", "Created", "Updated", "Actions"]}
+                columns={["User", "ID", "Role", "Status", "Verification", "2FA", "Created", "Updated", "Actions"]}
                 rows={filteredUsers.map((user) => [
                   <UserCell key={`${user.id}-user`} user={user} />,
                   shortId(user.id),
@@ -283,6 +283,10 @@ export default function AdminUsersPage() {
                     label={user.emailVerified ? "VERIFIED" : "UNVERIFIED"}
                     tone={user.emailVerified ? "success" : "warning"}
                   />,
+                  <div key={`${user.id}-2fa`} className="space-y-1">
+                    <StatusBadge label={user.twoFactorEnabled ? "ENABLED" : "DISABLED"} tone={user.twoFactorEnabled ? "success" : "info"} />
+                    {user.twoFactorEnabledAt ? <p className="text-xs text-[var(--foreground-muted)]">{formatDateTime(user.twoFactorEnabledAt)}</p> : null}
+                  </div>,
                   formatDateTime(user.createdAt),
                   formatDateTime(user.updatedAt),
                   <UserStatusActions

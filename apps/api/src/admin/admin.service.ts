@@ -201,6 +201,8 @@ export class AdminService {
         role: users.role,
         status: users.status,
         isSystem: users.isSystem,
+        twoFactorEnabled: users.twoFactorEnabled,
+        twoFactorEnabledAt: users.twoFactorEnabledAt,
         emailVerifiedAt: users.emailVerifiedAt,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,

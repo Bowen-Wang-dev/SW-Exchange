@@ -4,16 +4,31 @@ SW Exchange is being built in focused milestones so the simulated exchange stays
 
 ## Milestone Status
 
-Current completed milestone: `v1.0.2 Email Verification Foundation`
+Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
 
-Next milestone: `v1.0.3 TOTP 2FA Foundation`
+Next milestone: `v1.0.4 Admin Role Permissions`
 
 ## Current State
 
 - `v0.x` is a complete off-chain simulated exchange runtime for custom assets and custom markets.
 - Spot-style trading, internal wallets/transfers, market data, admin operations, and Docker deployment are live.
-- Deposit, withdraw, blockchain, 2FA, margin, and futures are not live.
+- Deposit, withdraw, blockchain, margin, and futures are not live.
+- Optional TOTP 2FA is live; granular admin role permissions remain planned-only.
 - Email verification is live as an optional security capability, but it is not yet enforced for login or trading.
+
+## v1.0.3 TOTP 2FA Foundation
+
+- Added TOTP setup, activation, disablement and recovery-code regeneration with fresh password reauthentication
+- AES-256-GCM encrypts authenticator secrets with user-bound authenticated data; production requires a separate `TOTP_ENCRYPTION_KEY`
+- Enabled accounts use a five-minute, five-attempt, hash-only login challenge after password verification; it cannot grant normal JWT access
+- Recovery codes are hashed and atomically consumed; persisted TOTP counters prevent replay
+- Purpose-bound password reauthentication expires after five minutes and is consumed in the protected transaction; enable/disable invalidate earlier sessions and outstanding reauthentication
+- Added backend throttling, expired-record cleanup, 2FA security events, feature-flag integration, and user/admin 2FA visibility
+- `enable2FA` defaults off and gates new enrollment; switching it off never bypasses enrolled users' second factor
+- Real PostgreSQL verification: 29 auth tests passed, zero failures/skips, three consumption races, concurrent limiter checks, builds and full smoke passed
+- Includes migrations `0013`/`0014`, snapshots and journal entries; see [verification evidence](./V1_0_3_VERIFICATION.md)
+- Trading, matching, fees, wallets, transfers and settlement behavior are unchanged
+- Blockchain, deposits, withdrawals, margin and futures remain unimplemented; v1.0.4 Admin Role Permissions remains planned-only
 
 ## v1.0.2 Email Verification Foundation - Completed
 
@@ -54,7 +69,7 @@ Next milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Planned v1.x Sequence
 
-1. `v1.0.3 TOTP 2FA Foundation`
+1. `v1.0.4 Admin Role Permissions` (planned-only)
 2. `v1.1 Chain Asset Registry`
 3. `v1.2 User Deposit Address Model`
 4. `v1.3 Deposit Monitor Detect-only`

@@ -8,6 +8,7 @@ import {
   normalizeAuthUser,
   setStoredAccessToken,
   type AuthResponse,
+  type LoginChallenge,
   type AuthUser as AuthUserType,
   type AuthUser,
 } from "@/lib/auth";
@@ -16,7 +17,9 @@ type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
-  login: (identifier: string, password: string) => Promise<AuthUser>;
+  login: (identifier: string, password: string) => Promise<AuthUser | LoginChallenge>;
+  completeTwoFactorLogin: (challengeToken: string, code: string) => Promise<AuthUser>;
+  acceptSession: (response: AuthResponse) => AuthUser;
   register: (
     email: string,
     username: string,
@@ -39,6 +42,8 @@ type SessionResponseUser = AuthUserType | {
   role: AuthUserType["role"];
   status: AuthUserType["status"];
   isSystem?: boolean;
+  twoFactorEnabled?: boolean;
+  twoFactorEnabledAt?: string | null;
   emailVerified?: boolean;
   emailVerifiedAt?: string | null;
 };
@@ -94,19 +99,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionRequestIdRef.current += 1;
 
     try {
-      const response = await apiRequest<AuthResponse>("/auth/login", {
+      const response = await apiRequest<AuthResponse | LoginChallenge>("/auth/login", {
         method: "POST",
         body: { identifier: identifier.trim(), password },
       });
 
-      const normalized = normalizeAuthUser(response.user);
-      setStoredAccessToken(response.accessToken);
-      setToken(response.accessToken);
-      setUser(normalized);
-      return normalized;
+      if ("twoFactorRequired" in response) {
+        clearStoredAccessToken();
+        setToken(null);
+        setUser(null);
+        return response;
+      }
+      return acceptSession(response);
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function acceptSession(response: AuthResponse) {
+    sessionRequestIdRef.current += 1;
+    const normalized = normalizeAuthUser(response.user);
+    setStoredAccessToken(response.accessToken);
+    setToken(response.accessToken);
+    setUser(normalized);
+    setIsLoading(false);
+    return normalized;
+  }
+
+  async function completeTwoFactorLogin(challengeToken: string, code: string) {
+    const response = await apiRequest<AuthResponse>("/auth/2fa/login", { method: "POST", body: { challengeToken, code } });
+    return acceptSession(response);
   }
 
   async function register(email: string, username: string, password: string, nickname?: string) {
@@ -178,6 +200,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isLoading,
         login,
+        completeTwoFactorLogin,
+        acceptSession,
         register,
         logout,
         loadMe,

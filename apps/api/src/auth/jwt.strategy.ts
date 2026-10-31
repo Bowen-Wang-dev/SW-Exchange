@@ -21,7 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: AuthenticatedUser) {
     const user = await this.usersService.findById(payload.sub);
 
-    if (!user || user.isSystem) {
+    if (!user || user.isSystem || (payload.authVersion ?? 0) !== user.authVersion || (user.twoFactorEnabled && payload.amr !== "mfa")) {
       throw new UnauthorizedException("Invalid session.");
     }
 
@@ -30,6 +30,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
+      authVersion: user.authVersion,
+      twoFactorEnabled: user.twoFactorEnabled,
+      twoFactorEnabledAt: user.twoFactorEnabledAt,
       sub: user.id,
       email: user.email,
       username: user.username,

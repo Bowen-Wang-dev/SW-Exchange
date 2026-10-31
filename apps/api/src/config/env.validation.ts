@@ -1,3 +1,4 @@
+import { readTwoFactorKey } from "../auth/two-factor.crypto.js";
 import { plainToInstance } from "class-transformer";
 import { IsInt, IsOptional, IsString, Min, validateSync } from "class-validator";
 
@@ -49,6 +50,8 @@ class EnvironmentVariables {
 }
 
 export function validateEnv(config: Record<string, unknown>) {
+  const key = readTwoFactorKey(typeof config.TOTP_ENCRYPTION_KEY === "string" ? config.TOTP_ENCRYPTION_KEY : undefined);
+  if (config.NODE_ENV === "production" && !key) throw new Error("TOTP_ENCRYPTION_KEY is required in production.");
   const normalizedConfig = {
     ...config,
     PORT: normalizeOptionalNumber(config.PORT),

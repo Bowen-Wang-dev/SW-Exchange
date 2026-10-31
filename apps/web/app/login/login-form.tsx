@@ -3,11 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { LoginChallenge } from "@/lib/auth";
 import { useAuth } from "@/providers/auth-provider";
 
 export function LoginForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, completeTwoFactorLogin } = useAuth();
+  const [challenge, setChallenge] = useState<LoginChallenge | null>(null);
+  const [code, setCode] = useState("");
+  const [attempts, setAttempts] = useState(0);
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +23,18 @@ export function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      const user = await login(identifier, password);
+      if (challenge && Date.now() >= Date.parse(challenge.expiresAt)) {
+        setChallenge(null);
+        setCode("");
+        throw new Error("Login challenge expired. Please enter your password again.");
+      }
+      const user = challenge ? await completeTwoFactorLogin(challenge.challengeToken, code.trim()) : await login(identifier, password);
+      if ("twoFactorRequired" in user) {
+        setChallenge(user);
+        setPassword("");
+        setAttempts(0);
+        return;
+      }
       const next = getSafeNextPath();
 
       if (next) {
@@ -32,6 +47,14 @@ export function LoginForm() {
       const message =
         submitError instanceof Error ? submitError.message : "Login failed. Please try again.";
       setError(message);
+      setCode("");
+      if (challenge) {
+        setAttempts(attempts + 1);
+        if (attempts + 1 >= 5 || Date.now() >= Date.parse(challenge.expiresAt)) {
+          setChallenge(null);
+          setError("Please sign in again to start a new verification attempt.");
+        }
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -49,6 +72,7 @@ export function LoginForm() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          {!challenge ? <>
           <Field
             label="Identifier"
             name="identifier"
@@ -67,6 +91,12 @@ export function LoginForm() {
             type="password"
           />
 
+          </> : <>
+            <p className="text-sm text-[var(--foreground-soft)]">Enter a fresh 6-digit authenticator code or one unused recovery code. This login attempt expires in 5 minutes.</p>
+            <Field label="Authenticator or recovery code" name="second-factor" autoComplete="one-time-code" placeholder="6 digits or recovery code" value={code} onChange={setCode} />
+            <button type="button" disabled={isSubmitting} className="text-sm text-[var(--accent)]" onClick={() => { setChallenge(null); setCode(""); setError(null); }}>Start again with password</button>
+          </>}
+
           {error ? (
             <div className="rounded-2xl border border-[var(--notice-danger-border)] bg-[var(--notice-danger-bg)] px-4 py-3 text-sm text-[var(--notice-danger-text)]">
               {error}
@@ -78,7 +108,7 @@ export function LoginForm() {
             disabled={isSubmitting}
             className="w-full rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Signing in..." : "Login"}
+            {isSubmitting ? "Signing in..." : challenge ? "Verify and sign in" : "Login"}
           </button>
         </form>
 

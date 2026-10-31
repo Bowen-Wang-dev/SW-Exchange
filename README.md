@@ -2,9 +2,9 @@
 
 SW Exchange is a simulated exchange runtime for custom assets and custom markets.
 
-Current completed milestone: `v1.0.2 Email Verification Foundation`
+Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
 
-Next milestone: `v1.0.3 TOTP 2FA Foundation`
+Next milestone: `v1.0.4 Admin Role Permissions`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -15,14 +15,14 @@ This version is intentionally limited:
 - No chain token gateway integration in `v0.x`
 - No KYC
 - Email verification foundation exists, but it is not yet required for login or trading
-- No TOTP 2FA yet
+- Optional TOTP 2FA is available; new enrollment is gated while enabled users always require a second factor
 - No stop-loss, take-profit, post-only, fill-or-kill, leverage, futures, or contracts
 - No fee discounts, VIP tiers, or maker/taker tiers yet
 
 Current scope:
 
 - Public registration
-- JWT login
+- JWT login with optional TOTP/recovery-code second step
 - Internal wallets
 - User wallet viewer
 - User ledger viewer
@@ -54,7 +54,7 @@ Current scope:
 - Admin audit logs for user, asset, and market status changes
 - Security event logging for successful and failed logins plus selected admin actions
 - Email verification state visibility for users and admins
-- Read-only sensitive-action policy matrix for future re-auth, email, and 2FA rollout
+- Password reauthentication for implemented 2FA management and a read-only policy matrix for broader future security controls
 - Polished user and admin ledger tables with filters
 - Polished admin audit log table with readable before/after details
 - Admin reports summary cards and recent activity
@@ -134,13 +134,14 @@ Current scope:
 - `v1.0.0 Feature Flags Foundation` completed
 - `v1.0.1 Security Logs + Sensitive Action Model` completed
 - `v1.0.2 Email Verification Foundation` completed
+- `v1.0.3 TOTP 2FA Foundation` completed
 
-- Current completed milestone: `v1.0.2 Email Verification Foundation`
-- Next milestone: `v1.0.3 TOTP 2FA Foundation`
+- Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
+- Next milestone: `v1.0.4 Admin Role Permissions`
 
 ## Planned milestones
 
-- `v1.0.3 TOTP 2FA Foundation`
+- `v1.0.4 Admin Role Permissions` (planned-only)
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
 - `v1.3 Deposit Monitor Detect-only`
@@ -151,6 +152,20 @@ Current scope:
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Margin / Futures Simulation`
+
+## v1.0.3 TOTP 2FA Foundation
+
+- Added TOTP setup, activation, disablement and recovery-code regeneration with fresh password reauthentication
+- AES-256-GCM encrypts authenticator secrets with user-bound authenticated data; production requires a separate `TOTP_ENCRYPTION_KEY`
+- Enabled accounts use a five-minute, five-attempt, hash-only login challenge after password verification; it cannot grant normal JWT access
+- Recovery codes are hashed and atomically consumed; persisted TOTP counters prevent replay
+- Purpose-bound password reauthentication expires after five minutes and is consumed in the protected transaction; enable/disable invalidate earlier sessions and outstanding reauthentication
+- Added backend throttling, expired-record cleanup, 2FA security events, feature-flag integration, and user/admin 2FA visibility
+- `enable2FA` defaults off and gates new enrollment; switching it off never bypasses enrolled users' second factor
+- Real PostgreSQL verification: 29 auth tests passed, zero failures/skips, three consumption races, concurrent limiter checks, builds and full smoke passed
+- Includes migrations `0013`/`0014`, snapshots and journal entries; see [verification evidence](./docs/V1_0_3_VERIFICATION.md)
+- Trading, matching, fees, wallets, transfers and settlement behavior are unchanged
+- Blockchain, deposits, withdrawals, margin and futures remain unimplemented; v1.0.4 Admin Role Permissions remains planned-only
 
 ## v1.0.2 Email Verification Foundation
 
@@ -897,6 +912,18 @@ It verifies:
 - Web build
 - The current user and admin web routes responding without crashing
 
+### Authentication integration tests
+
+Configure `DATABASE_URL_TEST` in ignored root `.env.test.local` or the process environment, using a separate local PostgreSQL database with `_test` in its name. Apply the repository migrations to that database before testing. The suite fails if the database is missing or matches configured development/production targets.
+
+```bash
+corepack pnpm --filter @sw-exchange/api test:auth
+```
+
+Production startup requires `TOTP_ENCRYPTION_KEY`: 32 random bytes encoded as 64 hexadecimal characters. Generate it with `openssl rand -hex 32`, store it only in ignored local configuration or a deployment secret store, and keep it separate from `JWT_SECRET`. Preserve it with database backups; automatic rotation is not implemented.
+
+See [local macOS setup](./docs/LOCAL_SETUP_MACOS.md) and [v1.0.3 verification](./docs/V1_0_3_VERIFICATION.md).
+
 ## Troubleshooting
 
 ### Browser `Failed to fetch` on login or register
@@ -938,7 +965,6 @@ If the warning disappears in that clean browser session, the remaining mismatch 
 
 This scaffold does not yet implement:
 
-- Market order flow
 - Deposit / withdraw
 - Blockchain integration
 - Complex RBAC

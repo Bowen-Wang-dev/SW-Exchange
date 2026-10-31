@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v1.0.2 Email Verification Foundation`
+Current milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Current Stack
 
@@ -10,7 +10,7 @@ Current milestone: `v1.0.2 Email Verification Foundation`
 - Data: PostgreSQL + Drizzle ORM
 - Shared constants: `@sw-exchange/shared`
 - Charts: `lightweight-charts`
-- Local workflow: Docker Compose Postgres, `corepack pnpm`, scripted smoke
+- Local workflow: PostgreSQL 16 through Docker Compose or native macOS, `corepack pnpm`, scripted smoke and isolated auth integration tests
 - Production-style demo runtime: `docker-compose.prod.yml` with Postgres, API, web, deploy, and verify scripts
 
 ## Current Completed Milestones
@@ -29,6 +29,7 @@ Current milestone: `v1.0.2 Email Verification Foundation`
 - `v1.0.0 Feature Flags Foundation`
 - `v1.0.1 Security Logs + Sensitive Action Model`
 - `v1.0.2 Email Verification Foundation`
+- `v1.0.3 TOTP 2FA Foundation`
 
 ## Public Product Positioning
 
@@ -127,7 +128,13 @@ Current milestone: `v1.0.2 Email Verification Foundation`
 - Current runtime emits security events for successful login, failed login, email verification request and confirm outcomes, user status changes, asset status changes, market status changes, fee setting updates, admin airdrops, and admin wallet bucket transfers
 - Admin `/admin/security-events` page exposes read-only filtered review
 - Admin users UI now shows email verified or unverified status
-- Shared sensitive-action policy matrix exists for future re-auth, enforced email verification, 2FA, admin RBAC, and funding controls
+- User-bound AES-256-GCM TOTP secrets, hashed login challenges/recovery codes/reauthentication tokens, and user-row-serialized consumption
+- Five-minute login challenges with five attempts and persisted TOTP replay counters
+- Fresh purpose-bound password reauthentication for setup, enable, disable and recovery-code regeneration; disable/regeneration also require a valid factor
+- Enable/disable increment authVersion and return a replacement session; earlier JWTs are rejected
+- Login, factor and password-reauthentication rate limits; startup/hourly retention cleanup
+- Dashboard security controls, two-step login, admin 2FA status visibility, and TWO_FACTOR security events
+- General admin RBAC, enforced email and future funding policies remain planned-only
 
 ## Current UI State
 
@@ -147,7 +154,8 @@ Current milestone: `v1.0.2 Email Verification Foundation`
 - No deposit / withdraw / blockchain behavior
 - No chain listeners, chain addresses, or token gateway runtime
 - No real-money redemption, fiat flow, or built-in KYC workflow
-- No 2FA yet
+- Optional TOTP 2FA is implemented; enrollment is gated by enable2FA, existing enabled accounts always require a second factor
+- Granular admin role permissions remain planned-only for v1.0.4
 - Email verification is available but is not required for login, trading, transfer, or admin actions yet
 - No margin / futures / leverage behavior
 - No real-time event bus; web UI uses polling and manual refresh paths
@@ -167,6 +175,6 @@ Current milestone: `v1.0.2 Email Verification Foundation`
 
 ## Current Milestone
 
-- Current completed milestone: `v1.0.2 Email Verification Foundation`
-- Next planned milestone: `v1.0.3 TOTP 2FA Foundation`
-- `v1.0.2` adds verified-email state, hashed verification tokens, console/dev mail delivery, request and confirm flows, user/admin visibility, and related security events. Deposit, withdraw, blockchain, 2FA, admin RBAC execution, margin, futures, and advanced orders remain disabled or unimplemented
+- Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
+- Next planned milestone: `v1.0.4 Admin Role Permissions` (planned-only)
+- `v1.0.3` adds TOTP 2FA and focused password reauthentication without trading-core changes. Deposit, withdraw, blockchain, admin RBAC execution, margin, futures, and advanced orders remain disabled or unimplemented. See [verification evidence](./V1_0_3_VERIFICATION.md).

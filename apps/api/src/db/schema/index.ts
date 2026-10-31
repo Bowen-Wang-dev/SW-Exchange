@@ -54,6 +54,18 @@ export const securityEventTypeEnum = pgEnum("security_event_type", [
   "AUTH_LOGIN_SUCCESS",
   "AUTH_LOGIN_FAILED",
   "AUTH_LOGOUT",
+  "TWO_FACTOR_SETUP_STARTED",
+  "TWO_FACTOR_SETUP_FAILED",
+  "TWO_FACTOR_ENABLED",
+  "TWO_FACTOR_DISABLED",
+  "TWO_FACTOR_DISABLE_FAILED",
+  "TWO_FACTOR_LOGIN_REQUIRED",
+  "TWO_FACTOR_LOGIN_SUCCESS",
+  "TWO_FACTOR_LOGIN_FAILED",
+  "TWO_FACTOR_RECOVERY_USED",
+  "TWO_FACTOR_RECOVERY_REGENERATED",
+  "TWO_FACTOR_RECOVERY_FAILED",
+
   "EMAIL_VERIFICATION_REQUESTED",
   "EMAIL_VERIFICATION_SENT",
   "EMAIL_VERIFICATION_CONFIRMED",
@@ -83,6 +95,13 @@ export const users = pgTable("users", {
   status: userStatusEnum("status").notNull().default("ACTIVE"),
   isSystem: boolean("is_system").notNull().default(false),
   emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  twoFactorEnabledAt: timestamp("two_factor_enabled_at", { withTimezone: true }),
+  totpSecretEncrypted: text("totp_secret_encrypted"),
+  totpPendingEncrypted: text("totp_pending_encrypted"),
+  totpPendingExpiresAt: timestamp("totp_pending_expires_at", { withTimezone: true }),
+  totpLastCounter: integer("totp_last_counter"),
+  authVersion: integer("auth_version").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -371,3 +390,39 @@ export const trades = pgTable("trades", {
   status: tradeStatusEnum("status").notNull().default("SETTLED"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Authentication-only state; user row locks serialize factor/challenge consumption.
+export const twoFactorRecoveryCodes = pgTable("two_factor_recovery_codes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  codeHash: varchar("code_hash", { length: 64 }).notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+}, (t) => ({ userIdx: index("two_factor_recovery_user_idx").on(t.userId) }));
+
+export const twoFactorLoginChallenges = pgTable("two_factor_login_challenges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  authVersion: integer("auth_version").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ userIdx: index("two_factor_challenge_user_idx").on(t.userId) }));
+
+export const authRateLimits = pgTable("auth_rate_limits", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").notNull(),
+});
+
+export const authReauthTokens = pgTable("auth_reauth_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
+  purpose: varchar("purpose", { length: 32 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({ userIdx: index("auth_reauth_tokens_user_idx").on(t.userId) }));

@@ -9,6 +9,8 @@ const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 loadEnv({ path: path.resolve(process.cwd(), ".env") });
 loadEnv({ path: path.resolve(process.cwd(), ".env.production") });
+loadEnv({ path: path.resolve(currentDir, "../../../../.env") });
+loadEnv({ path: path.resolve(currentDir, "../../../../.env.production") });
 
 async function runMigrations() {
   const databaseUrl = process.env.DATABASE_URL;

@@ -15,9 +15,11 @@
     "deploy:verify": "./scripts/verify-deploy.sh",
     "compose:prod:up": "docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build",
     "compose:prod:down": "docker compose -f docker-compose.prod.yml --env-file .env.production down",
-    "compose:prod:logs": "docker compose -f docker-compose.prod.yml --env-file .env.production logs -f --tail=200"
+    "compose:prod:logs": "docker compose -f docker-compose.prod.yml --env-file .env.production logs -f --tail=200",
+    "dev:local": "pnpm --filter @sw-exchange/shared build && concurrently -k -n api,web -c cyan,yellow \"TSX_TSCONFIG_PATH=tsconfig.json pnpm --filter @sw-exchange/api exec node --watch --import tsx src/main.ts\" \"WATCHPACK_POLLING=true pnpm --filter @sw-exchange/web dev\""
   },
   "devDependencies": {
+    "@sw-exchange/shared": "workspace:*",
     "concurrently": "^9.2.1",
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.7",

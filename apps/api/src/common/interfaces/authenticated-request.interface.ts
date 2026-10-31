@@ -1,6 +1,10 @@
 import type { Request } from "express";
 
 export interface AuthenticatedUser {
+  authVersion?: number;
+  amr?: string;
+  twoFactorEnabled?: boolean;
+  twoFactorEnabledAt?: Date | string | null;
   sub: string;
   email: string;
   username: string;
