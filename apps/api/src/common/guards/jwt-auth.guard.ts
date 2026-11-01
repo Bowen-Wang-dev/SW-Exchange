@@ -4,6 +4,10 @@ import { IS_PUBLIC_KEY } from "../decorators/public.decorator.js";
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard("jwt") {
+  authenticateAdmin(context: ExecutionContext) {
+    return super.canActivate(context);
+  }
+
   canActivate(context: ExecutionContext) {
     const isPublic =
       Reflect.getMetadata(IS_PUBLIC_KEY, context.getHandler()) ??

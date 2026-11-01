@@ -1,6 +1,8 @@
+import type { AdminPermission } from "@sw-exchange/shared";
 export type NavigationItem = {
   href: string;
   label: string;
+  permission?: AdminPermission;
 };
 
 export const topNavigation: NavigationItem[] = [
@@ -24,19 +26,20 @@ export const userSidebarNavigation: NavigationItem[] = [
 ];
 
 export const adminSidebarNavigation: NavigationItem[] = [
-  { href: "/admin", label: "Admin Home" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/wallets", label: "Wallets" },
-  { href: "/admin/airdrop", label: "Airdrop" },
-  { href: "/admin/transfers", label: "Transfers" },
-  { href: "/admin/assets", label: "Assets" },
-  { href: "/admin/markets", label: "Markets" },
-  { href: "/admin/orders", label: "Orders" },
-  { href: "/admin/trades", label: "Trades" },
-  { href: "/admin/fees", label: "Fees" },
-  { href: "/admin/feature-flags", label: "Feature Flags" },
-  { href: "/admin/security-events", label: "Security Events" },
-  { href: "/admin/security-actions", label: "Sensitive Actions" },
-  { href: "/admin/ledger", label: "Ledger" },
-  { href: "/admin/audit-logs", label: "Audit Logs" },
+  { href: "/admin", label: "Admin Home", permission: "reports.read" },
+  { href: "/admin/roles", label: "Admin Roles", permission: "admin_roles.read" },
+  { href: "/admin/users", label: "Users", permission: "users.read" },
+  { href: "/admin/wallets", label: "Wallets", permission: "wallets.read" },
+  { href: "/admin/airdrop", label: "Airdrop", permission: "airdrops.execute" },
+  { href: "/admin/transfers", label: "Transfers", permission: "transfers.read" },
+  { href: "/admin/assets", label: "Assets", permission: "assets.read" },
+  { href: "/admin/markets", label: "Markets", permission: "markets.read" },
+  { href: "/admin/orders", label: "Orders", permission: "orders.read" },
+  { href: "/admin/trades", label: "Trades", permission: "trades.read" },
+  { href: "/admin/fees", label: "Fees", permission: "fees.read" },
+  { href: "/admin/feature-flags", label: "Feature Flags", permission: "feature_flags.read" },
+  { href: "/admin/security-events", label: "Security Events", permission: "audit.read" },
+  { href: "/admin/security-actions", label: "Sensitive Actions", permission: "audit.read" },
+  { href: "/admin/ledger", label: "Ledger", permission: "ledger.read" },
+  { href: "/admin/audit-logs", label: "Audit Logs", permission: "audit.read" },
 ];

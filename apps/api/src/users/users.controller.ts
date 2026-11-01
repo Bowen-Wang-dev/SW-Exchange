@@ -1,3 +1,4 @@
+import { RequireAdminPermissions } from "../admin-roles/admin-permissions.decorator.js";
 import { Controller, Get, Inject, Req, UseGuards } from "@nestjs/common";
 import { Roles } from "../common/decorators/roles.decorator.js";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
@@ -19,6 +20,7 @@ export class UsersController {
 
   @Roles("ADMIN")
   @Get()
+  @RequireAdminPermissions("users.read")
   async findAll() {
     const users = await this.usersService.findAll();
     return users.map((user: Awaited<(typeof users)[number]>) => this.usersService.toPublicUser(user));

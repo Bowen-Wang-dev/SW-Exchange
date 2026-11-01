@@ -1,3 +1,4 @@
+import { RequireAdminPermissions } from "../admin-roles/admin-permissions.decorator.js";
 import { Controller, Get, Inject, NotFoundException, Param, ParseUUIDPipe, Query, UseGuards } from "@nestjs/common";
 import { SENSITIVE_ACTION_DEFINITIONS } from "@sw-exchange/shared";
 import { Roles } from "../common/decorators/roles.decorator.js";
@@ -12,6 +13,7 @@ export class AdminSecurityController {
   constructor(@Inject(SecurityEventsService) private readonly securityEventsService: SecurityEventsService) {}
 
   @Get("security-events")
+  @RequireAdminPermissions("audit.read")
   async listSecurityEvents(
     @Query("eventType") eventType?: string,
     @Query("severity") severity?: string,
@@ -33,6 +35,7 @@ export class AdminSecurityController {
   }
 
   @Get("security-events/:id")
+  @RequireAdminPermissions("audit.read")
   async getSecurityEvent(@Param("id", ParseUUIDPipe) id: string) {
     const event = await this.securityEventsService.getEventById(id);
 
@@ -44,6 +47,7 @@ export class AdminSecurityController {
   }
 
   @Get("security-actions")
+  @RequireAdminPermissions("audit.read")
   listSensitiveActions() {
     return {
       actions: SENSITIVE_ACTION_DEFINITIONS,

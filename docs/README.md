@@ -11,6 +11,11 @@
 
 ## Index
 
+- [V1_0_4_REMEDIATION.md](./V1_0_4_REMEDIATION.md): independent-review fixes, fee-principal invariant and regression evidence
+
+- [ADMIN_ROLE_PERMISSIONS.md](./ADMIN_ROLE_PERMISSIONS.md): v1.0.4 registry, 34-route inventory, migration, rollout, bootstrap and recovery
+- [V1_0_4_VERIFICATION.md](./V1_0_4_VERIFICATION.md): v1.0.4 implementation and verification evidence
+
 - [ARCHITECTURE_STATE.md](./ARCHITECTURE_STATE.md): current architecture snapshot and supported system state
 - [V1_0_3_VERIFICATION.md](./V1_0_3_VERIFICATION.md): completed real PostgreSQL, auth/concurrency and full smoke evidence
 - [LOCAL_SETUP_MACOS.md](./LOCAL_SETUP_MACOS.md): native PostgreSQL and local development workflow

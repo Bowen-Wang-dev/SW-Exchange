@@ -42,6 +42,7 @@ const protectedWebRoutes = [
   "/ledger",
   "/admin",
   "/admin/users",
+  "/admin/roles",
   "/admin/wallets",
   "/admin/airdrop",
   "/admin/transfers",
@@ -81,6 +82,7 @@ async function main() {
   await testSeedData();
   const auth = await testAuthFlows();
   await testFeatureFlags(auth.adminAccessToken);
+  await testV104AdminRoleVisibility(auth.adminAccessToken);
   await testV101SecurityFoundation(auth.adminAccessToken);
   await testV102EmailVerificationFoundation(auth);
   await resetV08OperationalControls(auth.adminAccessToken);
@@ -280,6 +282,14 @@ async function testFeatureFlags(adminAccessToken: string) {
   }
 
   console.log("PASS feature flags foundation");
+}
+
+async function testV104AdminRoleVisibility(adminAccessToken: string) {
+  const capabilities = await getJson<{ permissions?: string[]; effectivePermissions?: string[] }>(`${apiBaseUrl}/admin/capabilities`, adminAccessToken, "load current admin capabilities");
+  const roles = await getJson<{ roles?: Array<{ key: string; permissions: string[] }> }>(`${apiBaseUrl}/admin/roles`, adminAccessToken, "load role registry");
+  if (!roles.roles?.some((r) => r.key === "super_admin") || !roles.roles.some((r) => r.key === "viewer" && r.permissions.every((p) => p.endsWith(".read")))) throw new Error("Admin role registry is incomplete.");
+  if (!capabilities.effectivePermissions?.includes("reports.read")) throw new Error("Admin capabilities are missing report authority.");
+  console.log("PASS v1.0.4 role registry and capabilities");
 }
 
 async function testV101SecurityFoundation(adminAccessToken: string) {

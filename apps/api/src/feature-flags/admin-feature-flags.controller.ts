@@ -1,3 +1,4 @@
+import { RequireAdminPermissions } from "../admin-roles/admin-permissions.decorator.js";
 import { Controller, Get, Inject, NotFoundException, Param, Req, UseGuards } from "@nestjs/common";
 import { Roles } from "../common/decorators/roles.decorator.js";
 import { JwtAuthGuard } from "../common/guards/jwt-auth.guard.js";
@@ -16,6 +17,7 @@ export class AdminFeatureFlagsController {
   ) {}
 
   @Get()
+  @RequireAdminPermissions("feature_flags.read")
   async findAll(@Req() request: AuthenticatedRequest) {
     const flags = await this.featureFlagsService.getAllFlags();
     const context = extractRequestSecurityContext(request);
@@ -39,6 +41,7 @@ export class AdminFeatureFlagsController {
   }
 
   @Get(":key")
+  @RequireAdminPermissions("feature_flags.read")
   async findOne(@Req() request: AuthenticatedRequest, @Param("key") key: string) {
     const featureFlag = await this.featureFlagsService.getFlag(key);
 

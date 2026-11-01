@@ -2,9 +2,9 @@
 
 SW Exchange is a simulated exchange runtime for custom assets and custom markets.
 
-Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
+Current completed milestone: `v1.0.4 Admin Role Permissions`
 
-Next milestone: `v1.0.4 Admin Role Permissions`
+Next milestone: `v1.1 Chain Asset Registry`
 
 AI-native docs index: [`docs/README.md`](./docs/README.md)
 
@@ -135,13 +135,13 @@ Current scope:
 - `v1.0.1 Security Logs + Sensitive Action Model` completed
 - `v1.0.2 Email Verification Foundation` completed
 - `v1.0.3 TOTP 2FA Foundation` completed
+- `v1.0.4 Admin Role Permissions` completed
 
-- Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
-- Next milestone: `v1.0.4 Admin Role Permissions`
+- Current completed milestone: `v1.0.4 Admin Role Permissions`
+- Next milestone: `v1.1 Chain Asset Registry`
 
 ## Planned milestones
 
-- `v1.0.4 Admin Role Permissions` (planned-only)
 - `v1.1 Chain Asset Registry`
 - `v1.2 User Deposit Address Model`
 - `v1.3 Deposit Monitor Detect-only`
@@ -152,6 +152,20 @@ Current scope:
 - `v1.8 Chain Reconciliation / Audit`
 - `v1.9 Chain Gateway Stabilization`
 - `v2.x Margin / Futures Simulation`
+
+## v1.0.4 Admin Role Permissions - Completed
+
+- Added `super_admin`, `operator`, `viewer`, 20 explicit permissions and four related RBAC tables.
+- Globally enforce method-level policies on all 34 administrative routes, including the legacy `/users` alias; missing policy fails closed.
+- Preserve existing non-system ADMIN authority through reviewed migration backfill; no USER promotion.
+- Role/status changes serialize in PostgreSQL, protect the last active super-admin, prohibit self-role changes and revoke affected sessions.
+- Role replacement requires permission, fresh password and any enrolled second factor; exact target/roles are bound to a five-minute single-use proof.
+- Assigned viewers/operators remain least-privilege with either feature-flag state. `enableAdminRolePermissions` defaults false and enabled enforcement also rejects unassigned admins.
+- Added role management UI, capability-based navigation/actions, transactional role audit events and reviewed offline bootstrap/recovery.
+- See [role registry, full route inventory and rollout runbook](./docs/ADMIN_ROLE_PERMISSIONS.md) and [verification evidence](./docs/V1_0_4_VERIFICATION.md).
+- Trading/accounting rules are unchanged. Chain registry is next and remains planned-only; funding, blockchain, margin and futures are unimplemented.
+
+The v1.0.4 [independent-review remediation](./docs/V1_0_4_REMEDIATION.md) protects the configured fee principal, uses socket-based audit attribution, enforces complete-report resource scopes and resolves effective legacy delegation authority. Trading/accounting rules remain unchanged.
 
 ## v1.0.3 TOTP 2FA Foundation
 
@@ -165,7 +179,7 @@ Current scope:
 - Real PostgreSQL verification: 29 auth tests passed, zero failures/skips, three consumption races, concurrent limiter checks, builds and full smoke passed
 - Includes migrations `0013`/`0014`, snapshots and journal entries; see [verification evidence](./docs/V1_0_3_VERIFICATION.md)
 - Trading, matching, fees, wallets, transfers and settlement behavior are unchanged
-- Blockchain, deposits, withdrawals, margin and futures remain unimplemented; v1.0.4 Admin Role Permissions remains planned-only
+- At v1.0.3, blockchain, deposits, withdrawals, margin, futures and v1.0.4 admin permissions remained unimplemented
 
 ## v1.0.2 Email Verification Foundation
 
@@ -967,7 +981,7 @@ This scaffold does not yet implement:
 
 - Deposit / withdraw
 - Blockchain integration
-- Complex RBAC
+- Custom role-definition editing and multi-party administrative approval
 - Maker/taker tiers, VIP discounts, or withdrawal fee logic
 
 The schema and module boundaries are prepared so those features can be added incrementally.

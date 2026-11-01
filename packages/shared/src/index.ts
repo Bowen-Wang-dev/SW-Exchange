@@ -1,4 +1,5 @@
 export const USER_ROLES = ["USER", "ADMIN"] as const;
+export * from "./admin-permissions.js";
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const USER_STATUSES = ["ACTIVE", "FROZEN", "BANNED"] as const;
@@ -14,6 +15,13 @@ export const SECURITY_EVENT_SEVERITIES = ["INFO", "WARNING", "CRITICAL"] as cons
 export type SecurityEventSeverity = (typeof SECURITY_EVENT_SEVERITIES)[number];
 
 export const SECURITY_EVENT_TYPES = [
+  "ADMIN_ROLE_ASSIGNED",
+  "ADMIN_ROLE_REMOVED",
+  "ADMIN_ROLES_UPDATED",
+  "ADMIN_ACCESS_DENIED",
+  "ADMIN_PRIVILEGE_ESCALATION_REJECTED",
+  "ADMIN_LAST_SUPER_ADMIN_PROTECTED",
+  "ADMIN_ROLES_BOOTSTRAPPED",
   "AUTH_LOGIN_SUCCESS",
   "AUTH_LOGIN_FAILED",
   "AUTH_LOGOUT",

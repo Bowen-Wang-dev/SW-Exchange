@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/providers/auth-provider";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AdminConfirmationDialog,
@@ -282,6 +284,8 @@ function SystemWalletsTab({
   onNoteChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const { canAdmin } = useAuth();
+  const canWrite = canAdmin("wallets.manage");
   return (
     <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
       <section className="space-y-4">
@@ -398,7 +402,7 @@ function SystemWalletsTab({
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canWrite}
             className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? "Moving funds..." : "Review bucket transfer"}

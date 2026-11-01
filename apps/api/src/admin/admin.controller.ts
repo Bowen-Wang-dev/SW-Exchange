@@ -1,3 +1,5 @@
+import { ADMIN_FEE_SETTINGS_READ_PERMISSIONS, ADMIN_REPORT_PERMISSIONS } from "@sw-exchange/shared";
+import { RequireAdminPermissions } from "../admin-roles/admin-permissions.decorator.js";
 import {
   Body,
   Controller,
@@ -34,21 +36,25 @@ export class AdminController {
   constructor(@Inject(AdminService) private readonly adminService: AdminService) {}
 
   @Get()
+  @RequireAdminPermissions("reports.read")
   dashboard() {
     return this.adminService.dashboard();
   }
 
   @Get("reports/summary")
+  @RequireAdminPermissions(...ADMIN_REPORT_PERMISSIONS)
   reportsSummary() {
     return this.adminService.reportsSummary();
   }
 
   @Get("users")
+  @RequireAdminPermissions("users.read")
   listUsers() {
     return this.adminService.listUsers();
   }
 
   @Patch("users/:id/status")
+  @RequireAdminPermissions("users.manage")
   updateUserStatus(
     @Req() request: AuthenticatedRequest,
     @Param("id", ParseUUIDPipe) id: string,
@@ -59,10 +65,12 @@ export class AdminController {
       id,
       dto,
       extractRequestSecurityContext(request),
+      request.user.authVersion,
     );
   }
 
   @Get("wallets")
+  @RequireAdminPermissions("wallets.read")
   listWallets(
     @Query("userId") userId?: string,
     @Query("username") username?: string,
@@ -79,16 +87,19 @@ export class AdminController {
   }
 
   @Get("wallet")
+  @RequireAdminPermissions("wallets.read")
   getAdminWallet(@Req() request: AuthenticatedRequest) {
     return this.adminService.getAdminWallet(request.user.sub);
   }
 
   @Get("system-wallets")
+  @RequireAdminPermissions("wallets.read")
   getAdminSystemWallets(@Req() request: AuthenticatedRequest) {
     return this.adminService.getAdminSystemWallets(request.user.sub);
   }
 
   @Post("wallet-buckets/transfer")
+  @RequireAdminPermissions("wallets.manage")
   transferAdminWalletBucket(
     @Req() request: AuthenticatedRequest,
     @Body() dto: AdminWalletBucketTransferDto,
@@ -101,26 +112,31 @@ export class AdminController {
   }
 
   @Post("airdrop")
+  @RequireAdminPermissions("airdrops.execute")
   airdrop(@Req() request: AuthenticatedRequest, @Body() dto: AirdropDto) {
     return this.adminService.airdrop(request.user.sub, dto, extractRequestSecurityContext(request));
   }
 
   @Post("assets")
+  @RequireAdminPermissions("assets.manage")
   createAsset(@Req() request: AuthenticatedRequest, @Body() dto: CreateAssetDto) {
     return this.adminService.createAsset(request.user.sub, dto);
   }
 
   @Get("ledger")
+  @RequireAdminPermissions("ledger.read")
   listLedger() {
     return this.adminService.listLedger();
   }
 
   @Get("transfers")
+  @RequireAdminPermissions("transfers.read")
   listTransfers() {
     return this.adminService.listTransfers();
   }
 
   @Patch("assets/:symbol/status")
+  @RequireAdminPermissions("assets.manage")
   updateAssetStatus(
     @Req() request: AuthenticatedRequest,
     @Param("symbol") symbol: string,
@@ -135,6 +151,7 @@ export class AdminController {
   }
 
   @Patch("assets/:symbol/metadata")
+  @RequireAdminPermissions("assets.manage")
   updateAssetMetadata(
     @Req() request: AuthenticatedRequest,
     @Param("symbol") symbol: string,
@@ -144,6 +161,7 @@ export class AdminController {
   }
 
   @Patch("markets/:symbol/status")
+  @RequireAdminPermissions("markets.manage")
   updateMarketStatus(
     @Req() request: AuthenticatedRequest,
     @Param("symbol") symbol: string,
@@ -158,11 +176,13 @@ export class AdminController {
   }
 
   @Post("markets")
+  @RequireAdminPermissions("markets.manage")
   createMarket(@Req() request: AuthenticatedRequest, @Body() dto: CreateMarketDto) {
     return this.adminService.createMarket(request.user.sub, dto);
   }
 
   @Get("orders")
+  @RequireAdminPermissions("orders.read")
   listOrders(
     @Query("status") status?: string,
     @Query("marketSymbol") marketSymbol?: string,
@@ -172,16 +192,19 @@ export class AdminController {
   }
 
   @Get("trades")
+  @RequireAdminPermissions("trades.read")
   listTrades(@Query("marketSymbol") marketSymbol?: string, @Query("user") user?: string) {
     return this.adminService.listTrades({ marketSymbol, user });
   }
 
   @Get("fee-settings")
+  @RequireAdminPermissions(...ADMIN_FEE_SETTINGS_READ_PERMISSIONS)
   getFeeSettings(@Query("marketSymbol") marketSymbol?: string) {
     return this.adminService.getFeeSettings(marketSymbol);
   }
 
   @Patch("fee-settings")
+  @RequireAdminPermissions("fees.manage", ...ADMIN_FEE_SETTINGS_READ_PERMISSIONS)
   updateFeeSettings(@Req() request: AuthenticatedRequest, @Body() dto: UpdateFeeSettingsDto) {
     return this.adminService.updateFeeSettings(
       request.user.sub,
@@ -191,6 +214,7 @@ export class AdminController {
   }
 
   @Post("fee-settings")
+  @RequireAdminPermissions("fees.manage", ...ADMIN_FEE_SETTINGS_READ_PERMISSIONS)
   updateFeeSettingsViaPost(@Req() request: AuthenticatedRequest, @Body() dto: UpdateFeeSettingsDto) {
     return this.adminService.updateFeeSettings(
       request.user.sub,
@@ -200,6 +224,7 @@ export class AdminController {
   }
 
   @Get("audit-logs")
+  @RequireAdminPermissions("audit.read")
   listAuditLogs() {
     return this.adminService.listAuditLogs();
   }

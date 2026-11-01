@@ -111,7 +111,7 @@ export default function AdminUsersPage() {
       });
 
       setUsers((currentUsers) =>
-        currentUsers.map((current) => (current.id === updatedUser.id ? updatedUser : current)),
+        currentUsers.map((current) => (current.id === updatedUser.id ? { ...current, ...updatedUser } : current)),
       );
       if (updatedUser.id === currentUser?.id) {
         await loadMe();
@@ -264,7 +264,7 @@ export default function AdminUsersPage() {
                   shortId(user.id),
                   <StatusBadge
                     key={`${user.id}-role`}
-                    label={user.isSystem ? "SYSTEM" : user.role}
+                    label={user.isSystem ? "SYSTEM" : user.adminRoles?.join(", ") || user.role}
                     tone={user.isSystem || user.role === "ADMIN" ? "warning" : "info"}
                   />,
                   <StatusBadge
@@ -354,11 +354,15 @@ function UserStatusActions({
   isUpdating: boolean;
   onUpdate: (user: AdminUser, status: AdminUser["status"]) => void;
 }) {
+  const { canAdmin } = useAuth();
+  const permitted = canAdmin("users.manage") && (user.role !== "ADMIN" || canAdmin("admin_roles.manage"));
   const isSelf = user.id === currentUserId;
 
   if (isSelf) {
     return <span className="text-xs text-[var(--foreground-muted)]">Self protected</span>;
   }
+
+  if (!permitted) return <span className="text-xs text-[var(--foreground-muted)]">Read only</span>;
 
   if (user.status === "ACTIVE") {
     return (

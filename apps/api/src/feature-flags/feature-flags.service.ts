@@ -10,6 +10,8 @@ import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
 import { featureFlags } from "../db/schema/index.js";
 
+type DbReader = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
+
 type FeatureFlagRow = typeof featureFlags.$inferSelect;
 
 export type FeatureFlagState = FeatureFlagDefinition & {
@@ -36,12 +38,12 @@ export class FeatureFlagsService {
     );
   }
 
-  async getFlag(key: string): Promise<FeatureFlagState | null> {
+  async getFlag(key: string, db: DbReader = this.db): Promise<FeatureFlagState | null> {
     if (!isFeatureFlagKey(key)) {
       return null;
     }
 
-    const [row] = await this.db
+    const [row] = await db
       .select()
       .from(featureFlags)
       .where(eq(featureFlags.key, key))
@@ -50,14 +52,14 @@ export class FeatureFlagsService {
     return this.toFeatureFlagState(featureFlagDefinitionsByKey.get(key)!, row);
   }
 
-  async isFeatureEnabled(key: string): Promise<boolean> {
-    const flag = await this.getFlag(key);
+  async isFeatureEnabled(key: string, db: DbReader = this.db): Promise<boolean> {
+    const flag = await this.getFlag(key, db);
     return flag?.enabled ?? false;
   }
 
   // Future protected endpoints should call this before continuing with optional or high-risk flows.
-  async assertFeatureEnabled(key: FeatureFlagKey | string): Promise<FeatureFlagState> {
-    const flag = await this.getFlag(key);
+  async assertFeatureEnabled(key: FeatureFlagKey | string, db: DbReader = this.db): Promise<FeatureFlagState> {
+    const flag = await this.getFlag(key, db);
 
     if (!flag?.enabled) {
       throw new ForbiddenException(

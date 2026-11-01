@@ -32,6 +32,6 @@ import { JwtStrategy } from "./jwt.strategy.js";
   ],
   controllers: [AuthController],
   providers: [TwoFactorService, AuthRateLimitService, AuthService, EmailVerificationService, JwtStrategy],
-  exports: [AuthService],
+  exports: [AuthService, TwoFactorService],
 })
 export class AuthModule {}

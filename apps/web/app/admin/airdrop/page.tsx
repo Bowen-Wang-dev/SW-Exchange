@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/providers/auth-provider";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AdminConfirmationDialog,
@@ -24,6 +26,8 @@ type PendingAirdropAction = {
 const LARGE_AIRDROP_THRESHOLD = 1000;
 
 export default function AdminAirdropPage() {
+  const { canAdmin } = useAuth();
+  const canWrite = canAdmin("airdrops.execute");
   const [target, setTarget] = useState("");
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [assetSymbol, setAssetSymbol] = useState("SWC");
@@ -203,7 +207,7 @@ export default function AdminAirdropPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !canWrite}
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-black transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? "Executing airdrop..." : "Execute airdrop"}

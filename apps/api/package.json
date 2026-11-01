@@ -9,7 +9,9 @@
     "test:auth": "pnpm run build && node --import tsx --test src/auth/two-factor.integration.spec.ts",
     "start": "node dist/main.js",
     "migrate": "node --import tsx src/scripts/migrate.ts",
-    "seed": "tsx --tsconfig tsconfig.json src/scripts/seed.ts"
+    "seed": "tsx --tsconfig tsconfig.json src/scripts/seed.ts",
+    "admin:bootstrap": "tsx --tsconfig tsconfig.json src/scripts/bootstrap-admin-roles.ts",
+    "test:admin": "pnpm run build && node --import tsx --test src/admin-roles/admin-roles.integration.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.8",

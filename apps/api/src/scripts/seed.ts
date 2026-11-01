@@ -87,14 +87,16 @@ async function seed() {
     throw new Error("Failed to create or load the admin user during seed.");
   }
 
+  // Existing demotion/suspension is authoritative; seeding is not a recovery bypass.
+  if (adminUser.role !== "ADMIN" || adminUser.status !== "ACTIVE" || adminUser.isSystem) {
+    throw new Error("Configured seed account is not an active administrator; use the documented reviewed recovery procedure.");
+  }
+
   const adminPasswordMatches =
     adminUser.passwordHash ? await compare(adminPassword, adminUser.passwordHash) : false;
 
   if (
     adminUser.username !== adminUsername ||
-    adminUser.role !== "ADMIN" ||
-    adminUser.status !== "ACTIVE" ||
-    adminUser.isSystem ||
     !adminPasswordMatches
   ) {
     [adminUser] = await db
@@ -102,9 +104,6 @@ async function seed() {
       .set({
         username: adminUsername,
         passwordHash: adminPasswordHash,
-        role: "ADMIN",
-        status: "ACTIVE",
-        isSystem: false,
         updatedAt: new Date(),
       })
       .where(eq(schema.users.id, adminUser.id))

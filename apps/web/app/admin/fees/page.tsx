@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/providers/auth-provider";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AdminConfirmationDialog,
@@ -27,6 +29,8 @@ type PendingFeeAction = {
 };
 
 export default function AdminFeesPage() {
+  const { canAdmin } = useAuth();
+  const canWrite = canAdmin("fees.manage");
   const [settings, setSettings] = useState<FeeSettingsResponse | null>(null);
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
   const [selectedMarketSymbol, setSelectedMarketSymbol] = useState(DEFAULT_MARKET_SYMBOL);
@@ -288,7 +292,7 @@ export default function AdminFeesPage() {
 
                 <button
                   type="submit"
-                  disabled={isSaving || isLoading}
+                  disabled={isSaving || isLoading || !canWrite}
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSaving ? "Saving..." : "Review fee changes"}

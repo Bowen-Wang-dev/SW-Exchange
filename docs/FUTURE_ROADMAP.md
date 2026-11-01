@@ -1,6 +1,6 @@
 # SW Exchange Future Roadmap
 
-This plan documents intended future work after `v1.0.3 TOTP 2FA Foundation`. These items are not live until their milestone is implemented.
+This plan documents intended future work after `v1.0.4 Admin Role Permissions`. These items are not live until their milestone is implemented.
 
 ## Completed Baseline
 
@@ -9,16 +9,16 @@ This plan documents intended future work after `v1.0.3 TOTP 2FA Foundation`. The
 - `v1.0.1 Security Logs + Sensitive Action Model` is completed.
 - `v1.0.2 Email Verification Foundation` is completed.
 - `v1.0.3 TOTP 2FA Foundation` is completed.
+- `v1.0.4 Admin Role Permissions` is completed.
 - `v0.x` is currently a complete off-chain simulated exchange runtime for custom assets and custom markets.
 - Deposit, withdraw, blockchain, margin, and futures features are not live.
-- TOTP 2FA is implemented; general admin role permission execution remains unimplemented.
+- TOTP 2FA and administrative role/permission enforcement are implemented. Mandatory admin MFA, multi-party approval and custom permission editing remain future work.
 - Email verification exists as an optional security capability, but enforced-email workflows remain future work.
 
 ## v1.x Focus
 
 - `v1.x` is planned to focus on auth/security hardening and optional chain token gateway capabilities.
 - Planned starting sequence:
-  - `v1.0.4 Admin Role Permissions` (planned-only)
   - `v1.1 Chain Asset Registry`
   - `v1.2 User Deposit Address Model`
   - `v1.3 Deposit Monitor Detect-only`

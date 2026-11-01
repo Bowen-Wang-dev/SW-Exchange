@@ -1,6 +1,6 @@
 # SW Exchange Account Model
 
-Current completed milestone: `v1.0.2 Email Verification Foundation`
+Current completed milestone: `v1.0.4 Admin Role Permissions`
 
 ## Account Status
 
@@ -92,3 +92,15 @@ See:
 - [EXCHANGE_BOUNDARY.md](./EXCHANGE_BOUNDARY.md)
 - [HOT_WALLET_MODEL.md](./HOT_WALLET_MODEL.md)
 - [V1_CHAIN_GATEWAY_PLAN.md](./V1_CHAIN_GATEWAY_PLAN.md)
+
+## Administrative Identity and Roles (v1.0.4)
+
+The existing USER/ADMIN identity boundary remains authoritative. Four related RBAC tables attach multiple reviewed roles to an ADMIN: `viewer` (read-only), `operator` (ordinary user status/assets/markets, no financial writes), `super_admin` (explicit full registry). Existing non-system ADMINs receive super_admin in migration 0015 because their prior authority was already full; ordinary USERs are never selected.
+
+Role replacement changes base identity to ADMIN for nonempty roles and USER for an empty set, increments only the affected account's authVersion, and revokes pending proofs/login challenges. A FROZEN admin can still use ordinary account reads but no admin API; BANNED sessions remain invalid. Reactivation cannot revive prior sessions. Removing authority preserves wallets/balances and all historical activity; it never transfers system-wallet ownership.
+
+Role/status mutations share a PostgreSQL advisory lock, recheck actor authority/version and protect the final active super-admin. Administrator status management always requires admin_roles.manage, even when granular rollout is disabled. Self-role changes are refused. See [complete role registry, migration assumptions and recovery](./ADMIN_ROLE_PERMISSIONS.md).
+
+### Protected configured fee identity
+
+The ADMIN_EMAIL account remains the existing fee principal. Role replacement cannot remove its base ADMIN identity (409 under the shared lock), even when other super-admins exist. Its human account can still be frozen/banned by another authorized administrator when last-super/self protections allow: sessions are revoked while the unchanged fee lookup continues receiving fees into the same FEE wallet. No balances or fee ownership move. Complete platform-principal separation is deferred; see [remediation evidence](./V1_0_4_REMEDIATION.md).

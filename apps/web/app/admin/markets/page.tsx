@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/providers/auth-provider";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -36,6 +38,8 @@ type PendingMarketAction = {
 };
 
 export default function AdminMarketsPage() {
+  const { canAdmin } = useAuth();
+  const canWrite = canAdmin("markets.manage");
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [markets, setMarkets] = useState<MarketRow[]>([]);
   const [summaries, setSummaries] = useState<MarketSummary[]>([]);
@@ -488,7 +492,7 @@ export default function AdminMarketsPage() {
 
                 <button
                   type="submit"
-                  disabled={isCreating}
+                  disabled={isCreating || !canWrite}
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isCreating ? "Creating market..." : "Create market"}
@@ -547,7 +551,7 @@ export default function AdminMarketsPage() {
                         <button
                           type="button"
                           onClick={() => requestMarketStatusUpdate(market, market.status === "ACTIVE" ? "PAUSED" : "ACTIVE")}
-                          disabled={updatingKey === market.symbol}
+                          disabled={updatingKey === market.symbol || !canWrite}
                           className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
                             market.status === "ACTIVE"
                               ? "border-[var(--notice-warning-border)] bg-[var(--notice-warning-bg)] text-[var(--notice-warning-text)] hover:border-[var(--warning)]"

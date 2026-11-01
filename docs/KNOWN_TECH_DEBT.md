@@ -67,15 +67,31 @@
 
 ## Security / Operations
 
-- Item: No TOTP 2FA enforcement or sensitive-action re-auth yet
-  - Status: intentional
-  - Why accepted: `v0.x` has remained off-chain and non-custodial at the chain layer
-  - Future fix: build on the `v1.0.2 Email Verification Foundation` plus later `v1.x` security milestones before any chain money movement
+- Item: Pool-safe authentication and consistent administrative data/authority boundaries
+  - Status: remediated in the second v1.0.4 review
+  - Current: durable role-proof counters finish before user-row locking; setup/enable flag reads reuse the transaction. Ten-request/ten-connection real PostgreSQL regressions guard against pool starvation. Fee-settings GET/PATCH/POST require wallets.read plus the relevant fee scopes. Administrator status mutations enforce the same live effective target ceiling as role replacement, including legacy fallback and queued role promotions.
+  - Limitations: production pool capacity/timeouts are unchanged; this removes the dependency cycle rather than claiming a general load benchmark. Broader mandatory MFA, trusted-proxy deployment and platform fee-principal separation remain separate hardening tasks. See V1_0_4_REMEDIATION.md for exact verification.
 
-- Item: No granular admin role-permission model
+- Item: General sensitive-action enforcement and mandatory admin MFA remain incomplete
   - Status: temporary
-  - Why accepted: single-admin runtime is sufficient for current simulated deployment scope
-  - Future fix: introduce role-scoped admin permissions and security logs before enabling withdrawal operations
+  - Current: optional TOTP and fresh password/factor reauthentication for 2FA and admin role management are implemented; financial/configuration mutations still use permission checks and confirmation without general step-up policy.
+  - Future fix: explicit admin MFA and per-action verification policies before custody/funding work.
+
+- Item: Administrative roles are a versioned fixed registry; database owners remain trusted
+  - Status: intentional
+  - Current: viewer/operator/super_admin and explicit permissions are implemented. No custom role editing, multi-party approvals or HTTP emergency recovery.
+  - Future fix: reviewed registry migrations and audited maintenance recovery; consider dual approval for future high-impact operations.
+  - Rollout caution: disabling enableAdminRolePermissions permits orphaned/unassigned ADMIN operational access; assigned roles stay constrained. See ADMIN_ROLE_PERMISSIONS.md.
+
+- Item: Platform fee principal remains coupled to a configured human ADMIN identity
+  - Status: protected limitation
+  - Current: role mutation rejects removal of ADMIN_EMAIL's ADMIN identity with 409 under the shared lock. Status suspension/ban preserves fee lookup while revoking sessions. Fee ownership and percentages do not change.
+  - Future fix: reviewed platform/service-principal separation with an explicit wallet/ledger ownership plan; another super-admin is not an automatic fee recipient.
+
+- Item: Trusted reverse-proxy deployment remains future work
+  - Status: intentional
+  - Current: all audit consumers use socket.remoteAddress only; arbitrary forwarding headers are ignored. Behind an unconfigured shared proxy, audit IPs identify that proxy.
+  - Future fix: explicit trusted-hop configuration plus deployment tests before accepting forwarded client identity; never use audit source IP as authorization evidence.
 
 - Item: No chain reconciliation, deposit monitoring, or withdrawal idempotency subsystem
   - Status: intentional

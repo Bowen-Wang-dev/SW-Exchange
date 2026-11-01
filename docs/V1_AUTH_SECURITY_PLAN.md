@@ -2,7 +2,7 @@
 
 This document plans the security foundation that should exist before any chain money-movement feature is enabled.
 
-As of `v1.0.3`, feature flags, security events, verified-email state, TOTP 2FA and purpose-bound password reauthentication exist. Reauthentication is scoped to 2FA management; general action enforcement and v1.0.4 Admin Role Permissions remain planned-only.
+As of `v1.0.4`, feature flags, security events, verified email, TOTP 2FA, purpose-bound reauthentication and backend administrative roles/permissions are implemented. Reauthentication protects 2FA management and administrative role replacement. Other sensitive-action enforcement remains planned-only.
 
 Implemented prerequisite from this plan:
 
@@ -17,8 +17,7 @@ Implemented prerequisite from this plan:
 
 Still not implemented:
 
-- general sensitive-action re-auth beyond implemented 2FA management
-- granular admin role permission checks
+- general sensitive-action re-auth beyond implemented 2FA/role management
 - security enforcement for the planned sensitive-action requirements
 
 ## Goals
@@ -54,18 +53,23 @@ Still not implemented:
 - Expire re-auth windows after a short, explicit duration
 - Apply checks server-side, not just in frontend modal flows
 
-### Admin Role Permissions
+### Admin Role Permissions (implemented in v1.0.4)
 
-- Move from broad admin access toward scoped admin permissions
-- Separate configuration, security, wallet, and withdrawal authority
-- Support approval-only roles versus execution-capable roles
+- Explicit viewer/operator/super-admin registry and 20 permissions; global fail-closed policies on 34 routes.
+- Role mutations always require live authority, recent password and any enrolled second factor, independent of feature flags.
+- SHA-256 purpose binding includes target/exact replacement roles; five-minute proofs are hash-only and single-use.
+- PostgreSQL advisory/user locks serialize role/status/recovery operations, enforce delegation ceilings and protect the final active super-admin.
+- Role/status changes increment affected authVersion and revoke proofs/challenges; stale JWTs are rejected.
+- Assigned roles remain constrained with rollout off; rollout on rejects unassigned administrators. No general flag editor.
+- Critical role audits commit atomically; rejected authorization/escalation and offline recovery are logged.
+- Mandatory admin MFA and multi-party approval remain future policies. See [runbook](./ADMIN_ROLE_PERMISSIONS.md).
 
 ### Security Logs
 
 - Record security-setting changes, re-auth events, failed protected actions, and permissioned admin actions
 - Keep logs queryable in admin tooling
 - Avoid logging secrets, OTP seeds, backup codes, or raw credentials
-- Current v1.0.3 coverage records login, email verification, TOTP setup/management/challenge/recovery outcomes and selected admin actions; credentials are excluded and sensitive metadata keys are redacted
+- Current v1.0.4 coverage additionally records role changes, denied admin access/escalation, last-super-admin protection and reviewed bootstrap alongside login/email/TOTP events; credentials are excluded and sensitive metadata keys are redacted
 
 ### Withdrawal / Security Setting Verification
 
@@ -83,6 +87,7 @@ Still not implemented:
 - Password login: 100 attempts per socket IP per 15 minutes, plus 10 per identifier/IP pair; no identifier-only global lockout
 - Password reauthentication: 10 attempts per authenticated user per 5 minutes
 - Second factor: 30 attempts per user per 5 minutes; second-step login also has an IP limit of 100 per 5 minutes
+- v1.0.4 second review: role-proof password/factor counters complete durably before user-row locking; every admitted role-proof request reserves the factor budget even for unenrolled or wrong-password attempts. Setup/enable flag reads reuse the existing transaction. Factor/proof single-use consumption, binding, expiration, session checks and sanitized events remain unchanged; pool size/timeouts are not increased.
 - Setup: 10 attempts per user per 10 minutes; every login challenge independently allows at most 5 attempts
 - Startup/hourly cleanup removes limiter windows older than 24 hours and reauthentication records expired more than 24 hours ago
 - Arbitrary forwarding headers are ignored; a future shared reverse proxy requires an explicitly trusted topology
@@ -117,3 +122,7 @@ Still not implemented:
 ## Delivery Rule
 
 `v1.0` should be treated as a prerequisite phase for later withdrawal-capable work, not as optional polish.
+
+### v1.0.4 review remediation
+
+The configured fee principal cannot lose its ADMIN identity through role replacement; authorized status suspension preserves fee receipt and invalidates human sessions. Complete-report reads now require each underlying data scope, delegation checks include effective legacy authority in the protected transaction, and centralized audit attribution trusts only the socket peer. These are implemented protections, not future controls. Mandatory admin MFA, broader financial-action step-up, future trusted proxy configuration and platform fee-principal separation remain future work. See [remediation evidence](./V1_0_4_REMEDIATION.md).

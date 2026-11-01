@@ -97,3 +97,15 @@
 - `docker-compose.prod.yml` is for a local/VPS-style production demo, not chain-enabled or real-money production.
 - The production deploy flow must keep `http://localhost:3000` for web and `http://localhost:3001/api/health` for the default health path unless explicitly reconfigured.
 - Reset the local production stack with `docker compose -f docker-compose.prod.yml --env-file .env.production down -v` only when a clean DB/volume reset is intentionally desired.
+
+## Administrative authorization integration (v1.0.4)
+
+Run `corepack pnpm --filter @sw-exchange/api test:admin` with DATABASE_URL_TEST configured for a dedicated local PostgreSQL test database, migrated with the full journal. The suite refuses development/production identities and missing/non-test targets; it never silently skips. Seed internal assets/markets for existing report/read checks, but do not bootstrap the seeded administrator in this test database: last-super-admin tests create their own isolated active super-admin fixtures. Run the stateful auth and admin suites serially if they share a test database.
+
+The suite uses the compiled real Nest application over HTTP, real guards/JWTs, database constraints, live feature flags and persisted security events. It inventories every admin policy and proves fail-closed behavior on a deliberately policy-free route. Three races verify distinct blocked PostgreSQL backends before releasing the shared lock. A real failing audit trigger verifies transaction rollback; offline bootstrap/recovery is tested as a subprocess. Only suite-created fixtures are removed.
+
+Full smoke includes role registry/capability reads and `/admin/roles`; it preserves its seeded-default feature flag assertions. Use a separate smoke database if isolating all smoke-created trading fixtures from development. Use NEXT_DIST_DIR for independent build output while a dev server runs.
+
+### Security-review remediation regressions
+
+The RBAC suite now creates isolated assets/markets for semantic mutations and actual LIMIT/MARKET fills. It verifies configured fee-owner demotion rejection, continued fee receipt after human suspension, exact fees and participant/FEE-wallet balances, forged forwarding-header rejection, complete-report scope isolation, and effective legacy target ceilings. Additional races cover fee-principal removal versus suspension and a queued target whose authority increases before the second transaction acquires the lock. Test cleanup deletes only its own market/asset/user fixtures and restores narrowed canonical grants. Keep the seeded test admin unbootstrapped during last-super-admin tests; bootstrap only for a separate smoke phase and restore that fixture afterward.

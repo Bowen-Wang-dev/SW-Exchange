@@ -1,0 +1,1 @@
+ALTER TABLE "auth_reauth_tokens" ALTER COLUMN "purpose" SET DATA TYPE varchar(64);

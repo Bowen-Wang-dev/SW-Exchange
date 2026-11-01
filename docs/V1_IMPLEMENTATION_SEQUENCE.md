@@ -33,11 +33,13 @@ This document defines the planned phased `v1.x` roadmap. Each phase remains plan
 - Existing enrolled users remain protected when new enrollment is disabled
 - See [verification evidence](./V1_0_3_VERIFICATION.md); no trading, wallet, fee, transfer or settlement rule changes
 
-## v1.0.4 Admin Role Permissions - Planned Only
+## v1.0.4 Admin Role Permissions - Completed
 
-- Next milestone: scoped admin authorization design and enforcement
-- Runtime still uses broad ADMIN/USER checks; no granular permission model, role-management UI or permission execution exists in v1.0.3
-- Funding and chain execution remain unimplemented
+- Explicit least-privilege roles and granular permissions, four relational RBAC tables, existing-admin compatibility and reviewed bootstrap/recovery.
+- Global fail-closed method authorization; safe concurrent role/status updates, session invalidation and atomic role audit events.
+- Fresh password/enrolled factor for role changes, management UI and capabilities; default-disabled rollout flag.
+- See [runbook](./ADMIN_ROLE_PERMISSIONS.md) and [verification](./V1_0_4_VERIFICATION.md).
+- Next: v1.1 Chain Asset Registry, planned-only. Funding and chain execution remain unimplemented.
 
 ## v1.1 Chain Asset Registry
 

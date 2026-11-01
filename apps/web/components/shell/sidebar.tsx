@@ -7,7 +7,7 @@ import { useAuth } from "@/providers/auth-provider";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canAdmin } = useAuth();
   const admin = isAdmin();
 
   return (
@@ -15,7 +15,7 @@ export function Sidebar() {
       <div className="exchange-scrollbar min-h-0 space-y-6 overflow-y-auto pr-1">
         <NavSection title="User" items={userSidebarNavigation} pathname={pathname} />
         {admin ? (
-          <NavSection title="Admin" items={adminSidebarNavigation} pathname={pathname} />
+          <NavSection title="Admin" items={adminSidebarNavigation.filter((item) => !item.permission || canAdmin(item.permission))} pathname={pathname} />
         ) : null}
       </div>
     </aside>

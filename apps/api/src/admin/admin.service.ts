@@ -1,3 +1,4 @@
+import { ADMIN_SECURITY_LOCK, AdminRolesService } from "../admin-roles/admin-roles.service.js";
 import {
   BadRequestException,
   ForbiddenException,
@@ -6,7 +7,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { aliasedTable } from "drizzle-orm/alias";
-import { and, asc, count, desc, eq, inArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import {
   formatMinimalUnitsToHuman,
@@ -17,6 +18,9 @@ import { DRIZZLE_DB } from "../db/database.module.js";
 import type { Database } from "../db/database.module.js";
 import {
   adminAuditLogs,
+  userAdminRoles,
+  authReauthTokens,
+  twoFactorLoginChallenges,
   assets,
   ledgerEntries,
   markets,
@@ -76,6 +80,7 @@ type RequestSecurityContext = {
 @Injectable()
 export class AdminService {
   constructor(
+    @Inject(AdminRolesService) private readonly adminRoles: AdminRolesService,
     @Inject(DRIZZLE_DB) private readonly db: Database,
     @Inject(FeesService) private readonly feesService: FeesService,
     @Inject(LedgerService) private readonly ledgerService: LedgerService,
@@ -211,7 +216,9 @@ export class AdminService {
       .where(eq(users.isSystem, false))
       .orderBy(desc(users.createdAt));
 
+    const roleRows = await this.db.select().from(userAdminRoles);
     return rows.map((user) => ({
+      adminRoles: roleRows.filter((r) => r.userId === user.id).map((r) => r.roleKey),
       ...user,
       emailVerified: Boolean(user.emailVerifiedAt),
       created_at: user.createdAt,
@@ -224,11 +231,14 @@ export class AdminService {
     targetUserId: string,
     dto: UpdateUserStatusDto,
     context?: RequestSecurityContext,
+    authVersion?: number,
   ) {
     const requestedStatus = this.normalizeUserStatus(dto.status);
     const note = dto.note?.trim() || null;
     const transactionResult = await this.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(${ADMIN_SECURITY_LOCK})`);
       await this.assertActiveAdmin(tx, adminUserId);
+      await this.adminRoles.authorizeUserStatus(tx, adminUserId, authVersion);
 
       const [targetUser] = await tx
         .select({
@@ -239,6 +249,7 @@ export class AdminService {
           role: users.role,
           status: users.status,
           isSystem: users.isSystem,
+          authVersion: users.authVersion,
           emailVerifiedAt: users.emailVerifiedAt,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
@@ -250,6 +261,10 @@ export class AdminService {
 
       if (!targetUser || targetUser.isSystem) {
         throw new NotFoundException("Target user was not found.");
+      }
+
+      if (targetUser.role === "ADMIN") {
+        await this.adminRoles.authorizeAdminStatus(tx, adminUserId, targetUserId, requestedStatus, authVersion);
       }
 
       if (targetUser.id === adminUserId && requestedStatus !== "ACTIVE") {
@@ -290,6 +305,7 @@ export class AdminService {
         .update(users)
         .set({
           status: requestedStatus,
+          ...(targetUser.role === "ADMIN" ? { authVersion: targetUser.authVersion + 1 } : {}),
           updatedAt,
         })
         .where(eq(users.id, targetUser.id))
@@ -310,6 +326,10 @@ export class AdminService {
         throw new Error("Failed to update user status.");
       }
 
+      if (targetUser.role === "ADMIN") {
+        await tx.delete(authReauthTokens).where(eq(authReauthTokens.userId, targetUserId));
+        await tx.delete(twoFactorLoginChallenges).where(eq(twoFactorLoginChallenges.userId, targetUserId));
+      }
       await tx.insert(adminAuditLogs).values({
         adminUserId,
         action: "UPDATE_USER_STATUS",
@@ -339,6 +359,13 @@ export class AdminService {
           actorRole: "ADMIN" as const,
         },
       };
+    }).catch(async (error) => {
+      if (error instanceof ForbiddenException) {
+        await this.adminRoles.denied(adminUserId, targetUserId,
+          error.message.includes("last active super-admin") ? "ADMIN_LAST_SUPER_ADMIN_PROTECTED" : "ADMIN_ACCESS_DENIED",
+          error.message, context ?? {}, "ADMIN_USER_STATUS_CHANGE");
+      }
+      throw error;
     });
 
     const { data, securityEvent } = transactionResult;

@@ -60,7 +60,7 @@ Public.
 Requires admin JWT.
 
 - Returns the same canonical flag set for admin review surfaces.
-- Current `v1.0.3` behavior remains read-only; no mutation endpoint is exposed yet.
+- Current `v1.0.4` behavior remains read-only; no mutation endpoint is exposed yet.
 
 ## POST `/api/auth/login`
 
@@ -237,7 +237,7 @@ Supported simple filters:
 Notes:
 
 - Response metadata is sanitized and must not include raw passwords, JWTs, TOTP secrets, email-verification codes, private keys, or environment secrets.
-- Current `v1.0.3` coverage includes login, TOTP setup/management/challenge/recovery outcomes, email verification outcomes, and selected admin actions.
+- Current `v1.0.4` coverage includes login, TOTP management, email verification, role assignment/removal/update, rejected administrative access/escalation, last-super protection and reviewed bootstrap.
 
 ## GET `/api/admin/security-events/:id`
 
@@ -662,7 +662,7 @@ Request:
 
 ## PATCH `/api/admin/users/:id/status`
 
-Requires admin JWT.
+Requires a current ACTIVE non-system admin JWT and users.manage. ADMIN targets additionally always require explicit admin_roles.manage and an effective-authority ceiling covering assigned permissions and legitimate disabled-enforcement legacy fallback. This applies to freezing, banning, reactivation and unchanged-status requests. Authorization rechecks run inside the protected transaction; target promotions cannot bypass the ceiling. Insufficient authority returns 403 without status/session changes. Authorized ADMIN changes increment authVersion and revoke outstanding proofs/challenges. Ordinary USER management and separate last-super-admin protections remain intact.
 
 Request:
 
@@ -761,3 +761,30 @@ Response shape:
   "createdAt": "2026-05-25T10:00:00.000Z"
 }
 ```
+
+## v1.0.4 administrative roles and authorization
+
+Every administrative route requires a current JWT, ACTIVE non-system ADMIN and explicit method policy. Missing policies fail closed. See the [complete 34-route permission inventory](./ADMIN_ROLE_PERMISSIONS.md#complete-administrative-route-inventory), including the legacy GET `/api/users` alias.
+
+- GET `/api/admin/roles`: `{ roles: [{ key, description, permissions }] }`; admin_roles.read.
+- GET `/api/admin/permissions`: `{ permissions: string[] }`; admin_roles.read.
+- GET `/api/admin/capabilities`: `{ roles, permissions, hasAssignments, effectivePermissions, enforcementEnabled }`; admin_roles.read; no-store.
+- GET `/api/admin/users/:id/roles`: `{ user: { id, username, role, status, isSystem }, roles, permissions, hasAssignments }`; admin_roles.read; no-store.
+- POST `/api/admin/users/:id/roles/reauth`: `{ roles: string[], password, code? }` -> `{ reauthToken, expiresAt }`; always admin_roles.manage, password and fresh enrolled factor; no-store. Proof is actor/target/exact-role-set bound, hash-only, five-minute and single-use.
+- PUT `/api/admin/users/:id/roles`: `{ roles: string[], reauthToken }` -> `{ userId, roles, permissions, hasAssignments, changed }`; always admin_roles.manage; no-store. `[]` removes admin identity. Unknown/duplicate roles or extra fields return 400. Invalid/stale authentication/proof returns 401, missing authority/self change/last-super removal returns 403, absent/system target returns 404.
+- GET `/api/admin/users` additionally includes `adminRoles: string[]` without credential fields.
+
+Assigned roles remain enforced regardless of enableAdminRolePermissions. False only retains operational compatibility for unassigned legacy administrators; true rejects them too. Role mutations and administrator status changes always require explicit role-management authority. Flag default stays false; no editor is added.
+
+Role changes atomically revoke affected sessions/proofs/challenges through authVersion. Administrator status changes do likewise; unrelated ordinary sessions stay valid. Profile/registration/status DTOs reject injected role fields. See [security/runbook](./ADMIN_ROLE_PERMISSIONS.md).
+
+## v1.0.4 independent-review remediation
+
+- GET `/api/admin/fee-settings` requires **fees.read + wallets.read** before settings/balances are queried. PATCH and POST return the same complete response and require **fees.manage + fees.read + wallets.read**. Missing scopes return 403; fully authorized response shapes and shipped grants are unchanged.
+- Role-purpose password/factor rate-limit operations complete independently before the user-row lock. Every admitted role-proof attempt reserves the existing shared factor budget, including unenrolled/wrong-password attempts; failure counters remain durable. 2FA setup/enable read enable2FA on their existing transaction connection. No nested pool acquisition is needed while holding these user locks; proof/factor consumption stays atomic.
+- GET `/api/admin/reports/summary` is a complete report: require **reports.read, audit.read, fees.read, wallets.read, trades.read and transfers.read** before executing queries. Missing any returns 403 without raw report records. Authorized response shape is unchanged; viewer/operator grants are not expanded. GET `/api/admin` remains aggregate counters only under reports.read.
+- PUT `/api/admin/users/:id/roles` additionally returns **409 Conflict** when removing the configured ADMIN_EMAIL fee principal's base ADMIN identity. Another active super-admin does not satisfy this fee-principal invariant. The rejection rolls back proof consumption and preserves the target's identity/session version. Last-super-admin/self protections continue independently.
+- Authorized FROZEN/BANNED status transitions revoke human access while retaining the existing ADMIN fee principal; fee lookup is status-independent and remains operational. No new recipient or balance movement occurs.
+- Role delegation and administrator status mutations compare assigned and effective legacy target authority inside the protected transaction. Disabled enforcement includes legitimate ADMIN fallback; enabled enforcement does not. Ordinary USERs never acquire fallback. Status mutations preserve explicit role-management checks, last-super-admin protection, session invalidation and fee-principal suspension.
+- Shared audit context trusts socket.remoteAddress only; arbitrary forwarding headers do not affect persisted source IP. No trusted proxy is configured.
+- See [remediation verification](./V1_0_4_REMEDIATION.md) for actual LIMIT/MARKET accounting regressions, concurrent updates and narrowed-scope tests.

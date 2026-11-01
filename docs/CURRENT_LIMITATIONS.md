@@ -16,7 +16,7 @@ These items are intentionally out of scope in the current system state. Do not d
 - Email verification exists as an optional foundation, but it is not yet required for login, trading, or sensitive actions.
 - TOTP 2FA is implemented; platform-wide mandatory-2FA policy is not implemented.
 - Purpose-bound password reauthentication is implemented for 2FA management only; broader action enforcement remains future work.
-- Granular admin role permissions are not implemented; v1.0.4 remains planned-only.
+- Fixed administrative roles/permissions are implemented in v1.0.4; custom role editing, mandatory admin MFA and multi-party approval remain unimplemented.
 - Phone or SMS verification is not implemented.
 
 ## Trading Scope

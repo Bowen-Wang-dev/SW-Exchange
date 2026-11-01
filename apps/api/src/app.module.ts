@@ -1,3 +1,4 @@
+import { AdminRolesModule } from "./admin-roles/admin-roles.module.js";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AppController } from "./app.controller.js";
@@ -38,6 +39,7 @@ import { validateEnv } from "./config/env.validation.js";
     SecurityModule,
     TradesModule,
     AdminModule,
+    AdminRolesModule,
   ],
   controllers: [AppController],
 })

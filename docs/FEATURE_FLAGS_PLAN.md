@@ -105,12 +105,14 @@ Current implementation notes:
 
 ### `enableAdminRolePermissions`
 
-- Purpose: turn on granular admin RBAC instead of simple admin/non-admin behavior
-- Default value: `false`
-- Frontend effect: hide unauthorized admin controls and role-management views
-- Backend enforcement: check permission scopes on sensitive admin actions
-- Admin visibility: show role assignments, effective scopes, and protected actions
-- Safety notes: backend scope checks are mandatory; UI hiding alone is not acceptable
+- Status: implemented in v1.0.4; default remains `false`.
+- Assigned roles always constrain authority; viewer stays read-only and operator cannot acquire financial/role-management mutations with the flag off.
+- False permits the previous operational boundary for unassigned legacy ACTIVE non-system ADMIN identities only. True additionally requires granular assignments for those accounts.
+- Authentication, base ADMIN/status checks and method policy completeness are always required. Disabling never grants ordinary users access.
+- Role-management mutations and administrator status changes always require real admin_roles.manage. No flag permits unauthorized bootstrap or super-admin creation.
+- Removing all roles changes base identity to USER, so rollback cannot revive a demoted admin. Before disabling after activation, review any orphaned/unassigned ADMINs whose legacy operational access would resume.
+- Frontend displays actual roles/effective scopes and hides/disables unavailable operations. Backend remains authoritative. No general-purpose flag editor is added.
+- See [rollout/recovery procedure and security implications](./ADMIN_ROLE_PERMISSIONS.md).
 
 ### `enableMarginTrading`
 

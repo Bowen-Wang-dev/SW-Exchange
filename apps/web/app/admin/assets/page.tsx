@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuth } from "@/providers/auth-provider";
+
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -36,6 +38,8 @@ type PendingAssetAction = {
 };
 
 export default function AdminAssetsPage() {
+  const { canAdmin } = useAuth();
+  const canWrite = canAdmin("assets.manage");
   const [assets, setAssets] = useState<AssetRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<AssetStatusFilter>("ALL");
@@ -505,7 +509,7 @@ export default function AdminAssetsPage() {
 
                 <button
                   type="submit"
-                  disabled={isCreating}
+                  disabled={isCreating || !canWrite}
                   className="rounded-2xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-[var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isCreating ? "Creating asset..." : "Create asset"}
@@ -561,13 +565,13 @@ export default function AdminAssetsPage() {
                     <div key={`${asset.symbol}-actions`} className="flex flex-wrap gap-2">
                       <StatusButton
                         label="Edit metadata"
-                        disabled={updatingKey === `metadata:${asset.symbol}`}
+                        disabled={updatingKey === `metadata:${asset.symbol}` || !canWrite}
                         tone="info"
                         onClick={() => beginMetadataEdit(asset)}
                       />
                       <StatusButton
                         label={asset.isActive ? "Pause" : "Resume"}
-                        disabled={updatingKey === `asset:${asset.symbol}`}
+                        disabled={updatingKey === `asset:${asset.symbol}` || !canWrite}
                         tone={asset.isActive ? "warning" : "success"}
                         onClick={() =>
                           requestAssetStatusUpdate(asset, asset.isActive ? "PAUSED" : "ACTIVE")
@@ -663,7 +667,7 @@ export default function AdminAssetsPage() {
               <div className="mt-5 flex flex-wrap gap-2">
                 <StatusButton
                   label="Save metadata"
-                  disabled={updatingKey === `metadata:${editingAsset.symbol}`}
+                  disabled={updatingKey === `metadata:${editingAsset.symbol}` || !canWrite}
                   tone="success"
                   onClick={() => void updateAssetMetadata()}
                 />
@@ -718,6 +722,8 @@ function StatusButton({
   tone: "success" | "warning" | "info";
   onClick: () => void;
 }) {
+  const { canAdmin } = useAuth();
+  const mayWrite = canAdmin("assets.manage");
   const classes =
     tone === "success"
       ? "border-[var(--notice-success-border)] bg-[var(--notice-success-bg)] text-[var(--notice-success-text)] hover:border-[var(--success)]"
@@ -732,7 +738,7 @@ function StatusButton({
       disabled={disabled}
       className={`rounded-xl border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${classes}`}
     >
-      {disabled ? "Updating..." : label}
+      {disabled && mayWrite ? "Updating..." : label}
     </button>
   );
 }

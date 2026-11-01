@@ -122,7 +122,7 @@ This document describes current live `v0.x` runtime flows only. Future chain dep
 - Admin requests `/api/admin/security-actions`
 - API returns the canonical sensitive-action matrix defined in shared constants
 - The matrix is currently informational only in `v1.0.2`
-- Future milestones may enforce password re-auth, email verification, 2FA, and admin RBAC against those action keys server-side
+- Admin RBAC and purpose-bound password/enrolled-factor reauthentication for role changes are implemented in v1.0.4; broader email and sensitive-action enforcement remains future work
 
 ## Candle / K-line Data Flow
 
@@ -161,3 +161,19 @@ This document describes current live `v0.x` runtime flows only. Future chain dep
 - User confirms scope: `ALL`, `BUY`, or `SELL`
 - Frontend loops existing `POST /api/orders/:id/cancel`
 - After the loop, UI refreshes trade data, balances, order book, and candles
+
+## Administrative role change (v1.0.4)
+
+1. Global admin guard authenticates live database identity/status/version and validates explicit handler permissions.
+2. Authorized role manager supplies password plus fresh enrolled factor for a target and exact role set; server issues a five-minute purpose-bound hash-only proof.
+3. PUT replacement takes the shared PostgreSQL administrative advisory lock and deterministically locks actor/target rows; rechecks current authority/session version.
+4. Reject self changes, excess delegation, unknown roles and final-active-super-admin removal. Admin status mutations use the same lock/invariants.
+5. Atomically consume proof, replace assignments/base identity, increment target authVersion, revoke target proofs/challenges, and persist ADMIN_ROLE_ASSIGNED/REMOVED and ADMIN_ROLES_UPDATED security events. Audit failure rolls back all protected changes.
+6. Rejected administrative access, escalation and last-super-admin protection emit sanitized security events after rollback. Offline reviewed recovery emits ADMIN_ROLES_BOOTSTRAPPED.
+7. UI refreshes assignments; target must log in again. New requests resolve current database authority, never stale client role claims. Ordinary account sessions and trading flows remain unchanged.
+
+See [complete authorization inventory and rollout rules](./ADMIN_ROLE_PERMISSIONS.md).
+
+## v1.0.4 review remediation boundaries
+
+Role replacement resolves effective legacy target authority inside the shared lock and refuses configured fee-principal identity removal before consuming proof. Status suspension retains that principal's role/ownership while revoking its sessions. Complete reports enforce all six required scopes before querying any raw subsection. Every shared audit-context consumer records the socket peer instead of arbitrary forwarding headers. No matching, fee arithmetic, wallet transfer or settlement event flow changes.

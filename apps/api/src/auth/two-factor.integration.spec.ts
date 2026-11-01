@@ -263,6 +263,30 @@ describe("v1.0.3 real PostgreSQL authentication integration", { concurrency: fal
     expectStatus(await request("/auth/2fa/reauth", { password, purpose: "login" }, user.token), 400);
   });
 
+  for (const action of ["setup", "enable"] as const) {
+    test(`ten concurrent 2FA ${action} requests complete with a saturated ten-connection PostgreSQL pool`, { timeout: 12_000 }, async () => {
+      // Both paths read enable2FA while holding the user-row lock. Those reads
+      // must use that transaction rather than acquiring an eleventh connection.
+      applicationPool.options.max = 10;
+      let body: Record<string, unknown>;
+      if (action === "setup") body = { reauthToken: await reauth("2fa-setup") };
+      else {
+        const enrollment = await setup();
+        body = { reauthToken: await reauth("2fa-enable"), code: await totp(enrollment.secret) };
+      }
+      const replies = await raceOnUser(Array.from({ length: 10 }, () => () => request(`/auth/2fa/${action}`, body, user.token)));
+      oneWinner(replies);
+      assert.equal(applicationPool.totalCount, 10);
+      assert.equal(applicationPool.waitingCount, 0);
+      const success = replies.find((r) => r.status === 201)!;
+      if (action === "setup") testSecrets.add(success.body.secret);
+      else for (const code of success.body.recoveryCodes) testSecrets.add(code);
+      const scope = action === "setup" ? "2fa-setup" : "2fa-factor";
+      assert.equal((await pool.query("select attempts from auth_rate_limits where key=$1", [hashCredential(scope + ":" + user.id)])).rows[0].attempts, 10);
+      expectStatus(await request(`/auth/2fa/${action}`, body, user.token), action === "setup" ? 429 : 401);
+    });
+  }
+
   test("reauthentication is bound to the correct user and purpose", async () => {
     const other = await fixture();
     const token = await reauth("2fa-setup");

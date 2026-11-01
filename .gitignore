@@ -13,3 +13,8 @@ drizzle/*.sqlite
 
 # Local UI reference captures
 sample/
+
+# TypeScript / isolated Next.js verification outputs
+*.tsbuildinfo
+.next-smoke
+.next-verify

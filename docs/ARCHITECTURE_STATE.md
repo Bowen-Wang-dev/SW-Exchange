@@ -1,6 +1,6 @@
 # Architecture State
 
-Current milestone: `v1.0.3 TOTP 2FA Foundation`
+Current milestone: `v1.0.4 Admin Role Permissions`
 
 ## Current Stack
 
@@ -30,6 +30,7 @@ Current milestone: `v1.0.3 TOTP 2FA Foundation`
 - `v1.0.1 Security Logs + Sensitive Action Model`
 - `v1.0.2 Email Verification Foundation`
 - `v1.0.3 TOTP 2FA Foundation`
+- `v1.0.4 Admin Role Permissions`
 
 ## Public Product Positioning
 
@@ -96,7 +97,9 @@ Current milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Current Admin Features
 
-- Admin login and protected admin routes
+- Admin login, ACTIVE account boundary and globally protected routes with 34 explicit permission policies
+- Viewer/operator/super-admin assignments, current capabilities, permission visibility and confirmed role management
+- PostgreSQL serialization, last-super-admin protection, session-version revocation and reviewed offline recovery
 - User status controls
 - Asset pause/resume
 - Asset metadata editing
@@ -134,7 +137,19 @@ Current milestone: `v1.0.3 TOTP 2FA Foundation`
 - Enable/disable increment authVersion and return a replacement session; earlier JWTs are rejected
 - Login, factor and password-reauthentication rate limits; startup/hourly retention cleanup
 - Dashboard security controls, two-step login, admin 2FA status visibility, and TWO_FACTOR security events
-- General admin RBAC, enforced email and future funding policies remain planned-only
+- Admin RBAC and purpose-bound role reauthentication are implemented; enforced email and future funding policies remain planned-only
+
+## v1.0.4 Independent Review Remediation
+
+- Second review: durable role-reauthentication password/factor accounting completes before taking the user-row lock. Setup/enable flag reads reuse their existing transaction connection. This removes a pool dependency cycle without increasing production pool size/timeouts or weakening authentication.
+- Complete fee-settings reads require fees.read + wallets.read; both mutation aliases additionally require fees.manage because their responses also contain balances. Complete-report isolation and shipped grants remain unchanged.
+- Administrator freeze/ban/reactivation/no-op status requests recheck actor and effective target authority inside the protected transaction, including legitimate legacy fallback. Queued target promotions cannot bypass the ceiling; ordinary user management and session/last-super/fee-principal invariants remain intact.
+- Locked role changes protect the configured fee-principal ADMIN identity with 409; status suspension still revokes human access while preserving fee receipt and independent last-super-admin protections.
+- Central audit attribution uses the socket peer, with no untrusted forwarding-header fallback or implicit trusted proxy.
+- Complete reports require six underlying resource scopes before any report query; aggregate counters stay separate.
+- Legacy-aware target authority uses the same capability resolver/transaction connection as authorization; USER identities never receive fallback.
+- Semantic authorization and real isolated LIMIT/MARKET fill tests supplement the 34-route inventory, including a queued target-authority race.
+- No new schema, fee formulas, matching/accounting rules or chain features. See [remediation evidence](./V1_0_4_REMEDIATION.md).
 
 ## Current UI State
 
@@ -155,7 +170,7 @@ Current milestone: `v1.0.3 TOTP 2FA Foundation`
 - No chain listeners, chain addresses, or token gateway runtime
 - No real-money redemption, fiat flow, or built-in KYC workflow
 - Optional TOTP 2FA is implemented; enrollment is gated by enable2FA, existing enabled accounts always require a second factor
-- Granular admin role permissions remain planned-only for v1.0.4
+- Granular admin roles/permissions are implemented; assigned roles are always enforced and enableAdminRolePermissions additionally gates unassigned legacy administrator access
 - Email verification is available but is not required for login, trading, transfer, or admin actions yet
 - No margin / futures / leverage behavior
 - No real-time event bus; web UI uses polling and manual refresh paths
@@ -175,6 +190,6 @@ Current milestone: `v1.0.3 TOTP 2FA Foundation`
 
 ## Current Milestone
 
-- Current completed milestone: `v1.0.3 TOTP 2FA Foundation`
-- Next planned milestone: `v1.0.4 Admin Role Permissions` (planned-only)
-- `v1.0.3` adds TOTP 2FA and focused password reauthentication without trading-core changes. Deposit, withdraw, blockchain, admin RBAC execution, margin, futures, and advanced orders remain disabled or unimplemented. See [verification evidence](./V1_0_3_VERIFICATION.md).
+- Current completed milestone: `v1.0.4 Admin Role Permissions`
+- Next planned milestone: `v1.1 Chain Asset Registry` (planned-only)
+- `v1.0.4` adds explicit roles, globally fail-closed admin authorization, transactional/session-fresh role changes, security events and role UI. Chain/funding/margin/futures/advanced-order execution remains unimplemented. See [RBAC runbook](./ADMIN_ROLE_PERMISSIONS.md) and [verification evidence](./V1_0_4_VERIFICATION.md).

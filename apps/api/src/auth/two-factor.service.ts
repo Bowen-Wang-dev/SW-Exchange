@@ -15,7 +15,7 @@ import { decryptTotp, encryptTotp, hashCredential, newRecoveryCodes, newTotpSecr
 type User = typeof users.$inferSelect;
 type Tx = Parameters<Parameters<Database["transaction"]>[0]>[0];
 type Context = { ipAddress?: string | null; userAgent?: string | null };
-export type ReauthPurpose = "2fa-setup" | "2fa-enable" | "2fa-disable" | "2fa-recovery-regenerate";
+export type ReauthPurpose = "2fa-setup" | "2fa-enable" | "2fa-disable" | "2fa-recovery-regenerate" | `admin-roles:${string}`;
 
 @Injectable()
 export class TwoFactorService {
@@ -44,21 +44,33 @@ export class TwoFactorService {
     return user;
   }
 
-  async reauthenticate(userId: string, version: number, password: string, purpose: ReauthPurpose) {
+  async reauthenticate(userId: string, version: number, password: string, purpose: ReauthPurpose, code?: string, context: Context = {}) {
     await this.limits.check("2fa-reauth", userId, 10, 300);
+    // Complete durable accounting before taking the user lock. A nested pooled
+    // query here can deadlock a full pool of requests waiting on that same user.
+    // Reserve the factor budget for role proofs even when no factor is enrolled;
+    // enrollment and session freshness are still checked under the user lock.
+    if (purpose.startsWith("admin-roles:")) await this.limits.check("2fa-factor", userId, 30, 300);
+    let recoveryUser: User | undefined;
     const result = await this.db.transaction(async (tx) => {
       const user = await this.lockedUser(tx, userId, version);
       if (!(await compare(password, user.passwordHash))) throw new UnauthorizedException("Invalid credentials.");
+      if (purpose.startsWith("admin-roles:") && user.twoFactorEnabled) {
+        const factor = code ? await this.consumeFactor(tx, user, code) : null;
+        if (!factor) throw new UnauthorizedException("A fresh second factor is required.");
+        if (factor === "RECOVERY") recoveryUser = user;
+      }
       const token = randomBytes(32).toString("hex");
       const expiresAt = new Date(Date.now() + 5 * 60_000);
       await tx.delete(authReauthTokens).where(and(eq(authReauthTokens.userId, userId), eq(authReauthTokens.purpose, purpose)));
       await tx.insert(authReauthTokens).values({ userId, tokenHash: hashCredential(token), purpose, expiresAt });
       return { reauthToken: token, expiresAt };
     });
+    if (recoveryUser) await this.event(recoveryUser, "TWO_FACTOR_RECOVERY_USED", context);
     return result;
   }
 
-  private async consumeReauth(tx: Tx, userId: string, token: string, purpose: ReauthPurpose) {
+  async consumeReauth(tx: Tx, userId: string, token: string, purpose: ReauthPurpose) {
     const [reauth] = await tx.select().from(authReauthTokens).where(eq(authReauthTokens.tokenHash, hashCredential(token))).for("update");
     if (!reauth || reauth.userId !== userId || reauth.purpose !== purpose || reauth.usedAt || reauth.expiresAt.getTime() <= Date.now()) {
       throw new UnauthorizedException("Invalid or expired reauthentication.");
@@ -88,7 +100,7 @@ export class TwoFactorService {
       const key = this.requireKey();
       const result = await this.db.transaction(async (tx) => {
         const user = await this.lockedUser(tx, userId, version);
-        await this.flags.assertFeatureEnabled("enable2FA");
+        await this.flags.assertFeatureEnabled("enable2FA", tx);
         await this.consumeReauth(tx, userId, reauthToken, "2fa-setup");
         if (user.twoFactorEnabled) throw new BadRequestException("Two-factor authentication is already enabled.");
         const secret = newTotpSecret();
@@ -113,7 +125,7 @@ export class TwoFactorService {
     try {
       const result = await this.db.transaction(async (tx) => {
         const user = await this.lockedUser(tx, userId, version);
-        await this.flags.assertFeatureEnabled("enable2FA");
+        await this.flags.assertFeatureEnabled("enable2FA", tx);
         await this.consumeReauth(tx, userId, reauthToken, "2fa-enable");
         if (user.twoFactorEnabled || !user.totpPendingEncrypted || !user.totpPendingExpiresAt || user.totpPendingExpiresAt.getTime() <= Date.now()) {
           throw new BadRequestException("Start a new two-factor setup.");

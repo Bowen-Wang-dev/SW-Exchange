@@ -6,6 +6,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -51,6 +52,13 @@ export const securityEventSeverityEnum = pgEnum("security_event_severity", [
   "CRITICAL",
 ]);
 export const securityEventTypeEnum = pgEnum("security_event_type", [
+  "ADMIN_ROLE_ASSIGNED",
+  "ADMIN_ROLE_REMOVED",
+  "ADMIN_ROLES_UPDATED",
+  "ADMIN_ACCESS_DENIED",
+  "ADMIN_PRIVILEGE_ESCALATION_REJECTED",
+  "ADMIN_LAST_SUPER_ADMIN_PROTECTED",
+  "ADMIN_ROLES_BOOTSTRAPPED",
   "AUTH_LOGIN_SUCCESS",
   "AUTH_LOGIN_FAILED",
   "AUTH_LOGOUT",
@@ -105,6 +113,24 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const adminRoles = pgTable("admin_roles", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+  description: text("description").notNull(),
+});
+export const adminPermissions = pgTable("admin_permissions", {
+  key: varchar("key", { length: 64 }).primaryKey(),
+});
+export const adminRolePermissions = pgTable("admin_role_permissions", {
+  roleKey: varchar("role_key", { length: 64 }).notNull().references(() => adminRoles.key, { onDelete: "cascade" }),
+  permissionKey: varchar("permission_key", { length: 64 }).notNull().references(() => adminPermissions.key, { onDelete: "cascade" }),
+}, (t) => [primaryKey({ columns: [t.roleKey, t.permissionKey] }), index("admin_role_permissions_permission_idx").on(t.permissionKey)]);
+export const userAdminRoles = pgTable("user_admin_roles", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleKey: varchar("role_key", { length: 64 }).notNull().references(() => adminRoles.key),
+  assignedBy: uuid("assigned_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.userId, t.roleKey] }), index("user_admin_roles_role_idx").on(t.roleKey), index("user_admin_roles_actor_idx").on(t.assignedBy)]);
 
 export const emailVerificationTokens = pgTable(
   "email_verification_tokens",
@@ -421,7 +447,7 @@ export const authReauthTokens = pgTable("auth_reauth_tokens", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
-  purpose: varchar("purpose", { length: 32 }).notNull(),
+  purpose: varchar("purpose", { length: 64 }).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

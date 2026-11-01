@@ -1,5 +1,6 @@
 "use client";
 
+import type { AdminPermission, AdminRoleKey } from "@sw-exchange/shared";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { apiRequest, logResolvedApiBaseUrl } from "@/lib/api-client";
 import {
@@ -13,7 +14,11 @@ import {
   type AuthUser,
 } from "@/lib/auth";
 
+export type AdminCapabilities = { roles: AdminRoleKey[]; permissions: AdminPermission[]; effectivePermissions: AdminPermission[]; enforcementEnabled: boolean };
+
 type AuthContextValue = {
+  adminCapabilities: AdminCapabilities | null;
+  canAdmin: (permission: AdminPermission) => boolean;
   user: AuthUser | null;
   token: string | null;
   isLoading: boolean;
@@ -51,6 +56,7 @@ type SessionResponseUser = AuthUserType | {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [capabilities, setCapabilities] = useState<{ token: string; value: AdminCapabilities } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const sessionRequestIdRef = useRef(0);
 
@@ -66,6 +72,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(storedToken);
     void loadMeWithToken(storedToken);
   }, []);
+
+  useEffect(() => {
+    if (!token || user?.role !== "ADMIN" || user.status !== "ACTIVE") { setCapabilities(null); return; }
+    let active = true;
+    const refresh = async () => {
+      try {
+        const value = await apiRequest<AdminCapabilities>("/admin/capabilities", { token });
+        if (active) setCapabilities({ token, value });
+      } catch { if (active) setCapabilities(null); }
+    };
+    void refresh();
+    const timer = window.setInterval(refresh, 30_000);
+    window.addEventListener("focus", refresh);
+    return () => { active = false; window.clearInterval(timer); window.removeEventListener("focus", refresh); };
+  }, [token, user?.id, user?.role, user?.status]);
+
+  const adminCapabilities = capabilities?.token === token ? capabilities?.value ?? null : null;
+  function canAdmin(permission: AdminPermission) {
+    return user?.role === "ADMIN" && user.status === "ACTIVE" && Boolean(adminCapabilities?.effectivePermissions.includes(permission));
+  }
 
   async function loadMeWithToken(accessToken: string) {
     const requestId = ++sessionRequestIdRef.current;
@@ -198,6 +224,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         token,
+        adminCapabilities,
+        canAdmin,
         isLoading,
         login,
         completeTwoFactorLogin,

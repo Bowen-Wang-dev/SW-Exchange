@@ -80,6 +80,7 @@ export type AdminWalletBucketTransferResponse = {
 };
 
 export type AdminUser = {
+  adminRoles?: string[];
   twoFactorEnabled: boolean;
   twoFactorEnabledAt: string | null;
   id: string;

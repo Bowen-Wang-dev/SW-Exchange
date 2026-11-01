@@ -1,5 +1,6 @@
 "use client";
 
+import { adminSidebarNavigation } from "@/lib/navigation";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/providers/auth-provider";
@@ -17,7 +18,7 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAdmin, isAuthenticated, isLoading } = useAuth();
+  const { isAdmin, isAuthenticated, isLoading, adminCapabilities, canAdmin } = useAuth();
   const authenticated = isAuthenticated();
   const admin = isAdmin();
 
@@ -46,6 +47,11 @@ export function ProtectedRoute({
 
   if (requireAdmin && !admin) {
     return <AccessState title="Admin access required" description="This section is only available to the platform administrator." />;
+  }
+
+  const required = adminSidebarNavigation.find((item) => item.href === pathname)?.permission;
+  if (requireAdmin && required && adminCapabilities && !canAdmin(required)) {
+    return <AccessState title="Permission required" description={`This page requires ${required}. Contact an authorized administrator.`} />;
   }
 
   return <>{children}</>;

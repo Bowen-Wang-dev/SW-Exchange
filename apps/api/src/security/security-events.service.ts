@@ -93,12 +93,12 @@ export class SecurityEventsService {
 
   async recordEvent(
     input: SecurityEventInput,
-    options: { swallowErrors?: boolean } = {},
+    options: { swallowErrors?: boolean; transaction?: Parameters<Parameters<Database["transaction"]>[0]>[0] } = {},
   ): Promise<void> {
     const swallowErrors = options.swallowErrors ?? true;
 
     try {
-      await this.db.insert(securityEvents).values({
+      await (options.transaction ?? this.db).insert(securityEvents).values({
         actorUserId: input.actorUserId ?? null,
         actorRole: input.actorRole ?? null,
         eventType: input.eventType,
@@ -419,15 +419,14 @@ export class SecurityEventsService {
 }
 
 export function extractRequestSecurityContext(request?: RequestLike) {
-  const forwardedFor = request?.headers?.["x-forwarded-for"];
-  const realIp = request?.headers?.["x-real-ip"];
   const userAgentHeader = request?.headers?.["user-agent"];
-
-  const ipAddress = firstHeaderValue(forwardedFor) ?? firstHeaderValue(realIp) ?? request?.ip ?? request?.socket?.remoteAddress ?? null;
+  // No trusted proxy is configured. Client forwarding headers and request.ip
+  // cannot override the actual socket peer; absence remains unknown/fail-closed.
+  const ipAddress = request?.socket?.remoteAddress ?? null;
   const userAgent = firstHeaderValue(userAgentHeader) ?? null;
 
   return {
-    ipAddress: ipAddress ? ipAddress.split(",")[0]!.trim() : null,
+    ipAddress: ipAddress?.trim() || null,
     userAgent: userAgent ? userAgent.trim() : null,
   };
 }
